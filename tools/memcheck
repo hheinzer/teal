@@ -1,0 +1,2 @@
+#!/bin/bash
+mpirun -n $1 valgrind --suppressions=tools/valgrind.supp --leak-check=full "${@:2}"

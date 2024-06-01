@@ -1,0 +1,10 @@
+#!/bin/bash
+for n in "${@:2}"
+do
+    sleep 60
+    mpirun -n "$n" "$1" > "$1.out"
+    echo "$n" $(awk '/computation time/ {print $4}' "$1.out") | tee -a tmp.out
+    mkdir -p "$1_$n"
+    mv "$1"*.* "$1_$n"/.
+done
+mv tmp.out "$(dirname $1)/benchmark_$(basename $1).out"
