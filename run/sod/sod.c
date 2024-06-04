@@ -6,7 +6,8 @@ static const double dr = 0.125, ur = 0, pr = 0.1;
 static const double x0 = 0.5, max_time = 0.25;
 static Function exact;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
     Mesh mesh = mesh_create((double[]){0, 0}, (double[]){1, 1}, (long[]){100, 1});
@@ -17,7 +18,7 @@ int main(int argc, char **argv) {
     mesh_print(&mesh);
 
     char *name[] = {"exact density", "exact velocity-x", "exact velocity-y", "exact pressure"};
-    Fields user = {.nu = 4, .name = name, .compute = exact};
+    Fields user = {.n_fields = 4, .name = name, .compute = exact};
     Equations eqns = euler_create(&mesh, &user);
     equations_set_initial_condition(&eqns, exact);
     euler_compute_conserved(&eqns);
@@ -35,7 +36,8 @@ int main(int argc, char **argv) {
     teal_finalize();
 }
 
-static void exact(const double *x, const double time, const double *, double *u) {
+static void exact(const double *x, const double time, const double *, double *u)
+{
     riemann(1.4, dl, ul, pl, dr, ur, pr, (x[0] - x0) / time, &u[D], &u[U], &u[P]);
     u[V] = 0;
 }

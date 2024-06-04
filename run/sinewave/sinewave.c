@@ -5,7 +5,8 @@
 const double gamma = 1.4, a = 0.1, b = PI, c = 2 * PI;
 static Function exact, source;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
     Mesh mesh = mesh_create((double[]){-1, -1}, (double[]){1, 1}, (long[]){100, 100});
@@ -15,7 +16,7 @@ int main(int argc, char **argv) {
     mesh_print(&mesh);
 
     char *name[] = {"exact density", "exact velocity-x", "exact velocity-y", "exact pressure"};
-    Fields user = {.nu = 4, .name = name, .compute = exact};
+    Fields user = {.n_fields = 4, .name = name, .compute = exact};
     Equations eqns = euler_create(&mesh, &user);
     eqns.source = source;
     equations_set_initial_condition(&eqns, exact);
@@ -34,13 +35,15 @@ int main(int argc, char **argv) {
     teal_finalize();
 }
 
-static void exact(const double *x, const double time, const double *, double *u) {
+static void exact(const double *x, const double time, const double *, double *u)
+{
     u[D] = 2 + a * sin(b * (x[0] + x[1]) - c * time);
     u[V] = u[U] = 1;
     u[P] = (gamma - 1) * (u[D] * u[D] - 0.5 * u[D] * (u[U] * u[U] + u[V] * u[V]));
 }
 
-static void source(const double *x, const double time, const double *, double *q) {
+static void source(const double *x, const double time, const double *, double *q)
+{
     q[D] = a * (2 * b - c) * cos(b * (x[0] + x[1]) - c * time);
     q[DV] = q[DU] =
         a * (b * (gamma - 1) * (2 * a * sin(b * (x[0] + x[1]) - c * time) + 3) + 2 * b - c) *

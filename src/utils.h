@@ -1,8 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define MIN(a, b) (a < b ? a : b)
-#define MAX(a, b) (a > b ? a : b)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 void *utils_memdup(const void *src, const long nmemb, const long size);
 

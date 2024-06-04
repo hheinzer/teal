@@ -25,7 +25,8 @@ static void partition_entities(Mesh *mesh, const long (*cell_map)[2]);
 static void compute_sync(Mesh *mesh, const long (*cell_map)[2]);
 static int mapcmp(const void *a, const void *b);
 
-void partition(Mesh *mesh, bool reorder) {
+void partition(Mesh *mesh, bool reorder)
+{
     MPI_Comm_rank(MPI_COMM_WORLD, &mesh->rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mesh->size);
     assert(mesh->size <= mesh->n_inner_cells && "more ranks than cells is not supported");
@@ -61,12 +62,15 @@ void partition(Mesh *mesh, bool reorder) {
     compute_sync(mesh, cell_map);
 }
 
-static void compute_cell_partitioning(const Mesh *mesh, long *part) {
+static void compute_cell_partitioning(const Mesh *mesh, long *part)
+{
     if (mesh->size == 1) {
         for (long i = 0; i < mesh->n_inner_cells; ++i) part[i] = mesh->rank;
-    } else if (mesh->size == mesh->n_inner_cells) {
+    }
+    else if (mesh->size == mesh->n_inner_cells) {
         for (long i = 0; i < mesh->n_inner_cells; ++i) part[i] = i;
-    } else {
+    }
+    else {
         idx_t n_cells = mesh->n_cells;
         idx_t options[METIS_NOPTIONS], objval;
         METIS_SetDefaultOptions(options);
@@ -81,7 +85,8 @@ static void compute_cell_partitioning(const Mesh *mesh, long *part) {
         part[j] = part[mesh->cell.cell[mesh->cell.i_cell[j]]];
 }
 
-static void reorder_cells(Mesh *mesh, long *part) {
+static void reorder_cells(Mesh *mesh, long *part)
+{
     // mark ghost cells as their own partition, separate from all other partitions
     for (long i = mesh->n_inner_cells; i < mesh->n_cells; ++i) part[i] += mesh->size;
 
@@ -130,7 +135,8 @@ static void reorder_cells(Mesh *mesh, long *part) {
 }
 
 static void compute_cell_map(const Mesh *mesh, const long *part, long (*cell_map)[2],
-                             long *n_inner_cells, long *n_ghost_cells, long *n_cells) {
+                             long *n_inner_cells, long *n_ghost_cells, long *n_cells)
+{
     // inner cells
     long n = 0;
     for (long i = 0; i < mesh->n_inner_cells; ++i) {
@@ -175,7 +181,8 @@ static void compute_cell_map(const Mesh *mesh, const long *part, long (*cell_map
     qsort(&cell_map[*n_cells - n_mpi_cells], n_mpi_cells, sizeof(*cell_map), mapcmp);
 }
 
-static void compute_node_partitioning(const Mesh *mesh, const long *cpart, long *npart) {
+static void compute_node_partitioning(const Mesh *mesh, const long *cpart, long *npart)
+{
     // count how often each node is part of each partition
     cleanup long(*count)[mesh->size] = memory_calloc(mesh->n_nodes, sizeof(*count));
     for (long j = 0; j < mesh->n_inner_cells; ++j)
@@ -187,7 +194,8 @@ static void compute_node_partitioning(const Mesh *mesh, const long *cpart, long 
 }
 
 static void compute_node_map(Mesh *mesh, const long *part, const long (*cell_map)[2],
-                             long (*node_map)[2], long *n_inner_nodes, long *n_nodes) {
+                             long (*node_map)[2], long *n_inner_nodes, long *n_nodes)
+{
     // inner nodes
     long n = 0;
     cleanup long *seen = memory_calloc(mesh->n_nodes, sizeof(*seen));
@@ -219,7 +227,8 @@ static void compute_node_map(Mesh *mesh, const long *part, const long (*cell_map
 }
 
 static void compute_mesh_node_map(Mesh *mesh, const long *part, const long (*node_map)[2],
-                                  const long n_nodes) {
+                                  const long n_nodes)
+{
     // count number of nodes per partition and compute global to local node indices
     cleanup long *count = memory_calloc(mesh->size, sizeof(*count));
     cleanup long *g2l = memory_calloc(mesh->n_nodes, sizeof(*g2l));
@@ -238,7 +247,8 @@ static void compute_mesh_node_map(Mesh *mesh, const long *part, const long (*nod
     }
 }
 
-static void partition_nodes(Mesh *mesh, const long (*node_map)[2]) {
+static void partition_nodes(Mesh *mesh, const long (*node_map)[2])
+{
     double(*x)[N_DIMS] = memory_calloc(mesh->n_nodes, sizeof(*x));
     for (long jl = 0; jl < mesh->n_nodes; ++jl) {
         const long jg = node_map[jl][0];
@@ -248,7 +258,8 @@ static void partition_nodes(Mesh *mesh, const long (*node_map)[2]) {
     mesh->node.x = x;
 }
 
-static void partition_cells(Mesh *mesh, const long (*node_map)[2], const long (*cell_map)[2]) {
+static void partition_cells(Mesh *mesh, const long (*node_map)[2], const long (*cell_map)[2])
+{
     // compute global to local node map
     fcleanup(dict_free) Dict g2ln = dict_create(mesh->n_nodes);
     for (long i = 0; i < mesh->n_nodes; ++i) dict_insert(&g2ln, &node_map[i][0], 1, &i, 1);
@@ -296,7 +307,8 @@ static void partition_cells(Mesh *mesh, const long (*node_map)[2], const long (*
     mesh->cell.cell = memory_realloc(cell, i_cell[mesh->n_cells], sizeof(*cell));
 }
 
-static void partition_entities(Mesh *mesh, const long (*cell_map)[2]) {
+static void partition_entities(Mesh *mesh, const long (*cell_map)[2])
+{
     // compute entity cell offsets
     cleanup long *n_cells = memory_calloc(mesh->n_entities, sizeof(*n_cells));
     for (long i = 0; i < mesh->n_cells; ++i) {
@@ -313,7 +325,8 @@ static void partition_entities(Mesh *mesh, const long (*cell_map)[2]) {
         mesh->entity.j_cell[e + 1] = mesh->entity.j_cell[e] + n_cells[e];
 }
 
-static void compute_sync(Mesh *mesh, const long (*cell_map)[2]) {
+static void compute_sync(Mesh *mesh, const long (*cell_map)[2])
+{
     // compute receive map and find all cells that need to be sent to other ranks
     mesh->sync.i_recv = memory_calloc(mesh->size + 1, sizeof(*mesh->sync.i_recv));
     const long n_mpi_cells = mesh->n_cells - mesh->n_inner_cells - mesh->n_ghost_cells;
@@ -340,7 +353,8 @@ static void compute_sync(Mesh *mesh, const long (*cell_map)[2]) {
     for (long i = 0; i < mesh->size; ++i) mesh->sync.i_send[i + 1] += mesh->sync.i_send[i];
 }
 
-static int mapcmp(const void *a, const void *b) {
+static int mapcmp(const void *a, const void *b)
+{
     const long *map_a = (typeof(map_a))a;
     const long *map_b = (typeof(map_b))b;
 

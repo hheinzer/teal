@@ -7,11 +7,12 @@ const double state[2][4] = {{1.4, 0, 0, 1}, {8, 7.1447096, -4.125, 116.5}};
 const double Wx = 8.660254, Wy = -5;
 static Function bc;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
-    Mesh mesh = mesh_create((double[]){0, 0}, (double[]){3.25, 1}, (long[]){520, 160});
-    mesh_split_entity(&mesh, "bottom", 0, 1.0 / 6);
+    Mesh mesh = mesh_create((double[]){0, 0}, (double[]){3.25, 1}, (long[]){1040, 320});
+    mesh_split_entity(&mesh, "bottom", X, 1.0 / 6);
     mesh_set_boundary_condition(&mesh, "bottom0", "outflow", 0, 0);
     mesh_set_boundary_condition(&mesh, "bottom1", "wall", 0, 0);
     mesh_set_boundary_condition(&mesh, "right", "outflow", 0, 0);
@@ -36,7 +37,8 @@ int main(int argc, char **argv) {
     teal_finalize();
 }
 
-static void bc(const double *x, const double time, const double *, double *u) {
+static void bc(const double *x, const double time, const double *, double *u)
+{
     const long s = (atan2(x[0] - 1.0 / 6 - Wx * time, x[1] - Wy * time) < alpha);
     u[D] = state[s][0];
     u[U] = state[s][1];

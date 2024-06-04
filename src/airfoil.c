@@ -16,7 +16,8 @@
 #include "sync.h"
 
 Mesh airfoil_mesh(const char *fname, const long n_upper, const long n_lower, const long n_outer,
-                  const double radius) {
+                  const double radius)
+{
     int ierr;
 
     gmshInitialize(0, 0, 0, 0, &ierr);
@@ -26,12 +27,13 @@ Mesh airfoil_mesh(const char *fname, const long n_upper, const long n_lower, con
     long n_points = 0;
     double point[1000][2];
     FILE *file = fopen(fname, "r");
-    char line[256];
+    char line[128];
     while (fgets(line, sizeof(line), file)) {
         if (sscanf(line, " %lg %lg ", &point[n_points][X], &point[n_points][Y]) != 2) continue;
         n_points += 1;
     }
     fclose(file);
+    assert(n_points && "no airfoil coordinates read");
     assert(fabs(point[0][X] - point[n_points - 1][X]) < EPS &&
            fabs(point[0][Y] - point[n_points - 1][Y]) < EPS && "airfoild shape must be closed");
     n_points -= 1;
@@ -84,7 +86,8 @@ Mesh airfoil_mesh(const char *fname, const long n_upper, const long n_lower, con
 }
 
 void airfoil_polar(const Simulation *sim, const char *name, const long P, const double *uref,
-                   const double lref) {
+                   const double lref)
+{
     // find entity
     const long n_entities = sim->eqns->mesh->n_entities;
     const ALIAS(ename, sim->eqns->mesh->entity.name);
@@ -93,13 +96,14 @@ void airfoil_polar(const Simulation *sim, const char *name, const long P, const 
         if (!strcmp(ename[e], (name ? name : "airfoil"))) E = e;
     assert(E != -1 && "entity not found");
 
-    // extract coordinates, area * normals, and pressure from faces
     const ALIAS(j_face, sim->eqns->mesh->entity.j_face);
     const ALIAS(cell, sim->eqns->mesh->face.cell);
     const ALIAS(center, sim->eqns->mesh->face.center);
     const ALIAS(area, sim->eqns->mesh->face.area);
     const ALIAS(normal, sim->eqns->mesh->face.normal);
     const FIELDS(u, sim->eqns->vars);
+
+    // extract coordinates, area * normals, and pressure from faces
     const long n_faces = j_face[E + 1] - j_face[E];
     cleanup double(*x)[N_DIMS] = memory_calloc(n_faces * (1 + MAX_FACE_NODES), sizeof(*x));
     cleanup double *p = memory_calloc(n_faces * (1 + MAX_FACE_NODES), sizeof(*p));
@@ -134,7 +138,7 @@ void airfoil_polar(const Simulation *sim, const char *name, const long P, const 
         printf(" | " FMT_KEY ": %g\n", "drag coefficient", cd);
     }
 
-    char fname[256];
+    char fname[128];
     snprintf(fname, sizeof(fname), "%s_polar.h5", sim->prefix);
     hid_t file = hdf5_file_create(fname);
     hdf5_write_dataset(file, "x", *x, 2, HDF5_DIMS(n_points, N_DIMS));

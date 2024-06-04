@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("fname", help="dat file that contains the residuals")
+parser.add_argument("fname", help="file that contains the residuals")
 args = parser.parse_args()
 
 fig, ax = plt.subplots()
@@ -17,10 +17,10 @@ for v in range(data.shape[1]):
         continue
     ax.plot(data[:, v], label=name[v])
 
-ax.set_yscale("log")
 ax.set_xlabel("iteration")
 ax.set_ylabel("residual")
 ax.legend()
+ax.set_yscale("log")
 
 fig.tight_layout()
 fig.savefig(args.fname.replace(".dat", ".pdf"), bbox_inches="tight")

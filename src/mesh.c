@@ -34,7 +34,7 @@ static void compute_face_gradient_weights(Mesh *mesh);
 static void compute_face_reconstruction(Mesh *mesh);
 static void compute_cell_reconstruction(Mesh *mesh);
 static void compute_entity_to_face(Mesh *mesh);
-static long common_cell_nodes(const Mesh *mesh, const long cell1, const long cell2, long *node);
+static long common_cell_nodes(const Mesh *mesh, const long cell1, const long cell2, long *common);
 static double volume(const double (*x)[N_DIMS], const long *node, const long n_nodes,
                      const long dim);
 static void center(double *center, const double (*x)[N_DIMS], const long *node, const long n_nodes,
@@ -42,7 +42,8 @@ static void center(double *center, const double (*x)[N_DIMS], const long *node, 
 static void normal(double *normal, const double (*x)[N_DIMS], const long *node, const long n_nodes);
 static double *cross(const double *a, const double *b, double *c);
 
-Mesh mesh_create(const double *x1, const double *x2, const long *n_cells) {
+Mesh mesh_create(const double *x1, const double *x2, const long *n_cells)
+{
     for (long d = 0; d < N_DIMS; ++d) {
         assert(x1[d] < x2[d] && "illegal domain extent");
         assert(n_cells[d] > 0 && "illegal number of cells");
@@ -133,26 +134,30 @@ Mesh mesh_create(const double *x1, const double *x2, const long *n_cells) {
     return mesh;
 }
 
-Mesh mesh_read(const char *fname) {
+Mesh mesh_read(const char *fname)
+{
     Mesh mesh = {};
     const char *ext = utils_extension(fname);
     if (!strcmp(ext, "geo") || !strcmp(ext, "msh")) {
         gmsh_read(&mesh, fname);
-    } else {
+    }
+    else {
         assert(!"unsupported mesh format");
     }
     mesh_finalize(&mesh);
     return mesh;
 }
 
-void mesh_finalize(Mesh *mesh) {
+void mesh_finalize(Mesh *mesh)
+{
     compute_cell_to_cell(mesh);
     mesh->entity.bc.name = memory_calloc(mesh->n_entities, sizeof(*mesh->entity.bc.name));
     mesh->entity.bc.context = memory_calloc(mesh->n_entities, sizeof(*mesh->entity.bc.context));
     mesh->entity.bc.apply = memory_calloc(mesh->n_entities, sizeof(*mesh->entity.bc.apply));
 }
 
-void mesh_free(Mesh *mesh) {
+void mesh_free(Mesh *mesh)
+{
     free(mesh->node.x);
     free(mesh->node.map);
 
@@ -192,11 +197,16 @@ void mesh_free(Mesh *mesh) {
     *mesh = (typeof(*mesh)){};
 }
 
-void mesh_modify(Mesh *mesh, Modify *modify) {
-    for (long i = 0; i < mesh->n_nodes; ++i) modify(mesh->node.x[i]);
+void mesh_modify(Mesh *mesh, Modify *modify)
+{
+    const long n_nodes = mesh->n_nodes;
+    ALIAS(x, mesh->node.x);
+
+    for (long i = 0; i < n_nodes; ++i) modify(x[i]);
 }
 
-void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const double x) {
+void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const double x)
+{
     assert(dim < N_DIMS && "unsupported dimension");
 
     // find entity
@@ -207,8 +217,8 @@ void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const doubl
 
     // compute cell split
     const long n_cells = mesh->entity.j_cell[E + 1] - mesh->entity.j_cell[E];
-    cleanup long *split = memory_calloc(n_cells, sizeof(*split));
     const ALIAS(xn, mesh->node.x);
+    cleanup long *split = memory_calloc(n_cells, sizeof(*split));
     for (long s = 0, j = mesh->entity.j_cell[E]; j < mesh->entity.j_cell[E + 1]; ++j) {
         const long n_nodes = mesh->cell.i_node[j + 1] - mesh->cell.i_node[j];
         double mean[N_DIMS] = {};
@@ -229,7 +239,8 @@ void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const doubl
                     node[i_node[n + 1]++] = mesh->cell.node[i];
                 n += 1;
             }
-        } else {
+        }
+        else {
             for (long k = 0; k < 2; ++k) {
                 for (long s = 0, j = mesh->entity.j_cell[e]; j < mesh->entity.j_cell[e + 1]; ++j) {
                     if (split[s++] != k) continue;
@@ -257,7 +268,8 @@ void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const doubl
                     cell[i_cell[n + 1]++] = mesh->cell.cell[i];
                 n += 1;
             }
-        } else {
+        }
+        else {
             for (long k = 0; k < 2; ++k) {
                 for (long s = 0, j = mesh->entity.j_cell[e]; j < mesh->entity.j_cell[e + 1]; ++j) {
                     if (split[s++] != k) continue;
@@ -283,9 +295,10 @@ void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const doubl
             ename[n] = utils_strdup(mesh->entity.name[e]);
             j_cell[n + 1] = j_cell[n] + mesh->entity.j_cell[e + 1] - mesh->entity.j_cell[e];
             n += 1;
-        } else {
+        }
+        else {
             for (long k = 0; k < 2; ++k) {
-                char buf[256];
+                char buf[128];
                 snprintf(buf, sizeof(buf), "%s%ld", mesh->entity.name[e], k);
                 ename[n] = utils_strdup(buf);
                 j_cell[n + 1] = j_cell[n];
@@ -311,7 +324,8 @@ void mesh_split_entity(Mesh *mesh, const char *name, const long dim, const doubl
     mesh->n_entities = n_entities;
 }
 
-void mesh_set_periodic_condition(Mesh *mesh, const char *name0, const char *name1) {
+void mesh_set_periodic_condition(Mesh *mesh, const char *name0, const char *name1)
+{
     // find entities
     long E[2] = {-1, -1};
     for (long e = 0; e < mesh->n_entities; ++e) {
@@ -413,7 +427,8 @@ void mesh_set_periodic_condition(Mesh *mesh, const char *name0, const char *name
 }
 
 void mesh_set_boundary_condition(Mesh *mesh, const char *name, const char *bc, const double *state,
-                                 Function *custom) {
+                                 Function *custom)
+{
     for (long e = 0; e < mesh->n_entities; ++e) {
         if (!strcmp(mesh->entity.name[e], name)) {
             mesh->entity.bc.name[e] = utils_strdup(bc);
@@ -424,7 +439,8 @@ void mesh_set_boundary_condition(Mesh *mesh, const char *name, const char *bc, c
     assert(!"entity not found");
 }
 
-void mesh_generate(Mesh *mesh) {
+void mesh_generate(Mesh *mesh)
+{
     partition(mesh, true);
     compute_face_connectivity(mesh);
     compute_face_areas(mesh);
@@ -442,15 +458,19 @@ void mesh_generate(Mesh *mesh) {
     mesh->volume = sync_sum(array_sum(mesh->cell.volume, mesh->n_inner_cells));
 }
 
-void mesh_print(const Mesh *mesh) {
+void mesh_print(const Mesh *mesh)
+{
     const long n_inner_nodes = sync_sum(mesh->n_inner_nodes);
 
-    double node_min[N_DIMS], node_max[N_DIMS];
-    sync_min(array_min_s(*mesh->node.x, mesh->n_inner_nodes, N_DIMS, node_min), N_DIMS);
-    sync_max(array_max_s(*mesh->node.x, mesh->n_inner_nodes, N_DIMS, node_max), N_DIMS);
+    double min_node[N_DIMS], max_node[N_DIMS];
+    sync_min(array_min_s(*mesh->node.x, mesh->n_inner_nodes, N_DIMS, min_node), N_DIMS);
+    sync_max(array_max_s(*mesh->node.x, mesh->n_inner_nodes, N_DIMS, max_node), N_DIMS);
 
     const long n_inner_cells = sync_sum(mesh->n_inner_cells);
     const long n_ghost_cells = sync_sum(mesh->n_ghost_cells);
+
+    const double min_volume = sync_min(array_min(mesh->cell.volume, mesh->n_inner_cells));
+    const double max_volume = sync_max(array_max(mesh->cell.volume, mesh->n_inner_cells));
 
     const long n_inner_faces = sync_sum(mesh->n_inner_faces);
     const long n_bound_faces = sync_sum(mesh->n_bound_faces);
@@ -467,18 +487,19 @@ void mesh_print(const Mesh *mesh) {
         printf(" | " FMT_KEY ": %ld\n", "number of nodes", n_inner_nodes);
 
         printf(" | " FMT_KEY ": ", "min/max node");
-        array_print(0, node_min, N_DIMS, " / ");
-        array_print(0, node_max, N_DIMS, "\n");
+        array_print(min_node, N_DIMS, " / ");
+        array_print(max_node, N_DIMS, "\n");
 
         printf(" | " FMT_KEY ": %ld\n", "number of inner cells", n_inner_cells);
         printf(" | " FMT_KEY ": %ld\n", "number of ghost cells", n_ghost_cells);
 
+        printf(" | " FMT_KEY ": %g / %g\n", "min/max volume", min_volume, max_volume);
         printf(" | " FMT_KEY ": %g\n", "total volume", mesh->volume);
 
         printf(" | " FMT_KEY ": %ld\n", "number of faces",
                (n_inner_faces + n_bound_faces + n_faces) / 2);
 
-        char buf[256] = "";
+        char buf[128] = "";
         for (long e = 0; e < mesh->n_entities; ++e) {
             snprintf(buf, sizeof(buf), "entity %ld", e + 1);
             printf(" | " FMT_KEY ": %s(%ld) %s\n", buf, mesh->entity.name[e], n_entity_cells[e],
@@ -487,8 +508,9 @@ void mesh_print(const Mesh *mesh) {
     }
 }
 
-void mesh_write(const Mesh *mesh, const char *prefix) {
-    char fname[256];
+void mesh_write(const Mesh *mesh, const char *prefix)
+{
+    char fname[128];
     snprintf(fname, sizeof(fname), "%s_mesh.vtkhdf", prefix);
 
     const long n_inner_nodes = mesh->n_inner_nodes;
@@ -563,7 +585,8 @@ void mesh_write(const Mesh *mesh, const char *prefix) {
     hdf5_file_close(file);
 }
 
-static void compute_cell_to_cell(Mesh *mesh) {
+static void compute_cell_to_cell(Mesh *mesh)
+{
     // create node to cell dict
     fcleanup(dict_free) Dict n2c = dict_create(mesh->n_nodes);
     for (long j = 0; j < mesh->n_cells; ++j)
@@ -600,7 +623,8 @@ static void compute_cell_to_cell(Mesh *mesh) {
     mesh->cell.cell = memory_realloc(cell, i_cell[mesh->n_cells], sizeof(*cell));
 }
 
-static void compute_face_connectivity(Mesh *mesh) {
+static void compute_face_connectivity(Mesh *mesh)
+{
     // find periodic connections
     fcleanup(dict_free) Dict periodic = dict_create(mesh->n_ghost_cells);
     for (long e = 0; e < mesh->n_entities; ++e) {
@@ -619,13 +643,13 @@ static void compute_face_connectivity(Mesh *mesh) {
         for (long i = mesh->cell.i_cell[j]; i < mesh->cell.i_cell[j + 1]; ++i) {
             if (mesh->cell.cell[i] >= mesh->n_inner_cells) continue;
             const long key[2] = {MIN(j, mesh->cell.cell[i]), MAX(j, mesh->cell.cell[i])};
-            long *node;
-            if (!dict_lookup(&f2n_dict, key, 2, &node)) {
-                long cnode[MAX_FACE_NODES];
-                const long n_cnodes = common_cell_nodes(mesh, j, mesh->cell.cell[i], cnode);
-                if (n_cnodes >= N_DIMS) {
-                    dict_insert(&f2n_dict, key, 2, cnode, n_cnodes);
-                } else {
+            if (!dict_lookup(&f2n_dict, key, 2, 0)) {
+                long node[MAX_FACE_NODES];
+                const long n_nodes = common_cell_nodes(mesh, j, mesh->cell.cell[i], node);
+                if (n_nodes >= N_DIMS) {
+                    dict_insert(&f2n_dict, key, 2, node, n_nodes);
+                }
+                else {
                     long *pnode, n_pnodes = dict_lookup(&periodic, key, 2, &pnode);
                     assert(n_pnodes >= N_DIMS && "illegal number of face nodes");
                     dict_insert(&f2n_dict, key, 2, pnode, n_pnodes);
@@ -658,7 +682,8 @@ static void compute_face_connectivity(Mesh *mesh) {
             const long n_nodes = common_cell_nodes(mesh, key[0], key[1], node);
             if (n_nodes >= N_DIMS) {
                 dict_insert(&f2n_dict, key, 2, node, n_nodes);
-            } else {
+            }
+            else {
                 long *pnode, n_pnodes = dict_lookup(&periodic, key, 2, &pnode);
                 assert(n_pnodes >= N_DIMS && "illegal number of face nodes");
                 dict_insert(&f2n_dict, key, 2, pnode, n_pnodes);
@@ -682,44 +707,57 @@ static void compute_face_connectivity(Mesh *mesh) {
     mesh->face.cell = cell;
 }
 
-static void compute_face_areas(Mesh *mesh) {
+static void compute_face_areas(Mesh *mesh)
+{
+    const long n_faces = mesh->n_faces;
     const ALIAS(x, mesh->node.x);
     const ALIAS(node, mesh->face.node);
     const ALIAS(i_node, mesh->face.i_node);
-    mesh->face.area = memory_calloc(mesh->n_faces, sizeof(*mesh->face.area));
-    for (long i = 0; i < mesh->n_faces; ++i)
+
+    mesh->face.area = memory_calloc(n_faces, sizeof(*mesh->face.area));
+    for (long i = 0; i < n_faces; ++i)
         mesh->face.area[i] = volume(x, &node[i_node[i]], i_node[i + 1] - i_node[i], N_DIMS - 1);
 }
 
-static void compute_cell_volumes(Mesh *mesh) {
+static void compute_cell_volumes(Mesh *mesh)
+{
+    const long n_inner_cells = mesh->n_inner_cells;
     const ALIAS(x, mesh->node.x);
     const ALIAS(node, mesh->cell.node);
     const ALIAS(i_node, mesh->cell.i_node);
-    mesh->cell.volume = memory_calloc(mesh->n_inner_cells, sizeof(*mesh->cell.volume));
-    for (long i = 0; i < mesh->n_inner_cells; ++i)
+
+    mesh->cell.volume = memory_calloc(n_inner_cells, sizeof(*mesh->cell.volume));
+    for (long i = 0; i < n_inner_cells; ++i)
         mesh->cell.volume[i] = volume(x, &node[i_node[i]], i_node[i + 1] - i_node[i], N_DIMS);
 }
 
-static void compute_face_centers(Mesh *mesh) {
+static void compute_face_centers(Mesh *mesh)
+{
+    const long n_faces = mesh->n_faces;
     const ALIAS(x, mesh->node.x);
     const ALIAS(node, mesh->face.node);
     const ALIAS(i_node, mesh->face.i_node);
-    mesh->face.center = memory_calloc(mesh->n_faces, sizeof(*mesh->face.center));
-    for (long i = 0; i < mesh->n_faces; ++i)
+
+    mesh->face.center = memory_calloc(n_faces, sizeof(*mesh->face.center));
+    for (long i = 0; i < n_faces; ++i)
         center(mesh->face.center[i], x, &node[i_node[i]], i_node[i + 1] - i_node[i], N_DIMS - 1);
 }
 
-static void compute_cell_centers(Mesh *mesh) {
+static void compute_cell_centers(Mesh *mesh)
+{
+    const long n_inner_cells = mesh->n_inner_cells;
+    const long n_ghost_cells = mesh->n_ghost_cells;
+    const long n_cells = mesh->n_cells;
     const ALIAS(x, mesh->node.x);
     const ALIAS(node, mesh->cell.node);
     const ALIAS(i_node, mesh->cell.i_node);
-    mesh->cell.center = memory_calloc(mesh->n_cells, sizeof(*mesh->cell.center));
+    mesh->cell.center = memory_calloc(n_cells, sizeof(*mesh->cell.center));
 
-    for (long i = 0; i < mesh->n_inner_cells; ++i)
+    for (long i = 0; i < n_inner_cells; ++i)
         center(mesh->cell.center[i], x, &node[i_node[i]], i_node[i + 1] - i_node[i], N_DIMS);
 
     // mirror inner cell center at face to get ghost cell center
-    for (long i = mesh->n_inner_cells; i < mesh->n_inner_cells + mesh->n_ghost_cells; ++i) {
+    for (long i = n_inner_cells; i < n_inner_cells + n_ghost_cells; ++i) {
         double xf[N_DIMS], nf[N_DIMS];
         center(xf, x, &node[i_node[i]], i_node[i + 1] - i_node[i], N_DIMS - 1);
         normal(nf, x, &node[i_node[i]], i_node[i + 1] - i_node[i]);
@@ -737,12 +775,15 @@ static void compute_cell_centers(Mesh *mesh) {
     sync_all(mesh, N_DIMS, mesh->cell.center);
 }
 
-static void compute_face_normals(Mesh *mesh) {
+static void compute_face_normals(Mesh *mesh)
+{
+    const long n_faces = mesh->n_faces;
     const ALIAS(x, mesh->node.x);
     const ALIAS(node, mesh->face.node);
     const ALIAS(i_node, mesh->face.i_node);
-    mesh->face.normal = memory_calloc(mesh->n_faces, sizeof(*mesh->face.normal));
-    for (long i = 0; i < mesh->n_faces; ++i) {
+
+    mesh->face.normal = memory_calloc(n_faces, sizeof(*mesh->face.normal));
+    for (long i = 0; i < n_faces; ++i) {
         // compute normal
         normal(mesh->face.normal[i], x, &node[i_node[i]], i_node[i + 1] - i_node[i]);
 
@@ -759,25 +800,32 @@ static void compute_face_normals(Mesh *mesh) {
     }
 }
 
-static void compute_cell_projections(Mesh *mesh) {
+static void compute_cell_projections(Mesh *mesh)
+{
+    const long n_inner_cells = mesh->n_inner_cells;
+    const long n_faces = mesh->n_faces;
     const ALIAS(cell, mesh->face.cell);
     const ALIAS(normal, mesh->face.normal);
     const ALIAS(area, mesh->face.area);
-    mesh->cell.projection = memory_calloc(mesh->n_inner_cells, sizeof(*mesh->cell.projection));
-    for (long i = 0; i < mesh->n_faces; ++i)
-        for (long j = 0; j < 2 && cell[i][j] < mesh->n_inner_cells; ++j)
+
+    mesh->cell.projection = memory_calloc(n_inner_cells, sizeof(*mesh->cell.projection));
+    for (long i = 0; i < n_faces; ++i)
+        for (long j = 0; j < 2 && cell[i][j] < n_inner_cells; ++j)
             for (long d = 0; d < N_DIMS; ++d)
                 mesh->cell.projection[cell[i][j]][d] += fabs(normal[i][d]) * area[i] / 2;
 }
 
-static void compute_face_gauss_weights(Mesh *mesh) {
+static void compute_face_gauss_weights(Mesh *mesh)
+{
+    const long n_inner_cells = mesh->n_inner_cells;
     const long n_faces = mesh->n_faces;
     const ALIAS(cell, mesh->face.cell);
     const ALIAS(i_node, mesh->cell.i_node);
     const ALIAS(volume, mesh->cell.volume);
+
     mesh->face.gauss_weight = memory_calloc(n_faces, sizeof(*mesh->face.gauss_weight));
     for (long i = 0; i < n_faces; ++i) {
-        for (long j = 0; j < 2 && cell[i][j] < mesh->n_inner_cells; ++j) {
+        for (long j = 0; j < 2 && cell[i][j] < n_inner_cells; ++j) {
             const long n_nodes = i_node[cell[i][j] + 1] - i_node[cell[i][j]];
             switch (N_DIMS) {
                 case 2:
@@ -799,10 +847,12 @@ static void compute_face_gauss_weights(Mesh *mesh) {
     }
 }
 
-static void compute_cell_gauss_weights(Mesh *mesh) {
+static void compute_cell_gauss_weights(Mesh *mesh)
+{
     const long n_inner_cells = mesh->n_inner_cells;
     const ALIAS(i_node, mesh->cell.i_node);
     const ALIAS(volume, mesh->cell.volume);
+
     mesh->cell.gauss_weight = memory_calloc(n_inner_cells, sizeof(*mesh->cell.gauss_weight));
     for (long i = 0; i < n_inner_cells; ++i) {
         const long n_nodes = i_node[i + 1] - i_node[i];
@@ -825,11 +875,13 @@ static void compute_cell_gauss_weights(Mesh *mesh) {
     }
 }
 
-static void compute_face_gradient_weights(Mesh *mesh) {
+static void compute_face_gradient_weights(Mesh *mesh)
+{
     // build periodic cell dict
+    const long n_entities = mesh->n_entities;
     const ALIAS(bc, mesh->entity.bc.name);
     fcleanup(dict_free) Dict periodic = dict_create(mesh->n_cells - mesh->n_inner_cells);
-    for (long e = 0; e < mesh->n_entities; ++e) {
+    for (long e = 0; e < n_entities; ++e) {
         if (!bc[e] || strcmp(bc[e], "periodic")) continue;
         for (long ghost = mesh->entity.j_cell[e]; ghost < mesh->entity.j_cell[e + 1]; ++ghost) {
             assert(mesh->cell.i_cell[ghost + 1] - mesh->cell.i_cell[ghost] == 2);
@@ -839,50 +891,54 @@ static void compute_face_gradient_weights(Mesh *mesh) {
     }
 
     // compute entries of upper triangular matrix (Haselbacher 2000, eq. (13))
+    const long n_inner_cells = mesh->n_inner_cells;
+    const long n_faces = mesh->n_faces;
     const ALIAS(cell, mesh->face.cell);
     const ALIAS(center, mesh->cell.center);
-    cleanup double *r11 = memory_calloc(mesh->n_inner_cells, sizeof(*r11));
-    cleanup double *r12 = memory_calloc(mesh->n_inner_cells, sizeof(*r12));
-    cleanup double *r22 = memory_calloc(mesh->n_inner_cells, sizeof(*r22));
-    for (long i = 0; i < mesh->n_faces; ++i) {
+    cleanup double *r11 = memory_calloc(n_inner_cells, sizeof(*r11));
+    cleanup double *r12 = memory_calloc(n_inner_cells, sizeof(*r12));
+    cleanup double *r22 = memory_calloc(n_inner_cells, sizeof(*r22));
+    for (long i = 0; i < n_faces; ++i) {
         double dx[N_DIMS] = {};
         long *outer;
         if (dict_lookup(&periodic, cell[i], 2, &outer)) {
             for (long d = 0; d < N_DIMS; ++d) dx[d] = center[*outer][d] - center[cell[i][0]][d];
-        } else {
+        }
+        else {
             for (long d = 0; d < N_DIMS; ++d) dx[d] = center[cell[i][1]][d] - center[cell[i][0]][d];
         }
 
-        for (long j = 0; j < 2 && cell[i][j] < mesh->n_inner_cells; ++j) {
+        for (long j = 0; j < 2 && cell[i][j] < n_inner_cells; ++j) {
             r11[cell[i][j]] += dx[0] * dx[0];
             r12[cell[i][j]] += dx[0] * dx[1];
             r22[cell[i][j]] += dx[1] * dx[1];
             for (long d = 0; d < N_DIMS; ++d) dx[d] *= -1;
         }
     }
-    for (long i = 0; i < mesh->n_inner_cells; ++i) {
+    for (long i = 0; i < n_inner_cells; ++i) {
         r11[i] = sqrt(r11[i]);
         r12[i] = r12[i] / r11[i];
         r22[i] = sqrt(r22[i] - r12[i] * r12[i]);
     }
 
     // compute gradient weights (Haselbacher 2000, eq. (12))
-    mesh->face.gradient_weight = memory_calloc(mesh->n_faces, sizeof(*mesh->face.gradient_weight));
-    for (long i = 0; i < mesh->n_faces; ++i) {
+    mesh->face.gradient_weight = memory_calloc(n_faces, sizeof(*mesh->face.gradient_weight));
+    for (long i = 0; i < n_faces; ++i) {
         double dx[N_DIMS] = {};
         long *outer;
         if (dict_lookup(&periodic, cell[i], 2, &outer)) {
             for (long d = 0; d < N_DIMS; ++d) dx[d] = center[*outer][d] - center[cell[i][0]][d];
-        } else {
+        }
+        else {
             for (long d = 0; d < N_DIMS; ++d) dx[d] = center[cell[i][1]][d] - center[cell[i][0]][d];
         }
 
-        for (long j = 0; j < 2 && cell[i][j] < mesh->n_inner_cells; ++j) {
+        for (long j = 0; j < 2 && cell[i][j] < n_inner_cells; ++j) {
             double a1 = dx[0] / (r11[cell[i][j]] * r11[cell[i][j]]);
             double a2 = (dx[1] - r12[cell[i][j]] / r11[cell[i][j]] * dx[0]) /
                         (r22[cell[i][j]] * r22[cell[i][j]]);
-            if (isnan(a1)) a1 = 0;
-            if (isnan(a2)) a2 = 0;
+            if (!isfinite(a1)) a1 = 0;
+            if (!isfinite(a2)) a2 = 0;
             mesh->face.gradient_weight[i][j][X] = a1 - r12[cell[i][j]] / r11[cell[i][j]] * a2;
             mesh->face.gradient_weight[i][j][Y] = a2;
             for (long d = 0; d < N_DIMS; ++d) dx[d] *= -1;
@@ -890,11 +946,13 @@ static void compute_face_gradient_weights(Mesh *mesh) {
     }
 }
 
-static void compute_face_reconstruction(Mesh *mesh) {
+static void compute_face_reconstruction(Mesh *mesh)
+{
     // build periodic cell dict
+    const long n_entities = mesh->n_entities;
     const ALIAS(bc, mesh->entity.bc.name);
     fcleanup(dict_free) Dict periodic = dict_create(mesh->n_cells - mesh->n_inner_cells);
-    for (long e = 0; e < mesh->n_entities; ++e) {
+    for (long e = 0; e < n_entities; ++e) {
         if (!bc[e] || strcmp(bc[e], "periodic")) continue;
         for (long ghost = mesh->entity.j_cell[e]; ghost < mesh->entity.j_cell[e + 1]; ++ghost) {
             assert(mesh->cell.i_cell[ghost + 1] - mesh->cell.i_cell[ghost] == 2);
@@ -918,7 +976,8 @@ static void compute_face_reconstruction(Mesh *mesh) {
     mesh->face.reconstruction = reconstruction;
 }
 
-static void compute_cell_reconstruction(Mesh *mesh) {
+static void compute_cell_reconstruction(Mesh *mesh)
+{
     // build cell to face dict
     fcleanup(dict_free) Dict c2f = dict_create(mesh->n_faces);
     for (long i = 0; i < mesh->n_faces; ++i) {
@@ -944,25 +1003,35 @@ static void compute_cell_reconstruction(Mesh *mesh) {
     mesh->cell.reconstruction = reconstruction;
 }
 
-static void compute_entity_to_face(Mesh *mesh) {
-    mesh->entity.j_face = memory_calloc(mesh->n_entities + 1, sizeof(*mesh->entity.j_face));
-    for (long e = 0; e < mesh->n_entities; ++e) {
-        if (mesh->entity.j_cell[e] < mesh->n_inner_cells) continue;
-        if (!mesh->entity.bc.name[e] || !strcmp(mesh->entity.bc.name[e], "periodic")) continue;
-        mesh->entity.j_face[e + 1] = mesh->entity.j_cell[e + 1] - mesh->entity.j_cell[e];
+static void compute_entity_to_face(Mesh *mesh)
+{
+    const long n_entities = mesh->n_entities;
+    const long n_inner_cells = mesh->n_inner_cells;
+    const long n_inner_faces = mesh->n_inner_faces;
+    const ALIAS(j_cell, mesh->entity.j_cell);
+    const ALIAS(name, mesh->entity.bc.name);
+
+    mesh->entity.j_face = memory_calloc(n_entities + 1, sizeof(*mesh->entity.j_face));
+    for (long e = 0; e < n_entities; ++e) {
+        if (j_cell[e] < n_inner_cells) continue;
+        if (!name[e] || !strcmp(name[e], "periodic")) continue;
+        mesh->entity.j_face[e + 1] = j_cell[e + 1] - j_cell[e];
     }
-    for (long e = 0; e < mesh->n_entities; ++e)
-        mesh->entity.j_face[e + 1] += mesh->entity.j_face[e];
-    for (long e = 0; e < mesh->n_entities + 1; ++e) mesh->entity.j_face[e] += mesh->n_inner_faces;
+    for (long e = 0; e < n_entities; ++e) mesh->entity.j_face[e + 1] += mesh->entity.j_face[e];
+    for (long e = 0; e < n_entities + 1; ++e) mesh->entity.j_face[e] += n_inner_faces;
 }
 
-static long common_cell_nodes(const Mesh *mesh, const long cell1, const long cell2, long *node) {
+static long common_cell_nodes(const Mesh *mesh, const long cell1, const long cell2, long *common)
+{
+    const ALIAS(i_node, mesh->cell.i_node);
+    const ALIAS(node, mesh->cell.node);
+
     // WARNING: only works for unique node indices
     long n_common = 0;
-    for (long i1 = mesh->cell.i_node[cell1]; i1 < mesh->cell.i_node[cell1 + 1]; ++i1) {
-        for (long i2 = mesh->cell.i_node[cell2]; i2 < mesh->cell.i_node[cell2 + 1]; ++i2) {
-            if (mesh->cell.node[i1] == mesh->cell.node[i2]) {
-                if (node) node[n_common] = mesh->cell.node[i1];
+    for (long i1 = i_node[cell1]; i1 < i_node[cell1 + 1]; ++i1) {
+        for (long i2 = i_node[cell2]; i2 < i_node[cell2 + 1]; ++i2) {
+            if (node[i1] == node[i2]) {
+                if (common) common[n_common] = node[i1];
                 n_common += 1;
                 break;
             }
@@ -972,7 +1041,8 @@ static long common_cell_nodes(const Mesh *mesh, const long cell1, const long cel
 }
 
 static double volume(const double (*x)[N_DIMS], const long *node, const long n_nodes,
-                     const long dim) {
+                     const long dim)
+{
     double v = 0, AB[3] = {}, AC[3] = {}, AD[3] = {}, c[3] = {};
     switch (dim) {
         case 1:
@@ -982,7 +1052,6 @@ static double volume(const double (*x)[N_DIMS], const long *node, const long n_n
                     v += array_norm2(AB, 3);
                     break;
                 default:
-                    printf("%ld\n", n_nodes);
                     assert(!"unsupported element");
             }
             break;
@@ -1001,7 +1070,6 @@ static double volume(const double (*x)[N_DIMS], const long *node, const long n_n
                     v += array_norm2(cross(AC, AD, c), 3) / 2;
                     break;
                 default:
-                    printf("%ld\n", n_nodes);
                     assert(!"unsupported element");
             }
             break;
@@ -1012,7 +1080,8 @@ static double volume(const double (*x)[N_DIMS], const long *node, const long n_n
 }
 
 static void center(double *center, const double (*x)[N_DIMS], const long *node, const long n_nodes,
-                   const long dim) {
+                   const long dim)
+{
     double c1[3] = {}, c2[3] = {}, v1, v2, AB[3] = {}, AC[3] = {}, AD[3] = {}, c[3] = {};
     switch (dim) {
         case 1:
@@ -1055,8 +1124,8 @@ static void center(double *center, const double (*x)[N_DIMS], const long *node, 
     }
 }
 
-static void normal(double *normal, const double (*x)[N_DIMS], const long *node,
-                   const long n_nodes) {
+static void normal(double *normal, const double (*x)[N_DIMS], const long *node, const long n_nodes)
+{
     double AB[3] = {}, c[3] = {}, norm2;
     switch (N_DIMS) {
         case 2:
@@ -1075,7 +1144,8 @@ static void normal(double *normal, const double (*x)[N_DIMS], const long *node,
     }
 }
 
-static double *cross(const double *a, const double *b, double *c) {
+static double *cross(const double *a, const double *b, double *c)
+{
     c[0] = a[1] * b[2] - a[2] * b[1];
     c[1] = a[2] * b[0] - a[0] * b[2];
     c[2] = a[0] * b[1] - a[1] * b[0];

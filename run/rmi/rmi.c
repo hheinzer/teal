@@ -4,7 +4,8 @@
 
 static Function initial;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
     Mesh mesh = mesh_create((double[]){0, 0}, (double[]){60, 15}, (long[]){300, 75});
@@ -16,7 +17,7 @@ int main(int argc, char **argv) {
     mesh_print(&mesh);
 
     Equations eqns = euler_create(&mesh, 0);
-    eqns.flux = euler_flux("godunov");
+    equations_set_space_order(&eqns, 2, "venk", 1);
     equations_set_initial_condition(&eqns, initial);
     euler_compute_conserved(&eqns);
     euler_print(&eqns);
@@ -32,11 +33,13 @@ int main(int argc, char **argv) {
     teal_finalize();
 }
 
-static void initial(const double *x, const double, const double *, double *u) {
+static void initial(const double *x, const double, const double *, double *u)
+{
     u[P] = 1;
     if (x[X] >= 18 + 2 * cos(2 * PI * x[Y] / 15)) {
         u[D] = 0.25;
-    } else {
+    }
+    else {
         u[D] = 1;
     }
     if (2 <= x[X] && x[X] <= 6) {

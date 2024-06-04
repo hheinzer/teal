@@ -101,14 +101,14 @@ void array_normalize(double *a, const long n);
 
 double array_dot(const double *a, const double *b, const long n);
 
-void array_print_long(const char *pre, const long *a, const long n, const char *post);
-void array_print_double(const char *pre, const double *a, const long n, const char *post);
-#define array_print(pre, a, n, post)    \
+void array_print_long(const long *a, const long n, const char *post);
+void array_print_double(const double *a, const long n, const char *post);
+#define array_print(a, n, post)         \
     _Generic(a,                         \
         long *: array_print_long,       \
         double *: array_print_double,   \
         const long *: array_print_long, \
-        const double *: array_print_double)(pre, a, n, post)
+        const double *: array_print_double)(a, n, post)
 
 void array_fprint_long(FILE *file, const long *a, const long n);
 void array_fprint_double(FILE *file, const double *a, const long n);

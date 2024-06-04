@@ -23,7 +23,8 @@ static void sample(const double *g, const double dl, const double ul, const doub
                    double *u, double *p);
 
 void riemann(const double gamma, const double dl, const double ul, const double pl, const double dr,
-             const double ur, const double pr, const double s, double *d, double *u, double *p) {
+             const double ur, const double pr, const double s, double *d, double *u, double *p)
+{
     // Toro 1999, sec. 4.9
     const double g[9] = {
         gamma,
@@ -47,7 +48,8 @@ void riemann(const double gamma, const double dl, const double ul, const double 
 
 static void starpu(const double *g, const double dl, const double ul, const double pl,
                    const double dr, const double ur, const double pr, const double cl,
-                   const double cr, double *p, double *u) {
+                   const double cr, double *p, double *u)
+{
     const double udiff = ur - ul;
     double pold = guessp(g, dl, ul, pl, dr, ur, pr, cl, cr);
     double fl, fld, fr, frd;
@@ -65,7 +67,8 @@ static void starpu(const double *g, const double dl, const double ul, const doub
 
 static double guessp(const double *g, const double dl, const double ul, const double pl,
                      const double dr, const double ur, const double pr, const double cl,
-                     const double cr) {
+                     const double cr)
+{
     const double cup = 0.25 * (dl + dr) * (cl + cr);
     const double ppv = MAX(0, 0.5 * (pl + pr) + 0.5 * (ul - ur) * cup);
     const double pmin = MIN(pl, pr);
@@ -73,13 +76,15 @@ static double guessp(const double *g, const double dl, const double ul, const do
     const double qmax = pmax / pmin;
     if (qmax <= QUSER && pmin <= ppv && ppv <= pmax) {
         return ppv;
-    } else if (ppv < pmin) {
+    }
+    else if (ppv < pmin) {
         const double pq = pow(pl / pr, g[1]);
         const double um = (pq * ul / cl + ur / cr + g[4] * (pq - 1)) / (pq / cl + 1 / cr);
         const double ptl = 1 + g[7] * (ul - um) / cl;
         const double ptr = 1 + g[7] * (um - ur) / cr;
         return 0.5 * (pl * pow(ptl, g[3]) + pr * pow(ptr, g[3]));
-    } else {
+    }
+    else {
         const double gel = sqrt((g[5] / dl) / (g[6] * pl + ppv));
         const double ger = sqrt((g[5] / dr) / (g[6] * pr + ppv));
         return (gel * pl + ger * pr - (ur - ul)) / (gel + ger);
@@ -87,12 +92,14 @@ static double guessp(const double *g, const double dl, const double ul, const do
 }
 
 static void prefun(const double *g, const double p, const double dk, const double pk,
-                   const double ck, double *f, double *fd) {
+                   const double ck, double *f, double *fd)
+{
     if (p <= pk) {
         const double prat = p / pk;
         *f = g[4] * ck * (pow(prat, g[1]) - 1);
         *fd = (1 / (dk * ck)) * pow(prat, -g[2]);
-    } else {
+    }
+    else {
         const double ak = g[5] / dk;
         const double bk = g[6] * pk;
         const double qrt = sqrt(ak / (bk + p));
@@ -104,7 +111,8 @@ static void prefun(const double *g, const double p, const double dk, const doubl
 static void sample(const double *g, const double dl, const double ul, const double pl,
                    const double dr, const double ur, const double pr, const double cl,
                    const double cr, const double pm, const double um, const double s, double *d,
-                   double *u, double *p) {
+                   double *u, double *p)
+{
     if (s <= um) {
         if (pm <= pl) {
             const double shl = ul - cl;
@@ -112,34 +120,39 @@ static void sample(const double *g, const double dl, const double ul, const doub
                 *d = dl;
                 *u = ul;
                 *p = pl;
-            } else {
+            }
+            else {
                 const double cml = cl * pow(pm / pl, g[1]);
                 const double stl = um - cml;
                 if (s > stl) {
                     *d = dl * pow(pm / pl, 1 / g[0]);
                     *u = um;
                     *p = pm;
-                } else {
+                }
+                else {
                     const double c = g[5] * (cl + g[7] * (ul - s));
                     *d = dl * pow(c / cl, g[4]);
                     *u = g[5] * (cl + g[7] * ul + s);
                     *p = pl * pow(c / cl, g[3]);
                 }
             }
-        } else {
+        }
+        else {
             const double pml = pm / pl;
             const double sl = ul - cl * sqrt(g[2] * pml + g[1]);
             if (s <= sl) {
                 *d = dl;
                 *u = ul;
                 *p = pl;
-            } else {
+            }
+            else {
                 *d = dl * (pml + g[6]) / (pml * g[6] + 1);
                 *u = um;
                 *p = pm;
             }
         }
-    } else {
+    }
+    else {
         if (pm > pr) {
             const double pmr = pm / pr;
             const double sr = ur + cr * sqrt(g[2] * pmr + g[1]);
@@ -147,25 +160,29 @@ static void sample(const double *g, const double dl, const double ul, const doub
                 *d = dr;
                 *u = ur;
                 *p = pr;
-            } else {
+            }
+            else {
                 *d = dr * (pmr + g[6]) / (pmr * g[6] + 1);
                 *u = um;
                 *p = pm;
             }
-        } else {
+        }
+        else {
             const double shr = ur + cr;
             if (s >= shr) {
                 *d = dr;
                 *u = ur;
                 *p = pr;
-            } else {
+            }
+            else {
                 const double cmr = cr * pow(pm / pr, g[1]);
                 const double str = um + cmr;
                 if (s <= str) {
                     *d = dr * pow(pm / pr, 1 / g[0]);
                     *u = um;
                     *p = pm;
-                } else {
+                }
+                else {
                     const double c = g[5] * (cr - g[7] * (ur - s));
                     *d = dr * pow(c / cr, g[4]);
                     *u = g[5] * (-cr + g[7] * ur + s);

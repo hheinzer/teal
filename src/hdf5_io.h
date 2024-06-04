@@ -4,9 +4,7 @@
 #include <hdf5.h>
 
 #define HDF5_DIMS(...) \
-    (hsize_t[]) {      \
-        __VA_ARGS__    \
-    }
+    (hsize_t[]) { __VA_ARGS__ }
 
 #define HDF5_TYPE(buf)                           \
     _Generic(buf,                                \

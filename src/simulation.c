@@ -25,7 +25,8 @@ static volatile sig_atomic_t m_terminate = 0;
 static void terminate(int signum);
 static void write(Simulation *sim, double *output_time, long *output_iter);
 
-Simulation simulation_create(const char *prefix, Equations *eqns) {
+Simulation simulation_create(const char *prefix, Equations *eqns)
+{
     Simulation sim = {
         .max_time = DBL_MAX,
         .output_time = DBL_MAX,
@@ -40,7 +41,7 @@ Simulation simulation_create(const char *prefix, Equations *eqns) {
     char fname[128];
     snprintf(fname, sizeof(fname), "%s_residuals.dat", prefix);
     if (eqns->mesh->rank == 0) {
-        const long n_vars = eqns->vars.nu;
+        const long n_vars = eqns->vars.n_fields;
         const ALIAS(name, eqns->vars.name);
         sim.residual_file = fopen(fname, "w");
         for (long v = 0; v < n_vars; ++v) fprintf(sim.residual_file, "%s ", name[v]);
@@ -50,14 +51,16 @@ Simulation simulation_create(const char *prefix, Equations *eqns) {
     return sim;
 }
 
-void simulation_free(Simulation *sim) {
+void simulation_free(Simulation *sim)
+{
     if (sim->eqns->mesh->rank == 0) fclose(sim->residual_file);
     free(sim->buf);
     free(sim->prefix);
     *sim = (typeof(*sim)){};
 }
 
-void simulation_set_time_order(Simulation *sim, const long time_order, const long n_stages) {
+void simulation_set_time_order(Simulation *sim, const long time_order, const long n_stages)
+{
     assert(1 <= time_order && time_order <= 3 && "invalid time order");
     assert(1 <= n_stages && n_stages <= 6 && "invalid number of stages");
     sim->time_order = time_order;
@@ -68,17 +71,19 @@ void simulation_set_time_order(Simulation *sim, const long time_order, const lon
 
         free(sim->buf);
         sim->buf = 0;
-    } else {
+    }
+    else {
         sim->advance = advance_lserk;
         strncpy(m_advance, "lserk", sizeof(m_advance) - 1);
 
-        const long n_vars = sim->eqns->vars.nu;
+        const long n_vars = sim->eqns->vars.n_fields;
         const long n_inner_cells = sim->eqns->mesh->n_inner_cells;
         sim->buf = memory_calloc(n_inner_cells * n_vars, sizeof(*sim->buf));
     }
 }
 
-void simulation_print(const Simulation *sim) {
+void simulation_print(const Simulation *sim)
+{
     const double dt = sync_min(sim->eqns->time_step(sim->eqns));
 
     if (sim->eqns->mesh->rank == 0) {
@@ -109,13 +114,14 @@ void simulation_print(const Simulation *sim) {
     }
 }
 
-void simulation_run(Simulation *sim) {
+void simulation_run(Simulation *sim)
+{
     double output_time = sim->output_time;
     long output_iter = sim->output_iter;
     mesh_write(sim->eqns->mesh, sim->prefix);
     write(sim, &output_time, &output_iter);
 
-    const long n_vars = sim->eqns->vars.nu;
+    const long n_vars = sim->eqns->vars.n_fields;
     double residual[n_vars] = {};
     bool converged = false;
 
@@ -132,6 +138,7 @@ void simulation_run(Simulation *sim) {
     while (sim->time < sim->max_time && sim->iter < sim->max_iter && !converged && !m_terminate) {
         const double max_dt = sim->cfl * sync_min(sim->eqns->time_step(sim->eqns));
         const double dt = MIN(max_dt, MIN(sim->max_time, output_time) - sim->time);
+        assert(isfinite(dt) && "this can't be good");
 
         sim->advance(sim, dt);
         sim->time += dt;
@@ -159,34 +166,34 @@ void simulation_run(Simulation *sim) {
     if (rank == 0) printf(" | " FMT_KEY ": %g\n", "computation time", timer_stop - timer_start);
 }
 
-void simulation_error(const Simulation *sim, const long i_vars, const long i_user) {
-    const long n_user = sim->eqns->user.nu;
+void simulation_error(const Simulation *sim, const long i_vars, const long i_user)
+{
+    const long n_user = sim->eqns->user.n_fields;
     const long n_inner_cells = sim->eqns->mesh->n_inner_cells;
     const double total_volume = sim->eqns->mesh->volume;
     const ALIAS(x, sim->eqns->mesh->cell.center);
     const ALIAS(volume, sim->eqns->mesh->cell.volume);
     const FIELDS(vars, sim->eqns->vars);
     double user[n_user] = {};
-    double norm2 = 0;
+    double error = 0;
 
     for (long i = 0; i < n_inner_cells; ++i) {
         sim->eqns->user.compute(x[i], sim->time, vars[i], user);
-        norm2 += volume[i] * (user[i_user] - vars[i][i_vars]) * (user[i_user] - vars[i][i_vars]);
+        error += volume[i] * (user[i_user] - vars[i][i_vars]) * (user[i_user] - vars[i][i_vars]);
     }
-    norm2 = sqrt(sync_sum(norm2) / total_volume);
+    error = sqrt(sync_sum(error) / total_volume);
 
     if (sim->eqns->mesh->rank == 0) {
         char key[128];
-        snprintf(key, sizeof(key), "L2 norm %s", sim->eqns->vars.name[i_vars]);
-        printf(" | " FMT_KEY ": %g\n", key, norm2);
+        snprintf(key, sizeof(key), "L2 error %s", sim->eqns->vars.name[i_vars]);
+        printf(" | " FMT_KEY ": %g\n", key, error);
     }
 }
 
-static void terminate(int) {
-    m_terminate = 1;
-}
+static void terminate(int) { m_terminate = 1; }
 
-static void write(Simulation *sim, double *output_time, long *output_iter) {
+static void write(Simulation *sim, double *output_time, long *output_iter)
+{
     equations_write(sim->eqns, sim->prefix, sim->output_count, sim->time);
     sim->output_count += 1;
     *output_time = MAX(*output_time, sim->time + sim->output_time);

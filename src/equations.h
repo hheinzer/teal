@@ -5,16 +5,16 @@
 
 #include "mesh.h"
 
-#define FIELDS(a, f) typeof (*f.u)(*(a))[f.nu] = (typeof(a))f.u
-#define GRADS(a, f) typeof (*f.dudx)(*(a))[f.nu][N_DIMS] = (typeof(a))f.dudx
-#define DERIVS(a, f) typeof (*f.dudt)(*(a))[f.nu] = (typeof(a))f.dudt
+#define FIELDS(a, f) typeof (*f.u)(*(a))[f.n_fields] = (typeof(a))f.u
+#define GRADS(a, f) typeof (*f.dudx)(*(a))[f.n_fields][N_DIMS] = (typeof(a))f.dudx
+#define DERIVS(a, f) typeof (*f.dudt)(*(a))[f.n_fields] = (typeof(a))f.dudt
 
 typedef struct Fields {
-    long nu;
+    long n_fields;
     double *u, *dudx, *dudt;
     char **name;
     struct {
-        long ndim, *dim;
+        long n_dims, *dim;
         char **name;
     } output;
     Function *compute;
@@ -49,9 +49,9 @@ Equations equations_create(const Mesh *mesh, const Fields *vars, const Fields *u
 
 void equations_free(Equations *eqns);
 
-void equations_set_initial_condition(Equations *eqns, Function *compute);
+void equations_set_initial_condition(Equations *eqns, Function *initial);
 
-void equations_set_initial_state(Equations *eqns, const long nu, const long *iu,
+void equations_set_initial_state(Equations *eqns, const long nu, const long *u,
                                  const double *state);
 
 void equations_set_space_order(Equations *eqns, const long space_order, const char *limiter,

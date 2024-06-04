@@ -2,19 +2,22 @@
 
 #include "equations.h"
 
-void advance_euler(Simulation *sim, const double dt) {
-    const long n_vars = sim->eqns->vars.nu;
+void advance_euler(Simulation *sim, const double dt)
+{
+    const long n_vars = sim->eqns->vars.n_fields;
     const long n_inner_cells = sim->eqns->mesh->n_inner_cells;
     const DERIVS(dudt, sim->eqns->vars);
     FIELDS(u, sim->eqns->vars);
+
     equations_time_derivative(sim->eqns, sim->time);
     for (long i = 0; i < n_inner_cells; ++i) {
-        for (long j = 0; j < n_vars; ++j) u[i][j] += dudt[i][j] * dt;
+        for (long v = 0; v < n_vars; ++v) u[i][v] += dudt[i][v] * dt;
         sim->eqns->update(u[i]);
     }
 }
 
-void advance_lserk(Simulation *sim, const double dt) {
+void advance_lserk(Simulation *sim, const double dt)
+{
     // van Leer, 1989
     static const double alpha[3][6][7] = {
         {
@@ -42,19 +45,24 @@ void advance_lserk(Simulation *sim, const double dt) {
             {0.0000, 0.0742, 0.1393, 0.2198, 0.3302, 0.5181, 1.0000},
         },
     };
+
+    const long time_order = sim->time_order;
     const long n_stages = sim->n_stages;
-    const double *a = alpha[sim->time_order - 1][n_stages - 1];
-    const long n_vars = sim->eqns->vars.nu;
+    const double *a = alpha[time_order - 1][n_stages - 1];
+
+    const long n_vars = sim->eqns->vars.n_fields;
     const long n_inner_cells = sim->eqns->mesh->n_inner_cells;
     const DERIVS(dudt, sim->eqns->vars);
     FIELDS(u, sim->eqns->vars);
     double(*u0)[n_vars] = (typeof(u0))sim->buf;
+
     for (long i = 0; i < n_inner_cells; ++i)
-        for (long j = 0; j < n_vars; ++j) u0[i][j] = u[i][j];
+        for (long v = 0; v < n_vars; ++v) u0[i][v] = u[i][v];
+
     for (long k = 0; k < n_stages; ++k) {
         equations_time_derivative(sim->eqns, sim->time + a[k] * dt);
         for (long i = 0; i < n_inner_cells; ++i) {
-            for (long j = 0; j < n_vars; ++j) u[i][j] = u0[i][j] + a[k + 1] * dudt[i][j] * dt;
+            for (long v = 0; v < n_vars; ++v) u[i][v] = u0[i][v] + a[k + 1] * dudt[i][v] * dt;
             sim->eqns->update(u[i]);
         }
     }

@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("fname", help="h5 file that contains the polar")
-parser.add_argument("refs", nargs="*", help="dat files that contain reference polars")
+parser.add_argument("fname", help="file that contains the polar")
+parser.add_argument("refs", nargs="*", help="files that contain reference polars")
 args = parser.parse_args()
 
 fig, ax = plt.subplots(nrows=2, height_ratios=(3, 1))
@@ -21,7 +21,7 @@ theta = np.arctan2(x[:, 1] - mean[1], x[:, 0] - mean[0])
 order = np.argsort(theta)
 order = np.concatenate((order, [order[0]]))
 
-ax[0].plot(x[order, 0], cp[order])
+ax[0].plot(x[order, 0], cp[order], label=args.fname.split("/")[-1].split("_")[0])
 ax[1].plot(x[order, 0], x[order, 1])
 
 if args.refs:
@@ -30,12 +30,12 @@ if args.refs:
         x = data[:, 0]
         cp = data[:, 1]
         ax[0].plot(x, cp, "--", label=ref.split("_")[-1].replace(".dat", ""))
-    ax[0].legend(title="reference")
 
-ax[0].invert_yaxis()
 ax[0].set_xlabel("$x$")
 ax[0].set_ylabel("$c_p$")
 ax[0].set_title(f"$c_l$ = {cl:.4f}, $c_d$ = {cd:.4f}")
+ax[0].legend()
+ax[0].invert_yaxis()
 ax[1].set_aspect("equal")
 ax[1].set_axis_off()
 

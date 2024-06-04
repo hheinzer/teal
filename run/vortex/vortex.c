@@ -5,7 +5,8 @@
 const double gamma = 1.4, x0 = 5, y0 = 5, beta = 5, u0 = 1, v0 = 1;
 static Function exact;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
     Mesh mesh = mesh_create((double[]){0, 0}, (double[]){10, 10}, (long[]){100, 100});
@@ -15,7 +16,7 @@ int main(int argc, char **argv) {
     mesh_print(&mesh);
 
     char *name[] = {"exact density", "exact velocity-x", "exact velocity-y", "exact pressure"};
-    Fields user = {.nu = 4, .name = name, .compute = exact};
+    Fields user = {.n_fields = 4, .name = name, .compute = exact};
     Equations eqns = euler_create(&mesh, &user);
     equations_set_initial_condition(&eqns, exact);
     euler_compute_conserved(&eqns);
@@ -33,12 +34,14 @@ int main(int argc, char **argv) {
     teal_finalize();
 }
 
-static double fwrap(const double x, const double xmin, const double xmax) {
+static double fwrap(const double x, const double xmin, const double xmax)
+{
     if (xmin > xmax) return fwrap(x, xmax, xmin);
     return (x >= 0 ? xmin : xmax) + fmod(x, xmax - xmin);
 }
 
-static void exact(const double *x, const double time, const double *, double *u) {
+static void exact(const double *x, const double time, const double *, double *u)
+{
     const double xi = fwrap(x[X] - u0 * time, 0, 10);
     const double yi = fwrap(x[Y] - v0 * time, 0, 10);
     const double r2 = (xi - x0) * (xi - x0) + (yi - y0) * (yi - y0);

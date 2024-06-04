@@ -5,7 +5,8 @@
 #include "utils.h"
 
 double limiter_barth_jespersen(const double, const double u, const double umin, const double umax,
-                               const double *dudx, const double (*dx)[N_DIMS], const long nj) {
+                               const double *dudx, const double (*dx)[N_DIMS], const long nj)
+{
     // Blazek 2015, sec. 5.3.5
     double psi = 1;
     for (long j = 0; j < nj; ++j) {
@@ -19,7 +20,8 @@ double limiter_barth_jespersen(const double, const double u, const double umin, 
 
 double limiter_venkatakrishnan(const double eps2, const double u, const double umin,
                                const double umax, const double *dudx, const double (*dx)[N_DIMS],
-                               const long nj) {
+                               const long nj)
+{
     // Blazek 2015, sec. 5.3.5
     double psi = 1;
     for (long j = 0; j < nj; ++j) {

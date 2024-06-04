@@ -4,11 +4,12 @@
 
 const double rho = 1.4, vmag = 3, alpha = 5 * PI / 180, p = 1;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
     const double state[] = {rho, vmag * cos(alpha), vmag * sin(alpha), p};
-    Mesh mesh = mesh_read("geo/wedge.geo");
+    Mesh mesh = mesh_read("run/wedge/wedge.geo");
     mesh_set_boundary_condition(&mesh, "airfoil", "wall", 0, 0);
     mesh_set_boundary_condition(&mesh, "inflow", "inflow", state, 0);
     mesh_set_boundary_condition(&mesh, "outflow", "outflow", 0, 0);
@@ -21,7 +22,7 @@ int main(int argc, char **argv) {
     euler_print(&eqns);
 
     Simulation sim = simulation_create(argv[0], &eqns);
-    sim.abort_residual = 1e-7;
+    sim.max_iter = 5000;
     simulation_print(&sim);
     simulation_run(&sim);
     airfoil_polar(&sim, 0, P, state, 2);

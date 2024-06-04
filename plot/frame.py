@@ -6,18 +6,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pypdf import PdfWriter
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 
 parser = ArgumentParser()
-parser.add_argument("fnames", nargs="+", help="vtkhdf files that should be plotted")
-parser.add_argument("-s", "--scalar", help="the scalar to plot", default="density")
-parser.add_argument("--xmin", help="minimum x value for plot", type=float, default=-np.inf)
-parser.add_argument("--xmax", help="maximum x value for plot", type=float, default=np.inf)
-parser.add_argument("--ymin", help="minimum y value for plot", type=float, default=-np.inf)
-parser.add_argument("--ymax", help="maximum y value for plot", type=float, default=np.inf)
-parser.add_argument("--cmap", help="the colormap to use", default="coolwarm")
-parser.add_argument("--vmin", help="minimum value of scalar", type=float)
-parser.add_argument("--vmax", help="maximum value of scalar", type=float)
+parser.add_argument("fnames", nargs="+", help="files that should be plotted")
+parser.add_argument("-s", "--scalar", help="scalar to plot", default="density")
+parser.add_argument("--xmin", help="minimum x value", type=float, default=-np.inf)
+parser.add_argument("--xmax", help="maximum x value", type=float, default=np.inf)
+parser.add_argument("--ymin", help="minimum y value", type=float, default=-np.inf)
+parser.add_argument("--ymax", help="maximum y value", type=float, default=np.inf)
+parser.add_argument("--cmap", help="colormap", default="coolwarm")
+parser.add_argument("--vmin", help="minimum colormap value", type=float)
+parser.add_argument("--vmax", help="maximum colormap value", type=float)
+parser.add_argument("--edges", help="show edges of mesh", action=BooleanOptionalAction)
 args = parser.parse_args()
 
 
@@ -41,11 +42,19 @@ def plot(fname):
     clim = [vmin, vmax]
 
     bounds = [args.xmin, args.xmax, args.ymin, args.ymax, -np.inf, np.inf]
-    mesh = mesh.clip_box(bounds, invert=False)
-    pvp.add_mesh(mesh, scalars=args.scalar, clim=clim, cmap=args.cmap, show_scalar_bar=False)
+    if any(np.isfinite(bounds)):
+        mesh = mesh.clip_box(bounds, invert=False)
+    pvp.add_mesh(
+        mesh,
+        scalars=args.scalar,
+        clim=clim,
+        show_edges=args.edges,
+        cmap=args.cmap,
+        show_scalar_bar=False,
+    )
 
     pvp.camera.tight()
-    img = pvp.screenshot(None, transparent_background=True, return_img=True, scale=2)
+    img = pvp.screenshot(None, transparent_background=True, return_img=True, scale=3)
 
     extent = mesh.bounds[:4]
 
@@ -57,10 +66,14 @@ def plot(fname):
 
     ax.set_xlabel("$x$")
     ax.set_ylabel("$y$")
-    ax.set_title(f"time = {mesh["TimeValue"][0]:g}")
     cb.set_label(args.scalar)
     ax.set_xlim(xmin=max(args.xmin, extent[0]), xmax=min(args.xmax, extent[1]))
     ax.set_ylim(ymin=max(args.ymin, extent[2]), ymax=min(args.ymax, extent[3]))
+
+    try:
+        ax.set_title(f"time = {mesh["TimeValue"][0]:g}")
+    except:
+        pass
 
     fig.tight_layout()
     fig.savefig(fname.replace(".vtkhdf", ".pdf"), dpi=300, bbox_inches="tight")

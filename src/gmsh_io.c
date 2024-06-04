@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <gmshc.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "memory.h"
@@ -13,9 +12,9 @@
 static void create_nodes(Mesh *mesh, long *node_map);
 static void create_cells(Mesh *mesh, const long *node_map);
 static void create_entities(Mesh *mesh);
-static void remove_unused_nodes(Mesh *mesh);
 
-void gmsh_read(Mesh *mesh, const char *fname) {
+void gmsh_read(Mesh *mesh, const char *fname)
+{
     int ierr;
 
     gmshInitialize(0, 0, 0, 0, &ierr);
@@ -35,7 +34,8 @@ void gmsh_read(Mesh *mesh, const char *fname) {
     gmshFinalize(&ierr);
 }
 
-void gmsh_export(Mesh *mesh) {
+void gmsh_export(Mesh *mesh)
+{
     int ierr;
 
     size_t max_tag;
@@ -45,10 +45,10 @@ void gmsh_export(Mesh *mesh) {
     create_nodes(mesh, node_map);
     create_cells(mesh, node_map);
     create_entities(mesh);
-    remove_unused_nodes(mesh);
 }
 
-static void create_nodes(Mesh *mesh, long *node_map) {
+static void create_nodes(Mesh *mesh, long *node_map)
+{
     int ierr;
 
     size_t n_nodeTags, *nodeTags;
@@ -60,13 +60,15 @@ static void create_nodes(Mesh *mesh, long *node_map) {
 
     double(*x)[3] = (typeof(x))coord;
     mesh->n_nodes = n_nodeTags;
+    assert(mesh->n_nodes > 0 && "mesh contains no nodes");
     mesh->node.x = memory_calloc(mesh->n_nodes, sizeof(*mesh->node.x));
     for (long i = 0; i < mesh->n_nodes; ++i)
         for (long d = 0; d < N_DIMS; ++d) mesh->node.x[i][d] = x[i][d];
     gmshFree(coord);
 }
 
-static void create_cells(Mesh *mesh, const long *node_map) {
+static void create_cells(Mesh *mesh, const long *node_map)
+{
     int ierr;
 
     // count number of elements and number of cell nodes
@@ -99,6 +101,7 @@ static void create_cells(Mesh *mesh, const long *node_map) {
     mesh->n_inner_cells = n_element_tags[0];
     mesh->n_ghost_cells = n_element_tags[1];
     mesh->n_cells = mesh->n_inner_cells + mesh->n_ghost_cells;
+    assert(mesh->n_cells > 0 && "mesh contains no cells");
     mesh->cell.i_node = memory_calloc(mesh->n_cells + 1, sizeof(*mesh->cell.i_node));
     mesh->cell.node = memory_calloc(n_node_tags[0] + n_node_tags[1], sizeof(*mesh->cell.node));
 
@@ -153,7 +156,8 @@ static void create_cells(Mesh *mesh, const long *node_map) {
     assert(n == mesh->n_cells && "cell creation error");
 }
 
-static void create_entities(Mesh *mesh) {
+static void create_entities(Mesh *mesh)
+{
     int ierr;
 
     // count number of mesh entites
@@ -162,6 +166,7 @@ static void create_entities(Mesh *mesh) {
         gmshModelGetPhysicalGroups(0, &dimTags_n, d, &ierr);
         mesh->n_entities += dimTags_n / 2;
     }
+    assert(mesh->n_entities > 0 && "mesh contains no entities");
 
     mesh->entity.name = memory_calloc(mesh->n_entities, sizeof(*mesh->entity.name));
     mesh->entity.j_cell = memory_calloc(mesh->n_entities + 1, sizeof(*mesh->entity.j_cell));
@@ -175,7 +180,7 @@ static void create_entities(Mesh *mesh) {
         for (size_t p = 0; p < dimTags_n; p += 2) {
             gmshModelGetPhysicalName(dimTags[p], dimTags[p + 1], &mesh->entity.name[n], &ierr);
             if (!strcmp(mesh->entity.name[n], "")) {
-                char buf[256];
+                char buf[128];
                 snprintf(buf, sizeof(buf), "%d", dimTags[p + 1]);
                 mesh->entity.name[n] = utils_strdup(buf);
             }
@@ -199,28 +204,4 @@ static void create_entities(Mesh *mesh) {
         gmshFree(dimTags);
     }
     assert(n == mesh->n_entities && "entity creation error");
-}
-
-static void remove_unused_nodes(Mesh *mesh) {
-    // compute node map, mark unused nodes with -1
-    cleanup long *node_map = memory_calloc(mesh->n_nodes, sizeof(*node_map));
-    for (long i = 0; i < mesh->n_nodes; ++i) node_map[i] = -1;
-    long n = 0;
-    for (long j = 0; j < mesh->n_cells; ++j)
-        for (long i = mesh->cell.i_node[j]; i < mesh->cell.i_node[j + 1]; ++i)
-            if (node_map[mesh->cell.node[i]] == -1) node_map[mesh->cell.node[i]] = n++;
-    const long n_nodes = n;
-    if (n_nodes == mesh->n_nodes) return;
-
-    double(*x)[N_DIMS] = memory_calloc(n_nodes, sizeof(*x));
-    for (long i = 0; i < mesh->n_nodes; ++i)
-        if (node_map[i] != -1)
-            for (long d = 0; d < N_DIMS; ++d) x[node_map[i]][d] = mesh->node.x[i][d];
-    free(mesh->node.x);
-    mesh->node.x = x;
-    mesh->n_nodes = n_nodes;
-
-    for (long j = 0; j < mesh->n_cells; ++j)
-        for (long i = mesh->cell.i_node[j]; i < mesh->cell.i_node[j + 1]; ++i)
-            mesh->cell.node[i] = node_map[mesh->cell.node[i]];
 }

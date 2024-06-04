@@ -1,4 +1,3 @@
-# type: ignore
 from sympy import *
 
 # define independent variables

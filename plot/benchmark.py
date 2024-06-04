@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("fnames", nargs="+", help="files that contains the benchmark output")
+parser.add_argument("fnames", nargs="+", help="files that contain benchmark")
 args = parser.parse_args()
 
 fig, ax = plt.subplots()
 
 max_ncores = 0
 for fname in args.fnames:
-    label = "".join(fname.split("/")[-1].split(".")[:-1])
-    label = label.replace("benchmark_", "").replace("_", " ")
+    label = fname.split("/")[-1]
+    label = label.replace("_benchmark", "").replace(".out", "").replace("_", " ")
     data = np.genfromtxt(fname)
     data = data[data[:, 0].argsort()]
     ncores = data[:, 0]

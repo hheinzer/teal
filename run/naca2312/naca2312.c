@@ -4,11 +4,12 @@
 
 const double rho = 1.4, vmag = 0.5, alpha = 3 * PI / 180, p = 1;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     teal_init(argc, argv);
 
     const double state[] = {rho, vmag * cos(alpha), vmag * sin(alpha), p};
-    Mesh mesh = airfoil_mesh("dat/naca2312.dat", 200, 200, 100, 20);
+    Mesh mesh = airfoil_mesh("run/naca2312/naca2312.dat", 200, 200, 100, 20);
     mesh_set_boundary_condition(&mesh, "airfoil", "wall", 0, 0);
     mesh_set_boundary_condition(&mesh, "farfield", "characteristic", state, 0);
     mesh_generate(&mesh);
@@ -20,10 +21,7 @@ int main(int argc, char **argv) {
     euler_print(&eqns);
 
     Simulation sim = simulation_create(argv[0], &eqns);
-    sim.abort_variable = DU;
-    sim.abort_residual = 1e-4;
-    sim.output_iter = 10000;
-    sim.max_iter = sim.output_iter * 10;
+    sim.max_iter = 70000;
     simulation_print(&sim);
     simulation_run(&sim);
     airfoil_polar(&sim, 0, P, state, 1);

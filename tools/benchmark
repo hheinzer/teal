@@ -1,10 +1,19 @@
 #!/bin/bash
-for n in "${@:2}"
+shopt -s extglob
+
+prog=$1 # program
+ncores=${@:2} # number of cores
+
+out=$prog.out
+
+for n in $ncores
 do
-    sleep 60
-    mpirun -n "$n" "$1" > "$1.out"
-    echo "$n" $(awk '/computation time/ {print $4}' "$1.out") | tee -a tmp.out
-    mkdir -p "$1_$n"
-    mv "$1"*.* "$1_$n"/.
+    mpirun -n $n $prog > $out
+    echo $n $(awk '/computation time/ {print $4}' $out) | tee -a tmp
+
+    dir=${prog}_$n
+    mkdir -p $dir
+    mv $prog!(*benchmark*).* $dir
 done
-mv tmp.out "$(dirname $1)/benchmark_$(basename $1).out"
+
+mv tmp ${prog}_benchmark.out

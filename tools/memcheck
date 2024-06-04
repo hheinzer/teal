@@ -1,2 +1,7 @@
 #!/bin/bash
-mpirun -n $1 valgrind --suppressions=tools/valgrind.supp --leak-check=full "${@:2}"
+
+ncores=$1 # number of cores
+prog=$2 # program
+args=${@:3} # program arguments
+
+mpirun -n $ncores valgrind --suppressions=tools/valgrind.supp --leak-check=full $prog $args

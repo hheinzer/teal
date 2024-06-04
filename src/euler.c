@@ -26,9 +26,10 @@ static void rotate_primitives_g2l(const double *n, const double *u, double *lu);
 static void rotate_fluxes_l2g(const double *n, const double *lu, double *u);
 static void physical_flux(const double *u, double *flux);
 
-Equations euler_create(const Mesh *mesh, const Fields *user) {
-    Fields vars = {.nu = N_VARS_EULER};
-    vars.name = memory_calloc(vars.nu, sizeof(*vars.name));
+Equations euler_create(const Mesh *mesh, const Fields *user)
+{
+    Fields vars = {.n_fields = N_VARS_EULER};
+    vars.name = memory_calloc(vars.n_fields, sizeof(*vars.name));
     vars.name[D] = utils_strdup("density");
     vars.name[U] = utils_strdup("velocity-x");
     vars.name[V] = utils_strdup("velocity-y");
@@ -50,21 +51,26 @@ Equations euler_create(const Mesh *mesh, const Fields *user) {
     return eqns;
 }
 
-void euler_set_gamma(const double gamma) {
-    m_gamma = gamma;
-}
+void euler_set_gamma(const double gamma) { m_gamma = gamma; }
 
-void euler_compute_conserved(Equations *eqns) {
+void euler_compute_conserved(Equations *eqns)
+{
+    const long n_inner_cells = eqns->mesh->n_inner_cells;
     FIELDS(u, eqns->vars);
-    for (long i = 0; i < eqns->mesh->n_inner_cells; ++i) compute_conserved(u[i]);
+
+    for (long i = 0; i < n_inner_cells; ++i) compute_conserved(u[i]);
 }
 
-void euler_compute_primitive(Equations *eqns) {
+void euler_compute_primitive(Equations *eqns)
+{
+    const long n_inner_cells = eqns->mesh->n_inner_cells;
     FIELDS(u, eqns->vars);
-    for (long i = 0; i < eqns->mesh->n_inner_cells; ++i) compute_primitive(u[i]);
+
+    for (long i = 0; i < n_inner_cells; ++i) compute_primitive(u[i]);
 }
 
-void euler_print(const Equations *eqns) {
+void euler_print(const Equations *eqns)
+{
     equations_print(eqns, "Euler");
     if (eqns->mesh->rank == 0) {
         printf(" | " FMT_KEY ": %s\n", "flux function", m_flux);
@@ -72,59 +78,78 @@ void euler_print(const Equations *eqns) {
     }
 }
 
-Flux *euler_flux(const char *flux) {
+Flux *euler_flux(const char *flux)
+{
     strncpy(m_flux, flux, sizeof(m_flux) - 1);
+
     if (!strcmp(flux, "godunov")) {
         return godunov;
-    } else if (!strcmp(flux, "roe")) {
+    }
+    else if (!strcmp(flux, "roe")) {
         return roe;
-    } else if (!strcmp(flux, "hll")) {
+    }
+    else if (!strcmp(flux, "hll")) {
         return hll;
-    } else if (!strcmp(flux, "hllc")) {
+    }
+    else if (!strcmp(flux, "hllc")) {
         return hllc;
-    } else if (!strcmp(flux, "hlle")) {
+    }
+    else if (!strcmp(flux, "hlle")) {
         return hlle;
-    } else if (!strcmp(flux, "lxf")) {
+    }
+    else if (!strcmp(flux, "lxf")) {
         return lxf;
-    } else {
+    }
+    else {
         assert(!"unsupported flux function");
     }
 }
 
-ApplyBC *euler_boundary_condition(const char *bc) {
+ApplyBC *euler_boundary_condition(const char *bc)
+{
     if (!strcmp(bc, "symmetry") || !strcmp(bc, "wall")) {
         return symmetry;
-    } else if (!strcmp(bc, "supersonic_inflow") || !strcmp(bc, "inflow")) {
+    }
+    else if (!strcmp(bc, "supersonic_inflow") || !strcmp(bc, "inflow")) {
         return supersonic_inflow;
-    } else if (!strcmp(bc, "supersonic_outflow") || !strcmp(bc, "outflow")) {
+    }
+    else if (!strcmp(bc, "supersonic_outflow") || !strcmp(bc, "outflow")) {
         return supersonic_outflow;
-    } else if (!strcmp(bc, "subsonic_inflow") || !strcmp(bc, "inlet")) {
+    }
+    else if (!strcmp(bc, "subsonic_inflow") || !strcmp(bc, "inlet")) {
         return subsonic_inflow;
-    } else if (!strcmp(bc, "subsonic_outflow") || !strcmp(bc, "outlet")) {
+    }
+    else if (!strcmp(bc, "subsonic_outflow") || !strcmp(bc, "outlet")) {
         return subsonic_outflow;
-    } else if (!strcmp(bc, "characteristic")) {
+    }
+    else if (!strcmp(bc, "characteristic")) {
         return characteristic;
-    } else if (!strcmp(bc, "custom")) {
+    }
+    else if (!strcmp(bc, "custom")) {
         return custom;
-    } else {
+    }
+    else {
         assert(!"unsupported boundary condition");
     }
 }
 
-static void compute_conserved(double *u) {
+static void compute_conserved(double *u)
+{
     u[DU] = u[D] * u[U];
     u[DV] = u[D] * u[V];
     u[DE] = u[P] / (m_gamma - 1) + 0.5 * (u[DU] * u[U] + u[DV] * u[V]);
 }
 
-static void compute_primitive(double *u) {
+static void compute_primitive(double *u)
+{
     u[D] = MAX(EPS, u[D]);
     u[U] = u[DU] / u[D];
     u[V] = u[DV] / u[D];
     u[P] = MAX(EPS, (m_gamma - 1) * (u[DE] - 0.5 * (u[DU] * u[U] + u[DV] * u[V])));
 }
 
-static double time_step(const Equations *eqns) {
+static double time_step(const Equations *eqns)
+{
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     const FIELDS(u, eqns->vars);
     const ALIAS(v, eqns->mesh->cell.volume);
@@ -139,7 +164,8 @@ static double time_step(const Equations *eqns) {
     return dt;
 }
 
-static void godunov(const double *n, const double *ul_g, const double *ur_g, double *f_g) {
+static void godunov(const double *n, const double *ul_g, const double *ur_g, double *f_g)
+{
     double ul[N_VARS_EULER], ur[N_VARS_EULER];
     rotate_primitives_g2l(n, ul_g, ul);
     rotate_primitives_g2l(n, ur_g, ur);
@@ -155,14 +181,15 @@ static void godunov(const double *n, const double *ul_g, const double *ur_g, dou
     rotate_fluxes_l2g(n, f, f_g);
 }
 
-static void roe(const double *n, const double *ul_g, const double *ur_g, double *f_g) {
+static void roe(const double *n, const double *ul_g, const double *ur_g, double *f_g)
+{
     double ul[N_VARS_EULER], ur[N_VARS_EULER];
     rotate_primitives_g2l(n, ul_g, ul);
     rotate_primitives_g2l(n, ur_g, ur);
     compute_conserved(ul);
     compute_conserved(ur);
 
-    // Toro 2009, sec. 11.2.2, with second entropy fix of Harten and Hyman, Pelanti 2018
+    // Toro 2009, sec. 11.2.2
     const double hl = (ul[DE] + ul[P]) / ul[D];
     const double hr = (ur[DE] + ur[P]) / ur[D];
     const double ds = sqrt(ul[D]) + sqrt(ur[D]);
@@ -172,6 +199,8 @@ static void roe(const double *n, const double *ul_g, const double *ur_g, double 
     const double q2 = us * us + vs * vs;
     const double cs = sqrt((m_gamma - 1) * (hs - 0.5 * q2));
     double e[4] = {us - cs, us, us, us + cs};
+
+    // second entropy fix of Harten and Hyman, Pelanti 2018
     const double cl = sqrt(m_gamma * ul[P] / ul[D]);
     const double cr = sqrt(m_gamma * ur[P] / ur[D]);
     const double el[4] = {ul[U] - cl, ul[U], ul[U], ul[U] + cl};
@@ -180,10 +209,12 @@ static void roe(const double *n, const double *ul_g, const double *ur_g, double 
         const double delta = MAX(EPS, MAX(e[i] - el[i], er[i] - e[i]));
         if (fabs(e[i]) < delta) {
             e[i] = 0.5 * (e[i] * e[i] / delta + delta);
-        } else {
+        }
+        else {
             e[i] = fabs(e[i]);
         }
     }
+
     const double v[4][4] = {
         {1, 1, 0, 1},
         {us - cs, us, 0, us + cs},
@@ -213,7 +244,8 @@ static void roe(const double *n, const double *ul_g, const double *ur_g, double 
     rotate_fluxes_l2g(n, f, f_g);
 }
 
-static void hll(const double *n, const double *ul_g, const double *ur_g, double *f_g) {
+static void hll(const double *n, const double *ul_g, const double *ur_g, double *f_g)
+{
     double ul[N_VARS_EULER], ur[N_VARS_EULER];
     rotate_primitives_g2l(n, ul_g, ul);
     rotate_primitives_g2l(n, ur_g, ur);
@@ -237,9 +269,11 @@ static void hll(const double *n, const double *ul_g, const double *ur_g, double 
     double fl[N_VARS_EULER], fr[N_VARS_EULER], f[N_VARS_EULER];
     if (0 <= sl) {
         physical_flux(ul, f);
-    } else if (0 >= sr) {
+    }
+    else if (0 >= sr) {
         physical_flux(ur, f);
-    } else {
+    }
+    else {
         const double du[4] = {
             ur[D] - ul[D],
             ur[DU] - ul[DU],
@@ -256,7 +290,8 @@ static void hll(const double *n, const double *ul_g, const double *ur_g, double 
     rotate_fluxes_l2g(n, f, f_g);
 }
 
-static void hllc(const double *n, const double *ul_g, const double *ur_g, double *f_g) {
+static void hllc(const double *n, const double *ul_g, const double *ur_g, double *f_g)
+{
     double ul[N_VARS_EULER], ur[N_VARS_EULER];
     rotate_primitives_g2l(n, ul_g, ul);
     rotate_primitives_g2l(n, ur_g, ur);
@@ -280,9 +315,11 @@ static void hllc(const double *n, const double *ul_g, const double *ur_g, double
     double f[N_VARS_EULER];
     if (0 <= sl) {
         physical_flux(ul, f);
-    } else if (0 >= sr) {
+    }
+    else if (0 >= sr) {
         physical_flux(ur, f);
-    } else {
+    }
+    else {
         const double ss = (ur[P] - ul[P] + ul[DU] * (sl - ul[U]) - ur[DU] * (sr - ur[U])) /
                           (ul[D] * (sl - ul[U]) - ur[D] * (sr - ur[U]));
         if (sl <= 0 && 0 <= ss) {
@@ -298,7 +335,8 @@ static void hllc(const double *n, const double *ul_g, const double *ur_g, double
             f[DU] += sl * (fac * u_s[1] - ul[DU]);
             f[DV] += sl * (fac * u_s[2] - ul[DV]);
             f[DE] += sl * (fac * u_s[3] - ul[DE]);
-        } else {
+        }
+        else {
             const double fac = ur[D] * (sr - ur[U]) / (sr - ss);
             const double u_s[4] = {
                 1,
@@ -316,7 +354,8 @@ static void hllc(const double *n, const double *ul_g, const double *ur_g, double
     rotate_fluxes_l2g(n, f, f_g);
 }
 
-static void hlle(const double *n, const double *ul_g, const double *ur_g, double *f_g) {
+static void hlle(const double *n, const double *ul_g, const double *ur_g, double *f_g)
+{
     double ul[N_VARS_EULER], ur[N_VARS_EULER];
     rotate_primitives_g2l(n, ul_g, ul);
     rotate_primitives_g2l(n, ur_g, ur);
@@ -337,9 +376,11 @@ static void hlle(const double *n, const double *ul_g, const double *ur_g, double
     double fl[N_VARS_EULER], fr[N_VARS_EULER], f[N_VARS_EULER];
     if (0 <= sl) {
         physical_flux(ul, f);
-    } else if (0 >= sr) {
+    }
+    else if (0 >= sr) {
         physical_flux(ur, f);
-    } else {
+    }
+    else {
         const double du[4] = {
             ur[D] - ul[D],
             ur[DU] - ul[DU],
@@ -356,7 +397,8 @@ static void hlle(const double *n, const double *ul_g, const double *ur_g, double
     rotate_fluxes_l2g(n, f, f_g);
 }
 
-static void lxf(const double *n, const double *ul_g, const double *ur_g, double *f_g) {
+static void lxf(const double *n, const double *ul_g, const double *ur_g, double *f_g)
+{
     double ul[N_VARS_EULER], ur[N_VARS_EULER];
     rotate_primitives_g2l(n, ul_g, ul);
     rotate_primitives_g2l(n, ur_g, ur);
@@ -378,7 +420,8 @@ static void lxf(const double *n, const double *ul_g, const double *ur_g, double 
     rotate_fluxes_l2g(n, f, f_g);
 }
 
-static void symmetry(const BCContext, const double *n, const double *ui, double *ug) {
+static void symmetry(const BCContext, const double *n, const double *ui, double *ug)
+{
     // Blazek 2015, sec. 8.6
     const double vn = n[0] * ui[U] + n[1] * ui[V];
     ug[D] = ui[D];
@@ -387,7 +430,8 @@ static void symmetry(const BCContext, const double *n, const double *ui, double 
     ug[P] = ui[P];
 }
 
-static void supersonic_inflow(const BCContext context, const double *, const double *, double *ug) {
+static void supersonic_inflow(const BCContext context, const double *, const double *, double *ug)
+{
     // Blazek 2015, sec. 8.3.1
     const double us[] = {
         [D] = context.state[0],
@@ -401,7 +445,8 @@ static void supersonic_inflow(const BCContext context, const double *, const dou
     ug[P] = us[P];
 }
 
-static void supersonic_outflow(const BCContext, const double *, const double *ui, double *ug) {
+static void supersonic_outflow(const BCContext, const double *, const double *ui, double *ug)
+{
     // Blazek 2015, sec. 8.3.1
     ug[D] = ui[D];
     ug[U] = ui[U];
@@ -409,8 +454,8 @@ static void supersonic_outflow(const BCContext, const double *, const double *ui
     ug[P] = ui[P];
 }
 
-static void subsonic_inflow(const BCContext context, const double *n, const double *ui,
-                            double *ug) {
+static void subsonic_inflow(const BCContext context, const double *n, const double *ui, double *ug)
+{
     // Blazek 2015, sec. 8.3.1
     const double us[] = {
         [D] = context.state[0],
@@ -427,8 +472,8 @@ static void subsonic_inflow(const BCContext context, const double *n, const doub
     ug[V] = us[V] - n[1] * (us[P] - ug[P]) / (rho0 * c0);
 }
 
-static void subsonic_outflow(const BCContext context, const double *n, const double *ui,
-                             double *ug) {
+static void subsonic_outflow(const BCContext context, const double *n, const double *ui, double *ug)
+{
     // Blazek 2015, sec. 8.3.1
     const double us[] = {
         [P] = context.state[0],
@@ -442,7 +487,8 @@ static void subsonic_outflow(const BCContext context, const double *n, const dou
 }
 
 static void characteristic(const BCContext context, const double *n, const double *ui_g,
-                           double *ug_g) {
+                           double *ug_g)
+{
     // compute initial ghost cell state
     ug_g[D] = context.state[0];
     ug_g[U] = context.state[1];
@@ -507,27 +553,31 @@ static void characteristic(const BCContext context, const double *n, const doubl
     ug_g[P] = ug[P];
 }
 
-static void custom(const BCContext context, const double *n, const double *ui, double *ug) {
+static void custom(const BCContext context, const double *n, const double *ui, double *ug)
+{
     const double *x = n;
     const double time = context.state[0];
     context.custom(x, time, ui, ug);
 }
 
-static void rotate_primitives_g2l(const double *n, const double *u_g, double *u) {
+static void rotate_primitives_g2l(const double *n, const double *u_g, double *u)
+{
     u[D] = u_g[D];
     u[U] = n[0] * u_g[U] + n[1] * u_g[V];
     u[V] = n[0] * u_g[V] - n[1] * u_g[U];
     u[P] = u_g[P];
 }
 
-static void rotate_fluxes_l2g(const double *n, const double *f, double *f_g) {
+static void rotate_fluxes_l2g(const double *n, const double *f, double *f_g)
+{
     f_g[D] = f[D];
     f_g[DU] = n[0] * f[DU] - n[1] * f[DV];
     f_g[DV] = n[0] * f[DV] + n[1] * f[DU];
     f_g[DE] = f[DE];
 }
 
-static void physical_flux(const double *u, double *flux) {
+static void physical_flux(const double *u, double *flux)
+{
     flux[D] = u[DU];
     flux[DU] = u[DU] * u[U] + u[P];
     flux[DV] = u[DU] * u[V];
