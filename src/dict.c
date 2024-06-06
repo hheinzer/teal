@@ -32,7 +32,7 @@ void dict_free(Dict *dict)
         free(dict->item[i].val);
     }
     free(dict->item);
-    *dict = (typeof(*dict)){};
+    *dict = (Dict){};
 }
 
 void dict_insert(Dict *dict, const long *key, const long n_key, const long *val, const long n_val)
@@ -147,7 +147,7 @@ static int keycmp(const long *key_a, const long n_key_a, const long *key_b, cons
 
 static int itemcmp(const void *a, const void *b)
 {
-    const DictItem *item_a = (typeof(item_a))a;
-    const DictItem *item_b = (typeof(item_b))b;
+    const DictItem *item_a = a;
+    const DictItem *item_b = b;
     return keycmp(item_a->key, item_a->n_key, item_b->key, item_b->n_key);
 }

@@ -194,7 +194,7 @@ void mesh_free(Mesh *mesh)
     free(mesh->sync.i_send);
     free(mesh->sync.send);
 
-    *mesh = (typeof(*mesh)){};
+    *mesh = (Mesh){};
 }
 
 void mesh_modify(Mesh *mesh, Modify *modify)

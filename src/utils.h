@@ -4,6 +4,9 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+#define ALIAS(a, b) typeof(b) a = b
+#define TCAST(a, b) (typeof(a))b
+
 void *utils_memdup(const void *src, const long nmemb, const long size);
 
 char *utils_strdup(const char *src);

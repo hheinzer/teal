@@ -56,7 +56,7 @@ void simulation_free(Simulation *sim)
     if (sim->eqns->mesh->rank == 0) fclose(sim->residual_file);
     free(sim->buf);
     free(sim->prefix);
-    *sim = (typeof(*sim)){};
+    *sim = (Simulation){};
 }
 
 void simulation_set_time_order(Simulation *sim, const long time_order, const long n_stages)

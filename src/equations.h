@@ -4,10 +4,11 @@
 #include <mpi.h>
 
 #include "mesh.h"
+#include "utils.h"
 
-#define FIELDS(a, f) typeof (*f.u)(*(a))[f.n_fields] = (typeof(a))f.u
-#define GRADS(a, f) typeof (*f.dudx)(*(a))[f.n_fields][N_DIMS] = (typeof(a))f.dudx
-#define DERIVS(a, f) typeof (*f.dudt)(*(a))[f.n_fields] = (typeof(a))f.dudt
+#define FIELDS(a, f) double(*a)[f.n_fields] = TCAST(a, f.u)
+#define GRADS(a, f) double(*a)[f.n_fields][N_DIMS] = TCAST(a, f.dudx)
+#define DERIVS(a, f) double(*a)[f.n_fields] = TCAST(a, f.dudt)
 
 typedef struct Fields {
     long n_fields;

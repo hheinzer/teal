@@ -58,7 +58,7 @@ static void create_nodes(Mesh *mesh, long *node_map)
     for (size_t i = 0; i < n_nodeTags; ++i) node_map[nodeTags[i]] = i;
     gmshFree(nodeTags);
 
-    double(*x)[3] = (typeof(x))coord;
+    double(*x)[3] = TCAST(x, coord);
     mesh->n_nodes = n_nodeTags;
     assert(mesh->n_nodes > 0 && "mesh contains no nodes");
     mesh->node.x = memory_calloc(mesh->n_nodes, sizeof(*mesh->node.x));

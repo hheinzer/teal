@@ -54,7 +54,7 @@ void advance_lserk(Simulation *sim, const double dt)
     const long n_inner_cells = sim->eqns->mesh->n_inner_cells;
     const DERIVS(dudt, sim->eqns->vars);
     FIELDS(u, sim->eqns->vars);
-    double(*u0)[n_vars] = (typeof(u0))sim->buf;
+    double(*u0)[n_vars] = TCAST(u0, sim->buf);
 
     for (long i = 0; i < n_inner_cells; ++i)
         for (long v = 0; v < n_vars; ++v) u0[i][v] = u[i][v];

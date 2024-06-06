@@ -80,13 +80,13 @@ void equations_free(Equations *eqns)
     if (eqns->vars.output.name)
         for (long i = 0; i < eqns->vars.output.n_dims; ++i) free(eqns->vars.output.name[i]);
     free(eqns->vars.output.name);
-    eqns->vars = (typeof(eqns->vars)){};
+    eqns->vars = (Fields){};
 
     free(eqns->user.output.dim);
     if (eqns->user.output.name)
         for (long i = 0; i < eqns->user.output.n_dims; ++i) free(eqns->user.output.name[i]);
     free(eqns->user.output.name);
-    eqns->vars = (typeof(eqns->vars)){};
+    eqns->vars = (Fields){};
 
     free(eqns->buf);
 
@@ -97,7 +97,7 @@ void equations_free(Equations *eqns)
     free(eqns->sync.recv_dudx);
     free(eqns->sync.send_dudx);
 
-    *eqns = (typeof(*eqns)){};
+    *eqns = (Equations){};
 }
 
 void equations_set_initial_condition(Equations *eqns, Function *initial)

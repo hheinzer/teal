@@ -355,8 +355,8 @@ static void compute_sync(Mesh *mesh, const long (*cell_map)[2])
 
 static int mapcmp(const void *a, const void *b)
 {
-    const long *map_a = (typeof(map_a))a;
-    const long *map_b = (typeof(map_b))b;
+    const long *map_a = a;
+    const long *map_b = b;
 
     // sort by rank
     if (map_a[1] < map_b[1]) return -1;

@@ -14,6 +14,7 @@
 #include "mesh.h"
 #include "simulation.h"
 #include "sync.h"
+#include "utils.h"
 
 Mesh airfoil_mesh(const char *fname, const long n_upper, const long n_lower, const long n_outer,
                   const double radius)

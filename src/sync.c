@@ -6,6 +6,7 @@
 #include "equations.h"
 #include "memory.h"
 #include "mesh.h"
+#include "utils.h"
 
 static void irecv(const int size, const long *i_recv, const long nu, double (*u)[nu],
                   MPI_Request *req);
@@ -130,7 +131,7 @@ void sync_u_begin(Equations *eqns)
 
     const ALIAS(i_send, eqns->mesh->sync.i_send);
     const ALIAS(send, eqns->mesh->sync.send);
-    double(*buf)[nu] = (typeof(buf))eqns->sync.buf_u;
+    double(*buf)[nu] = TCAST(buf, eqns->sync.buf_u);
     isend(size, i_send, send, nu, u, buf, eqns->sync.send_u);
 }
 
@@ -148,7 +149,7 @@ void sync_dudx_begin(Equations *eqns)
 
     const ALIAS(i_send, eqns->mesh->sync.i_send);
     const ALIAS(send, eqns->mesh->sync.send);
-    double(*buf)[nu] = (typeof(buf))eqns->sync.buf_dudx;
+    double(*buf)[nu] = TCAST(buf, eqns->sync.buf_dudx);
     isend(size, i_send, send, nu, *dudx, buf, eqns->sync.send_dudx);
 }
 

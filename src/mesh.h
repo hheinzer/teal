@@ -6,8 +6,6 @@ typedef enum Dimension { X, Y, N_DIMS } Dimension;
 #define MAX_CELL_FACES 4
 #define MAX_FACE_NODES 2
 
-#define ALIAS(a, m) typeof(m) a = m
-
 typedef void Modify(double *x);
 typedef void Function(const double *x, const double time, const double *u, double *f);
 
