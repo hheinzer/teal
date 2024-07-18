@@ -1,31 +1,34 @@
+#include "euler.h"
+#include "mesh.h"
+#include "simulation.h"
 #include "teal.h"
+
+const double state[N_VARS] = {[D] = 1.4, [U] = 3, [P] = 1};
 
 int main(int argc, char **argv)
 {
-    teal_init(argc, argv);
+    teal_initialize(&argc, &argv);
 
-    const double state[] = {1.4, 3, 0, 1};
-    Mesh mesh = mesh_read("run/ffs/ffs.geo");
-    mesh_set_boundary_condition(&mesh, "inflow", "inflow", state, 0);
-    mesh_set_boundary_condition(&mesh, "outflow", "outflow", 0, 0);
-    mesh_set_boundary_condition(&mesh, "symmetry", "symmetry", 0, 0);
-    mesh_set_boundary_condition(&mesh, "wall", "wall", 0, 0);
+    Mesh mesh = mesh_read("run/ffs/quads.geo");
     mesh_generate(&mesh);
     mesh_print(&mesh);
 
-    Equations eqns = euler_create(&mesh, 0);
-    eqns.flux = euler_flux("hll");
-    equations_set_initial_state(&eqns, 4, (long[]){D, U, V, P}, state);
-    euler_compute_conserved(&eqns);
-    euler_print(&eqns);
+    Equations eqns = euler_create(&mesh, 2);
+    equations_set_initial_state(&eqns, state);
+    equations_set_boundary_condition(&eqns, "inlet", "supersonic inflow", state, 0);
+    equations_set_boundary_condition(&eqns, "outlet", "supersonic outflow", 0, 0);
+    equations_set_boundary_condition(&eqns, "symmetry", "symmetry", 0, 0);
+    equations_set_boundary_condition(&eqns, "wall", "slipwall", 0, 0);
+    equations_print(&eqns);
 
-    Simulation sim = simulation_create(argv[0], &eqns);
-    sim.max_time = 4;
+    Simulation sim = simulation_create(&eqns, argv[0]);
+    simulation_set_max_time(&sim, 2);
     simulation_print(&sim);
     simulation_run(&sim);
 
     simulation_free(&sim);
     equations_free(&eqns);
     mesh_free(&mesh);
+
     teal_finalize();
 }

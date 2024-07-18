@@ -1,10 +1,4 @@
-{
-    openmpi_leak
-    Memcheck:Leak
-    ...
-    fun:*ompi*
-    ...
-}
+# openmpi
 {
    openmpi_cond
    Memcheck:Cond
@@ -13,20 +7,22 @@
    ...
 }
 {
-   <openmpi_param>
-   Memcheck:Param
-   process_vm_readv(lvec[...])
-   ...
-   fun:*ompi*
-   ...
-}
-{
-    thread_leak
+    openmpi_leak
     Memcheck:Leak
     ...
-    fun:*thread*
+    fun:*ompi*
     ...
 }
+{
+    openmpi_param
+    Memcheck:Param
+    process_vm_readv(lvec[...])
+    ...
+    fun:*ompi*
+    ...
+}
+
+# thread
 {
     thread_param
     Memcheck:Param
@@ -36,12 +32,18 @@
     ...
 }
 {
-    gmsh_omp
+    thread_leak
     Memcheck:Leak
-    match-leak-kinds: definite
     ...
-    obj:*gmsh*
+    fun:*thread*
     ...
-    fun:*OMP*
+}
+
+# gmsh
+{
+    gmsh
+    Memcheck:Leak
+    ...
+    obj:*libgmsh*
     ...
 }

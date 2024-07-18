@@ -1,0 +1,13 @@
+#!/bin/bash
+
+ncores=$1 # number of cores
+prog=$2 # program
+args=${@:3} # program arguments
+
+out=${2}_gprof.out
+pdf=${2}_gprof.pdf
+
+GMON_OUT_PREFIX=gmon.out- mpirun -x GMON_OUT_PREFIX -n $ncores $prog $args
+gprof -s $prog gmon.out-*
+gprof $prog gmon.sum | tee $out | gprof2dot | dot -Tpdf -o $pdf
+rm gmon.out-* gmon.sum

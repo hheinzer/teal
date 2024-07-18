@@ -1,9 +1,9 @@
 SetFactory("OpenCASCADE");
-r1 = 1.0;
-r2 = 20.0;
+r1 = 1;
+r2 = 20;
 n1 = 100;
-p1 = 1.05;
 n2 = 100;
+p1 = 1.05;
 
 Point(1) = {r1 + 0, 0, 0, 1.0};
 Point(2) = {r1 + r1, 0, 0, 1.0};
@@ -36,12 +36,13 @@ Curve Loop(3) = {11, 7, -12, -3};
 Plane Surface(3) = {3};
 Curve Loop(4) = {12, 8, -9, -4};
 Plane Surface(4) = {4};
+Extrude {0, 0, 1} { Surface{1}; Surface{2}; Surface{3}; Surface{4}; Layers {1}; Recombine; }
 
-Physical Curve("wall", 13) = {1, 2, 3, 4};
-Physical Curve("farfield", 14) = {5, 6, 7, 8};
-Physical Surface("domain", 16) = {1, 2, 3, 4};
+Physical Surface("wall", 33) = {8, 12, 16, 19};
+Physical Surface("farfield", 34) = {6, 10, 14, 18};
+Physical Volume("domain", 35) = {1, 2, 3, 4};
 
-Transfinite Curve {9, 10, 11, 12} = n1 + 1 Using Progression p1;
-Transfinite Curve {1, 5, 2, 6, 3, 7, 4, 8} = n2 + 1 Using Progression 1;
+Transfinite Curve {9, 10, 11, 12} = (n1 + 1) Using Progression p1;
+Transfinite Curve {1, 5, 2, 6, 3, 7, 4, 8} = (n2 / 4 + 1) Using Progression 1;
 Transfinite Surface {1, 2, 3, 4};
 Recombine Surface {1, 2, 3, 4};

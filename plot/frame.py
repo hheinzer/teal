@@ -1,92 +1,136 @@
-import os
-import tqdm
-import multiprocessing
-import pyvista as pv
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from pypdf import PdfWriter
 from argparse import ArgumentParser, BooleanOptionalAction
+from os import remove, system
+from os.path import commonprefix
+from time import time
+
+import matplotlib.pyplot as plt
+from mpi4py import MPI
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
+from pypdf import PdfWriter
+import pyvista as pv
 
 parser = ArgumentParser()
 parser.add_argument("fnames", nargs="+", help="files that should be plotted")
-parser.add_argument("-s", "--scalar", help="scalar to plot", default="density")
-parser.add_argument("--xmin", help="minimum x value", type=float, default=-np.inf)
-parser.add_argument("--xmax", help="maximum x value", type=float, default=np.inf)
-parser.add_argument("--ymin", help="minimum y value", type=float, default=-np.inf)
-parser.add_argument("--ymax", help="maximum y value", type=float, default=np.inf)
-parser.add_argument("--cmap", help="colormap", default="coolwarm")
-parser.add_argument("--vmin", help="minimum colormap value", type=float)
-parser.add_argument("--vmax", help="maximum colormap value", type=float)
-parser.add_argument("--edges", help="show edges of mesh", action=BooleanOptionalAction)
+parser.add_argument("scalar", help="scalar to plot")
+parser.add_argument("--vmin", help="minimum scalar value", type=float)
+parser.add_argument("--vmax", help="maximum scalar value", type=float)
+parser.add_argument("-x", "--explode", help="show exploded mesh", action=BooleanOptionalAction)
+parser.add_argument("-e", "--edges", help="show mesh edges", action=BooleanOptionalAction)
+parser.add_argument("-c", "--cmap", help="colormap", default="coolwarm")
+parser.add_argument("-n", "--nthreads", help="number of threads to use for pool", type=int)
 args = parser.parse_args()
 
 
+def main():
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    assert size <= len(args.fnames)
+
+    fnames = []
+    for i in range(size):
+        fnames += args.fnames[i::size]
+
+    fnames = np.array_split(fnames, size)[rank]
+    for fname in fnames:
+        plot(fname)
+
+    if rank == 0:
+        merge_pdfs(args.fnames, args.scalar)
+        create_video(args.fnames, args.scalar)
+
+
 def plot(fname):
-    fig, ax = plt.subplots(num=1, clear=True)
+    tstart = time()
 
-    pvp = pv.Plotter(off_screen=True, lighting="none")
-    mesh = pv.read(fname, force_ext=".hdf")
+    mesh = pv.read(fname)
+    mesh = mesh.explode(1) if args.explode else mesh
+    extent = mesh.bounds
+    vmin = (
+        args.vmin
+        if args.vmin is not None
+        else (
+            mesh[args.scalar].min()
+            if len(mesh[args.scalar].shape) == 1
+            else np.linalg.norm(mesh[args.scalar], axis=1).min()
+        )
+    )
+    vmax = (
+        args.vmax
+        if args.vmax is not None
+        else (
+            mesh[args.scalar].max()
+            if len(mesh[args.scalar].shape) == 1
+            else np.linalg.norm(mesh[args.scalar], axis=1).max()
+        )
+    )
 
-    if len(mesh[args.scalar].shape) > 1:
-        vmin = np.linalg.norm(mesh[args.scalar], axis=1).min()
-        vmax = np.linalg.norm(mesh[args.scalar], axis=1).max()
-    else:
-        vmin = mesh[args.scalar].min()
-        vmax = mesh[args.scalar].max()
-
-    if args.vmin:
-        vmin = args.vmin
-    if args.vmax:
-        vmax = args.vmax
-    clim = [vmin, vmax]
-
-    bounds = [args.xmin, args.xmax, args.ymin, args.ymax, -np.inf, np.inf]
-    if any(np.isfinite(bounds)):
-        mesh = mesh.clip_box(bounds, invert=False)
+    pvp = pv.Plotter(lighting="three lights", off_screen=True, window_size=[4000, 4000])
     pvp.add_mesh(
         mesh,
         scalars=args.scalar,
-        clim=clim,
+        clim=(vmin, vmax),
         show_edges=args.edges,
         cmap=args.cmap,
         show_scalar_bar=False,
     )
-
     pvp.camera.tight()
-    img = pvp.screenshot(None, transparent_background=True, return_img=True, scale=3)
+    img = pvp.screenshot(None, transparent_background=True, return_img=True)
+    pv.close_all()
 
-    extent = mesh.bounds[:4]
+    fig, ax = plt.subplots()
 
-    im = ax.imshow(img, cmap=args.cmap, extent=extent, vmin=vmin, vmax=vmax)
+    im = ax.imshow(img, cmap=args.cmap, extent=extent, vmin=vmin, vmax=vmax, interpolation="none")
 
     div = make_axes_locatable(ax)
     cax = div.append_axes("right", size=0.15, pad=0.1)
     cb = plt.colorbar(im, cax=cax)
 
-    ax.set_xlabel("$x$")
-    ax.set_ylabel("$y$")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
     cb.set_label(args.scalar)
-    ax.set_xlim(xmin=max(args.xmin, extent[0]), xmax=min(args.xmax, extent[1]))
-    ax.set_ylim(ymin=max(args.ymin, extent[2]), ymax=min(args.ymax, extent[3]))
-
-    try:
-        ax.set_title(f"time = {mesh["TimeValue"][0]:g}")
-    except:
-        pass
+    if "TimeValue" in mesh.array_names:
+        ax.set_title(f"time = {mesh['TimeValue'][0]:g}")
 
     fig.tight_layout()
-    fig.savefig(fname.replace(".vtkhdf", ".pdf"), dpi=300, bbox_inches="tight")
+    fig.savefig(fname.replace(".hdf", ".pdf"), bbox_inches="tight")
+    fig.savefig(fname.replace(".hdf", ".png"), dpi=300, bbox_inches="tight")
+    plt.close()
+
+    tend = time()
+    print(fname, tend - tstart, "s")
 
 
-with multiprocessing.Pool(6) as pool:
-    _ = list(tqdm.tqdm(pool.imap(plot, args.fnames), total=len(args.fnames)))
+def merge_pdfs(fnames, scalar):
+    with PdfWriter() as writer:
+        for fname in fnames:
+            writer.append(fname.replace(".hdf", ".pdf"))
+        prefix = commonprefix(["_".join(fname.split("_")[:-1]) for fname in fnames])
+        writer.write(f"{prefix}_{scalar}.pdf")
+        writer.close()
+    for fname in fnames:
+        remove(fname.replace(".hdf", ".pdf"))
 
-pdfs = sorted(list(map(lambda x: x.replace(".vtkhdf", ".pdf"), args.fnames)))
-merger = PdfWriter()
-for pdf in pdfs:
-    merger.append(pdf)
-merger.write(f"{pdfs[0].split('_')[0]}_{args.scalar.replace(" ", "_")}.pdf")
-merger.close()
-for pdf in pdfs:
-    os.remove(pdf)
+
+def create_video(fnames, scalar):
+    prefix = commonprefix(["_".join(fname.split("_")[:-1]) for fname in fnames])
+    system(
+        " ".join(
+            [
+                "ffmpeg -y -loglevel warning",
+                "-framerate 10",
+                f"-i {prefix}_%05d.png",
+                "-pix_fmt yuv420p",
+                "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2'",
+                "-r 60",
+                f"{prefix}_{scalar}.mp4",
+            ]
+        )
+    )
+    for fname in fnames:
+        remove(fname.replace(".hdf", ".png"))
+
+
+if __name__ == "__main__":
+    main()

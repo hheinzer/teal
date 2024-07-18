@@ -4,67 +4,118 @@
 #include <mpi.h>
 
 #include "mesh.h"
-#include "utils.h"
 
-#define FIELDS(a, f) double(*a)[f.n_fields] = TCAST(a, f.u)
-#define GRADS(a, f) double(*a)[f.n_fields][N_DIMS] = TCAST(a, f.dudx)
-#define DERIVS(a, f) double(*a)[f.n_fields] = TCAST(a, f.dudt)
-
-typedef struct Fields {
-    long n_fields;
-    double *u, *dudx, *dudt;
-    char **name;
-    struct {
-        long n_dims, *dim;
-        char **name;
-    } output;
-    Function *compute;
-} Fields;
+typedef void Function(double *, const double *u, const double *x, double time);
 
 typedef struct Equations Equations;
-typedef double TimeStep(const Equations *eqns);
-typedef void Update(double *u);
-typedef void Flux(const double *n, const double *ul_g, const double *ur_g, double *f_g);
-typedef double Limiter(const double eps2, const double u, const double umin, const double umax,
-                       const double *dudx, const double (*dx)[N_DIMS], const long nj);
+
+typedef double TimeStep(const Equations *eqns, const double *u, const double *projection,
+                        double volume);
+
+typedef void Flux(const Equations *eqns, const double *n, const double *g_ul, const double *g_ur,
+                  double *g_f);
+
+typedef Flux *SelectFlux(const char *name);
+
+typedef void ApplyBC(const Equations *eqns, const double *n, const double *state, const double *ui,
+                     double *ug);
+
+typedef ApplyBC *SelectBC(const char *name);
+
+typedef void Update(const Equations *eqns, double *u);
+
+typedef double Limiter(const double (*dx)[N_DIMS], const double *dudx, double u, double umin,
+                       double umax, double eps2, long n);
+
 struct Equations {
-    Fields vars, user;
+    long n_vars, n_scalars, n_user;
+    long space_order;
+    char name[NAMELEN];
     const Mesh *mesh;
 
-    TimeStep *time_step;
-    Update *update;
-    Flux *flux;
-    Function *source;
-
-    long space_order;
-    Limiter *limiter;
-    double k, *buf;
+    struct {
+        char (*name)[NAMELEN];
+        double *u, *dudx, *dudt;
+        long *dim;
+    } vars;
 
     struct {
-        double *buf_u, *buf_dudx;
-        MPI_Request *recv_u, *send_u, *recv_dudx, *send_dudx;
+        char (*name)[NAMELEN];
+        double *value;
+    } scalar;
+
+    struct {
+        SelectFlux *select;
+        char name[NAMELEN];
+        Flux *func;
+    } flux;
+
+    TimeStep *timestep;
+    Update *boundary, *advance;
+
+    struct {
+        char name[NAMELEN];
+        Limiter *func;
+        double k, *eps2;
+    } limiter;
+
+    struct {
+        char (*name)[NAMELEN];
+        Function *compute;
+        long *dim;
+    } user;
+
+    Function *source;
+
+    struct {
+        SelectBC *select;
+        char (*name)[NAMELEN];
+        const double **state;
+        ApplyBC **apply;
+        Function **custom;
+    } bc;
+
+    struct {
+        double *buf;
+        MPI_Request *recv, *send;
     } sync;
 };
 
-Equations equations_create(const Mesh *mesh, const Fields *vars, const Fields *user);
+void equations_create(Equations *eqns, long space_order);
 
-void equations_free(Equations *eqns);
+void equations_create_user(Equations *eqns, Function *compute, const char **name, long n_user);
+
+void equations_create_exact(Equations *eqns, Function *compute, long n_user);
+
+void equations_set_scalar(Equations *eqns, long scalar, double value);
+
+void equations_set_flux(Equations *eqns, const char *name);
+
+void equations_set_source(Equations *eqns, Function *source);
+
+void equations_set_limiter(Equations *eqns, const char *limiter, double k);
 
 void equations_set_initial_condition(Equations *eqns, Function *initial);
 
-void equations_set_initial_state(Equations *eqns, const long nu, const long *u,
-                                 const double *state);
+void equations_set_initial_state(Equations *eqns, const double *state);
 
-void equations_set_space_order(Equations *eqns, const long space_order, const char *limiter,
-                               const double k);
+void equations_set_boundary_condition(Equations *eqns, const char *entity, const char *bc,
+                                      const double *state, Function *custom);
 
-void equations_print(const Equations *eqns, const char *name);
+void equations_print(const Equations *eqns);
 
-void equations_write(const Equations *eqns, const char *prefix, const long count,
-                     const double time);
+void equations_write(const Equations *eqns, const char *prefix, long count, double time);
 
-void equations_time_derivative(Equations *eqns, const double time);
+double equations_timestep(const Equations *eqns);
+
+void equations_derivative(Equations *eqns, double time);
+
+void equations_gradient(Equations *eqns);
+
+void equations_limiter(Equations *eqns);
 
 void equations_residual(const Equations *eqns, double *residual);
+
+void equations_free(Equations *eqns);
 
 #endif

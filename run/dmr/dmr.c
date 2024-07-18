@@ -1,47 +1,55 @@
 #include <math.h>
 
+#include "euler.h"
+#include "mesh.h"
+#include "simulation.h"
 #include "teal.h"
 
+#define PI 3.14159265358979323846
 const double alpha = 30 * PI / 180;
-const double state[2][4] = {{1.4, 0, 0, 1}, {8, 7.1447096, -4.125, 116.5}};
+const double state0[N_VARS] = {[D] = 1.4, [P] = 1};
+const double state1[N_VARS] = {[D] = 8, [U] = 7.1447096, [V] = -4.125, [P] = 116.5};
 const double Wx = 8.660254, Wy = -5;
-static Function bc;
+static Function dmr;
 
 int main(int argc, char **argv)
 {
-    teal_init(argc, argv);
+    teal_initialize(&argc, &argv);
 
-    Mesh mesh = mesh_create((double[]){0, 0}, (double[]){3.25, 1}, (long[]){1040, 320});
-    mesh_split_entity(&mesh, "bottom", X, 1.0 / 6);
-    mesh_set_boundary_condition(&mesh, "bottom0", "outflow", 0, 0);
-    mesh_set_boundary_condition(&mesh, "bottom1", "wall", 0, 0);
-    mesh_set_boundary_condition(&mesh, "right", "outflow", 0, 0);
-    mesh_set_boundary_condition(&mesh, "top", "custom", 0, bc);
-    mesh_set_boundary_condition(&mesh, "left", "inflow", state[1], 0);
+    const double x0[] = {0, 0, 0}, x1[] = {3.25, 1, 1};
+    const long n_cells[] = {520, 160, 1};
+    const double root[] = {1.0 / 6, 0, 0}, direction[] = {-1, 0, 0};
+    Mesh mesh = mesh_create(x0, x1, n_cells);
+    mesh_split(&mesh, "bottom", root, direction);
+    mesh_periodic(&mesh, "back", "front");
     mesh_generate(&mesh);
     mesh_print(&mesh);
 
-    Equations eqns = euler_create(&mesh, 0);
-    equations_set_initial_condition(&eqns, bc);
-    euler_compute_conserved(&eqns);
-    euler_print(&eqns);
+    Equations eqns = euler_create(&mesh, 2);
+    equations_set_initial_condition(&eqns, dmr);
+    equations_set_boundary_condition(&eqns, "bottom0", "supersonic outflow", 0, 0);
+    equations_set_boundary_condition(&eqns, "bottom1", "slipwall", 0, 0);
+    equations_set_boundary_condition(&eqns, "right", "supersonic outflow", 0, 0);
+    equations_set_boundary_condition(&eqns, "top", "custom", 0, dmr);
+    equations_set_boundary_condition(&eqns, "left", "supersonic inflow", state1, 0);
+    equations_print(&eqns);
 
-    Simulation sim = simulation_create(argv[0], &eqns);
-    sim.max_time = 0.2;
+    Simulation sim = simulation_create(&eqns, argv[0]);
+    simulation_set_max_time(&sim, 0.2);
     simulation_print(&sim);
     simulation_run(&sim);
 
     simulation_free(&sim);
     equations_free(&eqns);
     mesh_free(&mesh);
+
     teal_finalize();
 }
 
-static void bc(const double *x, const double time, const double *, double *u)
+static void dmr(double *u, const double *, const double *x, double time)
 {
-    const long s = (atan2(x[0] - 1.0 / 6 - Wx * time, x[1] - Wy * time) < alpha);
-    u[D] = state[s][0];
-    u[U] = state[s][1];
-    u[V] = state[s][2];
-    u[P] = state[s][3];
+    if (atan2(x[X] - 1.0 / 6 - Wx * time, x[Y] - Wy * time) >= alpha)
+        for (long v = 0; v < N_VARS; ++v) u[v] = state0[v];
+    else
+        for (long v = 0; v < N_VARS; ++v) u[v] = state1[v];
 }

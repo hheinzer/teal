@@ -1,13 +1,15 @@
 #!/bin/bash
 shopt -s extglob
 
-prog=$1 # program
-ncores=${@:2} # number of cores
+ncores=$1 # number of cores (for example: "1 2 3 4")
+prog=$2 # program
+args=${@:3} # program arguments
 
 out=$prog.out
 
 for n in $ncores
 do
+    sleep 60
     mpirun -n $n $prog > $out
     echo $n $(awk '/computation time/ {print $4}' $out) | tee -a tmp
 

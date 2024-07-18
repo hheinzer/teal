@@ -4,31 +4,30 @@
 #include "equations.h"
 #include "mesh.h"
 
-typedef enum Variable {
-    // primitive
-    D,  // density (also conserved)
-    U,  // x-velocity
-    V,  // y-velocity
-    P,  // pressure
-    // conserved
-    DU,  // x-momentum
-    DV,  // y-momentum
+#ifndef VARIABLES
+#define VARIABLES
+typedef enum Variables {
+    D,   // density
+    U,   // velocity-x
+    V,   // velocity-y
+    W,   // velocity-z
+    P,   // pressure
+    DU,  // momentum-x
+    DV,  // momentum-y
+    DW,  // momentum-z
     DE,  // energy
-    N_VARS_EULER,
-} Variable;
+    N_VARS,
+} Variables;
+#endif
 
-Equations euler_create(const Mesh *mesh, const Fields *user);
+#ifndef SCALARS
+#define SCALARS
+typedef enum Scalars {
+    GAMMA,  // heat capacity ratio
+    N_SCALARS,
+} Scalars;
+#endif
 
-void euler_set_gamma(const double gamma);
-
-void euler_compute_conserved(Equations *eqns);
-
-void euler_compute_primitive(Equations *eqns);
-
-void euler_print(const Equations *eqns);
-
-Flux *euler_flux(const char *flux);
-
-ApplyBC *euler_boundary_condition(const char *bc);
+Equations euler_create(const Mesh *mesh, long space_order);
 
 #endif

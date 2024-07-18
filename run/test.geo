@@ -1,30 +1,17 @@
-lc = 0.01;
+SetFactory("OpenCASCADE");
+Box(1) = {-1, -1, -1, 2, 2, 2};
 
-Point(1) = {0, 0, 0, lc};
-Point(2) = {0.5, 0, 0, lc};
-Point(3) = {1, 0, 0, lc};
-Point(4) = {1, 1, 0, lc};
-Point(5) = {0.5, 1, 0, lc};
-Point(6) = {0, 1, 0, lc};
+Periodic Surface {2} = {1} Translate {2, 0, 0};
+Periodic Surface {4} = {3} Translate {0, 2, 0};
+Periodic Surface {6} = {5} Translate {0, 0, 2};
 
-Line(1) = {1, 2};
-Line(2) = {2, 3};
-Line(3) = {3, 4};
-Line(4) = {4, 5};
-Line(5) = {5, 6};
-Line(6) = {6, 1};
-Line(7) = {2, 5};
+Physical Surface("left", 13) = {1};
+Physical Surface("right", 14) = {2};
+Physical Surface("bottom", 15) = {3};
+Physical Surface("top", 16) = {4};
+Physical Surface("back", 17) = {5};
+Physical Surface("front", 18) = {6};
+Physical Volume("domain", 19) = {1};
 
-Curve Loop(1) = {6, 1, 7, 5};
-Plane Surface(1) = {1};
-Curve Loop(2) = {7, -4, -3, -2};
-Plane Surface(2) = {2};
-
-Physical Curve("bottom", 8) = {1, 2};
-Physical Curve("right", 9) = {3};
-Physical Curve("top", 10) = {4, 5};
-Physical Curve("left", 11) = {6};
-Physical Surface("domain", 12) = {1, 2};
-
-Recombine Surface {2};
-
+Transfinite Curve {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12} = 51 Using Progression 1;
+Mesh.OptimizeNetgen = 1;

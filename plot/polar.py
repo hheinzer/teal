@@ -29,7 +29,7 @@ if args.refs:
         data = np.genfromtxt(ref, skip_header=1)
         x = data[:, 0]
         cp = data[:, 1]
-        ax[0].plot(x, cp, "--", label=ref.split("_")[-1].replace(".dat", ""))
+        ax[0].plot(x, cp, "--", label=ref.split("/")[-1].replace(".dat", ""))
 
 ax[0].set_xlabel("$x$")
 ax[0].set_ylabel("$c_p$")

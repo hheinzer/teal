@@ -1,33 +1,42 @@
 #include <math.h>
 
+#include "airfoil.h"
+#include "euler.h"
+#include "mesh.h"
+#include "simulation.h"
 #include "teal.h"
 
+#define PI 3.14159265358979323846
 const double rho = 1.4, vmag = 0.5, alpha = 3 * PI / 180, p = 1;
 
 int main(int argc, char **argv)
 {
-    teal_init(argc, argv);
+    teal_initialize(&argc, &argv);
 
-    const double state[] = {rho, vmag * cos(alpha), vmag * sin(alpha), p};
-    Mesh mesh = airfoil_mesh("run/naca2312/naca2312.dat", 200, 200, 100, 20);
-    mesh_set_boundary_condition(&mesh, "airfoil", "wall", 0, 0);
-    mesh_set_boundary_condition(&mesh, "farfield", "characteristic", state, 0);
+    Mesh mesh = mesh_read("run/naca2312/naca2312.geo");
     mesh_generate(&mesh);
     mesh_print(&mesh);
 
-    Equations eqns = euler_create(&mesh, 0);
-    equations_set_initial_state(&eqns, 4, (long[]){D, U, V, P}, state);
-    euler_compute_conserved(&eqns);
-    euler_print(&eqns);
+    const double state[N_VARS] = {
+        [D] = rho, [U] = vmag * cos(alpha), [V] = vmag * sin(alpha), [P] = p};
+    Equations eqns = euler_create(&mesh, 2);
+    equations_set_limiter(&eqns, "venk", 1);
+    equations_set_initial_state(&eqns, state);
+    equations_set_boundary_condition(&eqns, "airfoil", "slipwall", state, 0);
+    equations_set_boundary_condition(&eqns, "farfield", "farfield", state, 0);
+    equations_print(&eqns);
 
-    Simulation sim = simulation_create(argv[0], &eqns);
-    sim.max_iter = 70000;
+    Simulation sim = simulation_create(&eqns, argv[0]);
+    simulation_set_max_iter(&sim, 100000);
+    simulation_set_output_iter(&sim, 10000);
+    simulation_set_abort(&sim, D, 1e-5);
     simulation_print(&sim);
     simulation_run(&sim);
-    airfoil_polar(&sim, 0, P, state, 1);
+    airfoil_polar(&sim, "airfoil", state, 1, D, U, V, W, P);
 
     simulation_free(&sim);
     equations_free(&eqns);
     mesh_free(&mesh);
+
     teal_finalize();
 }
