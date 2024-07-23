@@ -519,8 +519,8 @@ static void compute_face_reconstruction(Mesh *mesh, const Dict *periodic)
         const long inner = cell[i][L];
         long outer = cell[i][R];
 
-        long *c;
-        if (dict_lookup(periodic, cell[i], N_SIDES, &c)) outer = *c;
+        DictItem *item = dict_lookup(periodic, cell[i], N_SIDES);
+        if (item) outer = *item->val;
 
         for (long d = 0; d < N_DIMS; ++d) dx[i][d] = center[outer][d] - center[inner][d];
         theta[i] = 1 / array_norm(dx[i], N_DIMS);
@@ -592,8 +592,8 @@ static void compute_cell_reconstruction(Mesh *mesh, const Dict *periodic)
         for (long i = i_cell[j]; i < i_cell[j + 1]; ++i) {
             long outer = cell[i];
 
-            long *c;
-            if (dict_lookup(periodic, (long[]){j, outer}, N_SIDES, &c)) outer = *c;
+            DictItem *item = dict_lookup(periodic, (long[]){j, outer}, N_SIDES);
+            if (item) outer = *item->val;
 
             long node[MAX_FACE_NODES] = {0};
             const long n_nodes = connectivity_nodes(mesh, node, j, outer);

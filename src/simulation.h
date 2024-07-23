@@ -29,6 +29,8 @@ struct Simulation {
 
 Simulation simulation_create(Equations *eqns, const char *prefix);
 
+void simulation_free(Simulation *sim);
+
 void simulation_set_time_order(Simulation *sim, long time_order, long n_stages);
 
 void simulation_set_cfl(Simulation *sim, double cfl);
@@ -48,7 +50,5 @@ void simulation_print(const Simulation *sim);
 void simulation_run(Simulation *sim);
 
 void simulation_error(const Simulation *sim, long ivars, long iuser);
-
-void simulation_free(Simulation *sim);
 
 #endif

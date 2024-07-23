@@ -15,14 +15,18 @@ void x__error(const char *file, unsigned int line, const char *func, const char 
     vsprintf(msg, format, args);
     va_end(args);
     fprintf(stderr, "[%d] Error: %s (%s:%u: %s)\n", teal.rank, msg, file, line, func);
-    MPI_Abort(teal.comm, EXIT_FAILURE);
+    int flag;
+    MPI_Initialized(&flag);
+    if (flag) MPI_Abort(teal.comm, EXIT_FAILURE);
     abort();
 }
 
 void x__ensure(const char *expr, const char *file, unsigned int line, const char *func)
 {
     fprintf(stderr, "[%d] Assertion '%s' failed (%s:%u: %s)\n", teal.rank, expr, file, line, func);
-    MPI_Abort(teal.comm, EXIT_FAILURE);
+    int flag;
+    MPI_Initialized(&flag);
+    if (flag) MPI_Abort(teal.comm, EXIT_FAILURE);
     abort();
 }
 

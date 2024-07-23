@@ -15,15 +15,15 @@ typedef struct Dict {
     DictItem *item;
 } Dict;
 
-Dict dict_create(const long n_items);
+Dict dict_create(long max_items);
 
 void dict_free(Dict *dict);
 
-void dict_insert(Dict *dict, const long *key, const long nkey, const long *val, const long nval);
+void dict_insert(Dict *dict, const long *key, long nkey, const long *val, long nval);
 
-void dict_append(Dict *dict, const long *key, const long nkey, const long *val, const long nval);
+void dict_append(Dict *dict, const long *key, long nkey, const long *val, long nval);
 
-long dict_lookup(const Dict *dict, const long *key, const long nkey, long **val);
+DictItem *dict_lookup(const Dict *dict, const long *key, long nkey);
 
 DictItem *dict_serialize_by_key(const Dict *dict);
 

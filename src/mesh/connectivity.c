@@ -87,14 +87,14 @@ static void find_inner_faces(Mesh *mesh, const Dict *periodic, Dict *f2n)
         for (long i = i_cell[j]; i < i_cell[j + 1]; ++i) {
             if (mesh->cell.cell[i] >= mesh->n_inner_cells) continue;
             const long cell[N_SIDES] = {min(j, mesh->cell.cell[i]), max(j, mesh->cell.cell[i])};
-            if (dict_lookup(f2n, cell, N_SIDES, 0)) continue;
+            if (dict_lookup(f2n, cell, N_SIDES)) continue;
 
             long common[MAX_FACE_NODES];
             const long n_common = connectivity_nodes(mesh, common, cell[L], cell[R]);
             if (n_common >= N_DIMS) dict_insert(f2n, cell, N_SIDES, common, n_common);
 
-            long *node, n_nodes = dict_lookup(periodic, cell, N_SIDES, &node);
-            if (n_nodes) dict_insert(f2n, (long[]){cell[R], cell[L]}, N_SIDES, node, n_nodes);
+            DictItem *item = dict_lookup(periodic, cell, N_SIDES);
+            if (item) dict_insert(f2n, (long[]){cell[R], cell[L]}, N_SIDES, item->val, item->nval);
         }
     }
     mesh->n_inner_faces = f2n->n_items;
@@ -130,8 +130,8 @@ static void find_sync_faces(Mesh *mesh, const Dict *periodic, Dict *f2n)
 
             // if sync face is periodic, we have to look for the nodes in reverse order because
             // periodic dict only contains the connection from inner to sync cell
-            long *node, n_nodes = dict_lookup(periodic, (long[]){cell[R], cell[L]}, N_SIDES, &node);
-            if (n_nodes) dict_insert(f2n, (long[]){cell[R], cell[L]}, N_SIDES, node, n_nodes);
+            DictItem *item = dict_lookup(periodic, (long[]){cell[R], cell[L]}, N_SIDES);
+            if (item) dict_insert(f2n, (long[]){cell[R], cell[L]}, N_SIDES, item->val, item->nval);
         }
     }
     mesh->n_faces = f2n->n_items;

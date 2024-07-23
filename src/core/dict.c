@@ -9,14 +9,14 @@
 
 #define LOAD_FACTOR 0.5
 
-static uint64_t hash_fnv_64a(const void *ptr, const long nmemb, const long size);
+static uint64_t hash_fnv_64a(const void *ptr, long nmemb, long size);
 static int itemcmp(const void *a, const void *b);
 
-Dict dict_create(const long n_items)
+Dict dict_create(long max_items)
 {
     Dict dict = {
         .n_items = 0,
-        .max_items = ceil(n_items / LOAD_FACTOR) + 1,
+        .max_items = ceil(max_items / LOAD_FACTOR) + 1,
         .max_dist = 1,
     };
     dict.item = memory_calloc(dict.max_items, sizeof(*dict.item));
@@ -33,7 +33,7 @@ void dict_free(Dict *dict)
     *dict = (Dict){0};
 }
 
-void dict_insert(Dict *dict, const long *key, const long nkey, const long *val, const long nval)
+void dict_insert(Dict *dict, const long *key, long nkey, const long *val, long nval)
 {
     ensure(dict->n_items < dict->max_items * LOAD_FACTOR);
     const uint64_t hash = hash_fnv_64a(key, nkey, sizeof(*key));
@@ -61,7 +61,7 @@ void dict_insert(Dict *dict, const long *key, const long nkey, const long *val, 
     }
 }
 
-void dict_append(Dict *dict, const long *key, const long nkey, const long *val, const long nval)
+void dict_append(Dict *dict, const long *key, long nkey, const long *val, long nval)
 {
     ensure(dict->n_items < dict->max_items * LOAD_FACTOR);
     const uint64_t hash = hash_fnv_64a(key, nkey, sizeof(*key));
@@ -90,17 +90,15 @@ void dict_append(Dict *dict, const long *key, const long nkey, const long *val, 
     }
 }
 
-long dict_lookup(const Dict *dict, const long *key, const long nkey, long **val)
+DictItem *dict_lookup(const Dict *dict, const long *key, long nkey)
 {
     const uint64_t hash = hash_fnv_64a(key, nkey, sizeof(*key));
     long i = hash % dict->max_items;
     for (long n = 0; n < dict->max_dist; ++n) {
         if (!dict->item[i].nkey)
             return 0;  // WARNING: only possible because items are never removed
-        else if (dict->item[i].hash == hash) {
-            if (val) *val = dict->item[i].val;
-            return dict->item[i].nval;
-        }
+        else if (dict->item[i].hash == hash)
+            return &dict->item[i];
         i = (i + 1) % dict->max_items;
     }
     return 0;
@@ -134,7 +132,7 @@ void dict_print(const Dict *dict)
     }
 }
 
-static uint64_t hash_fnv_64a(const void *ptr, const long nmemb, const long size)
+static uint64_t hash_fnv_64a(const void *ptr, long nmemb, long size)
 {
     // FNV-1a 64 bit: https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
     const unsigned char *byte = ptr;

@@ -83,6 +83,8 @@ struct Equations {
 
 void equations_create(Equations *eqns, long space_order);
 
+void equations_free(Equations *eqns);
+
 void equations_create_user(Equations *eqns, Function *compute, const char **name, long n_user);
 
 void equations_create_exact(Equations *eqns, Function *compute, long n_user);
@@ -115,7 +117,5 @@ void equations_gradient(Equations *eqns);
 void equations_limiter(Equations *eqns);
 
 void equations_residual(const Equations *eqns, double *residual);
-
-void equations_free(Equations *eqns);
 
 #endif

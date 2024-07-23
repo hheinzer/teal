@@ -60,6 +60,8 @@ Mesh mesh_create(const double *x0, const double *x1, const long *n_cells);
 
 Mesh mesh_read(const char *fname);
 
+void mesh_free(Mesh *mesh);
+
 void mesh_modify(Mesh *mesh, Modify *modify);
 
 void mesh_split(Mesh *mesh, const char *entity, const double *root, const double *direction);
@@ -71,7 +73,5 @@ void mesh_generate(Mesh *mesh);
 void mesh_print(const Mesh *mesh);
 
 void mesh_write(const Mesh *mesh, const char *prefix);
-
-void mesh_free(Mesh *mesh);
 
 #endif

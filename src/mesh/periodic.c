@@ -1,8 +1,7 @@
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/dict.h"
+#include "core/kdtree.h"
 #include "core/memory.h"
 #include "core/utils.h"
 #include "mesh.h"
@@ -12,10 +11,10 @@ static void find_entities(const Mesh *mesh, const char *entity0, const char *ent
 static void compute_cell_coordinates(const Mesh *mesh, const long *E, long n_cells,
                                      double (*mean)[N_DIMS], double (*x)[n_cells][N_DIMS]);
 static void compute_coordinate_to_cell(const Mesh *mesh, const long *E, long n_cells,
-                                       const double (*x)[n_cells][N_DIMS], Dict *x2c);
+                                       const double (*x)[n_cells][N_DIMS], Kdtree *x2c);
 static void compute_cell_to_cell(const Mesh *mesh, const long *E, const double (*mean)[N_DIMS],
-                                 const Dict *x2c, long n_cells, const double (*x)[n_cells][N_DIMS],
-                                 long *c2c);
+                                 const Kdtree *x2c, long n_cells,
+                                 const double (*x)[n_cells][N_DIMS], long *c2c);
 static void make_cells_periodic(Mesh *mesh, const long *E, const long *c2c);
 static void make_entities_periodic(Mesh *mesh, const long *E, const double (*mean)[N_DIMS]);
 
@@ -33,7 +32,7 @@ void mesh_periodic(Mesh *mesh, const char *entity0, const char *entity1)
     cleanup double(*x)[n_cells][N_DIMS] = memory_calloc(2, sizeof(*x));
     compute_cell_coordinates(mesh, E, n_cells, mean, x);
 
-    fcleanup(dict_free) Dict x2c = dict_create(2 * n_cells);
+    fcleanup(kdtree_free) Kdtree x2c = kdtree_create(2 * n_cells, N_DIMS);
     cleanup long *c2c = memory_calloc(mesh->n_cells, sizeof(*c2c));
     compute_coordinate_to_cell(mesh, E, n_cells, x, &x2c);
     compute_cell_to_cell(mesh, E, mean, &x2c, n_cells, x, c2c);
@@ -72,23 +71,17 @@ static void compute_cell_coordinates(const Mesh *mesh, const long *E, long n_cel
 }
 
 static void compute_coordinate_to_cell(const Mesh *mesh, const long *E, long n_cells,
-                                       const double (*x)[n_cells][N_DIMS], Dict *x2c)
+                                       const double (*x)[n_cells][N_DIMS], Kdtree *x2c)
 {
     const ALIAS(j_cell, mesh->entity.j_cell);
-    for (long e = 0; e < 2; ++e) {
-        for (long n = 0, j = j_cell[E[e]]; j < j_cell[E[e] + 1]; ++j) {
-            long key[N_DIMS];
-            for (long d = 0; d < N_DIMS; ++d) key[d] = round(x[e][n][d] / EPS);
-            dict_insert(x2c, key, N_DIMS, &j, 1);
-            n += 1;
-        }
-    }
-    if (x2c->n_items != 2 * n_cells) error("floating point resolutions '%g' too low", EPS);
+    for (long e = 0; e < 2; ++e)
+        for (long n = 0, j = j_cell[E[e]]; j < j_cell[E[e] + 1]; ++j)
+            kdtree_insert(x2c, x[e][n++], &j, 1);
 }
 
 static void compute_cell_to_cell(const Mesh *mesh, const long *E, const double (*mean)[N_DIMS],
-                                 const Dict *x2c, long n_cells, const double (*x)[n_cells][N_DIMS],
-                                 long *c2c)
+                                 const Kdtree *x2c, long n_cells,
+                                 const double (*x)[n_cells][N_DIMS], long *c2c)
 {
     const ALIAS(j_cell, mesh->entity.j_cell);
     const ALIAS(i_cell, mesh->cell.i_cell);
@@ -96,13 +89,14 @@ static void compute_cell_to_cell(const Mesh *mesh, const long *E, const double (
     for (long j = 0; j < mesh->n_cells; ++j) c2c[j] = j;
     for (long e = 0; e < 2; ++e) {
         for (long n = 0, j0 = j_cell[E[e]]; j0 < j_cell[E[e] + 1]; ++j0) {
-            long key[N_DIMS];
+            double key[N_DIMS];
             for (long d = 0; d < N_DIMS; ++d)
-                key[d] = round((x[e][n][d] - mean[e][d] + mean[(e + 1) % 2][d]) / EPS);
-            long *j1, nj = dict_lookup(x2c, key, N_DIMS, &j1);
-            if (nj != 1) error("could not find periodic connection of cell '%ld'", j0);
+                key[d] = x[e][n][d] - mean[e][d] + mean[(e + 1) % 2][d];
+            cleanup KdtreeItem *item = kdtree_nearest(x2c, key, 1);
+            if (!item || !isclose(item->dist2, 0))
+                error("could not find periodic connection of cell '%ld'", j0);
             const long ghost = j0;
-            const long inner = cell[i_cell[*j1]];
+            const long inner = cell[i_cell[*item->val]];
             c2c[ghost] = inner;
             n += 1;
         }
