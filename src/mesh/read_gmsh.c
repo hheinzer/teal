@@ -8,8 +8,11 @@
 #include "core/utils.h"
 
 static void create_nodes(Mesh *mesh, long **node_idx);
+
 static void create_cells(Mesh *mesh, const long *node_idx);
+
 static void create_entities(Mesh *mesh);
+
 static long *tag_2_idx(const size_t *tag, long n_tags);
 
 void read_gmsh(Mesh *mesh, const char *fname)
@@ -25,7 +28,7 @@ void read_gmsh(Mesh *mesh, const char *fname)
     const char *ext = strrchr(fname, '.');
     if (ext && !strcmp(ext, ".geo")) gmshModelMeshGenerate(N_DIMS, &ierr);
 
-    cleanup long *node_idx;
+    smart long *node_idx;
     create_nodes(mesh, &node_idx);
     create_cells(mesh, node_idx);
     create_entities(mesh);

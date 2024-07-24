@@ -10,23 +10,34 @@
 #include "partition.h"
 
 static void compute_face_geometry(Mesh *mesh);
+
 static void correct_face_node_order(const Mesh *mesh, long *node, long n_nodes);
+
 static void compute_face_area(const double (*x)[N_DIMS], double *area, long n_nodes);
+
 static void compute_face_center(const double (*x)[N_DIMS], double *center, long n_nodes);
+
 static void compute_face_normal(const double (*x)[N_DIMS], double *normal, long n_nodes);
+
 static void correct_face_normal_direction(const Mesh *mesh, const long *cell, const double *center,
                                           double *normal);
+
 static void compute_face_tangents(double *normal);
 
 static void compute_cell_geometry(Mesh *mesh);
+
 static void compute_cell_volume(const double (*x)[N_DIMS], double *volume, long n_nodes);
+
 static void compute_cell_center(const double (*x)[N_DIMS], double *center, long n_nodes);
+
 static void compute_cell_projections(Mesh *mesh);
 
 static void compute_ghost_cell_centers(const Mesh *mesh);
 
 static void find_periodic_connections(const Mesh *mesh, Dict *periodic);
+
 static void compute_face_reconstruction(Mesh *mesh, const Dict *periodic);
+
 static void compute_cell_reconstruction(Mesh *mesh, const Dict *periodic);
 
 void mesh_generate(Mesh *mesh)
@@ -38,10 +49,10 @@ void mesh_generate(Mesh *mesh)
     compute_cell_geometry(mesh);
     compute_cell_projections(mesh);
 
-    sync_all(mesh, N_DIMS, mesh->cell.center);
+    sync_all(mesh, *mesh->cell.center, N_DIMS);
     compute_ghost_cell_centers(mesh);
 
-    fcleanup(dict_free) Dict periodic = dict_create(mesh->n_ghost_cells);
+    defer(dict_free) Dict periodic = dict_create(mesh->n_ghost_cells);
     find_periodic_connections(mesh, &periodic);
     compute_face_reconstruction(mesh, &periodic);
     compute_cell_reconstruction(mesh, &periodic);
@@ -513,8 +524,8 @@ static void compute_face_reconstruction(Mesh *mesh, const Dict *periodic)
 {
     const ALIAS(cell, mesh->face.cell);
     const ALIAS(center, mesh->cell.center);
-    cleanup double(*dx)[N_DIMS] = memory_calloc(mesh->n_faces, sizeof(*dx));
-    cleanup double *theta = memory_calloc(mesh->n_faces, sizeof(*theta));
+    smart double(*dx)[N_DIMS] = memory_calloc(mesh->n_faces, sizeof(*dx));
+    smart double *theta = memory_calloc(mesh->n_faces, sizeof(*theta));
     for (long i = 0; i < mesh->n_faces; ++i) {
         const long inner = cell[i][L];
         long outer = cell[i][R];
@@ -526,12 +537,12 @@ static void compute_face_reconstruction(Mesh *mesh, const Dict *periodic)
         theta[i] = 1 / array_norm(dx[i], N_DIMS);
     }
 
-    cleanup double *r11 = memory_calloc(mesh->n_inner_cells, sizeof(*r11));
-    cleanup double *r12 = memory_calloc(mesh->n_inner_cells, sizeof(*r12));
-    cleanup double *r22 = memory_calloc(mesh->n_inner_cells, sizeof(*r22));
-    cleanup double *r13 = memory_calloc(mesh->n_inner_cells, sizeof(*r13));
-    cleanup double *r23 = memory_calloc(mesh->n_inner_cells, sizeof(*r23));
-    cleanup double *r33 = memory_calloc(mesh->n_inner_cells, sizeof(*r33));
+    smart double *r11 = memory_calloc(mesh->n_inner_cells, sizeof(*r11));
+    smart double *r12 = memory_calloc(mesh->n_inner_cells, sizeof(*r12));
+    smart double *r22 = memory_calloc(mesh->n_inner_cells, sizeof(*r22));
+    smart double *r13 = memory_calloc(mesh->n_inner_cells, sizeof(*r13));
+    smart double *r23 = memory_calloc(mesh->n_inner_cells, sizeof(*r23));
+    smart double *r33 = memory_calloc(mesh->n_inner_cells, sizeof(*r33));
     for (long i = 0; i < mesh->n_faces; ++i) {
         for (long s = 0; s < N_SIDES && cell[i][s] < mesh->n_inner_cells; ++s) {
             r11[cell[i][s]] += sq(theta[i] * dx[i][X]);

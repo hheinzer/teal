@@ -5,6 +5,4 @@
 
 Limiter barth_jespersen, venkatakrishnan;
 
-void equations_limiter(Equations *eqns);
-
 #endif

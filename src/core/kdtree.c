@@ -9,12 +9,17 @@
 
 static void insert(Kdtree *tree, const double *key, const long *val, long nval, KdtreeItem *root,
                    long depth);
+
 static void nearest(const Kdtree *tree, const double *key, KdtreeItem *item, KdtreeItem *root,
                     long depth, long k);
+
 static void radius(const Kdtree *tree, const double *key, KdtreeItem **item, KdtreeItem *root,
                    long depth, long *k, double r2);
+
 static double metric(const double *a, const double *b, long n);
+
 static void replace(KdtreeItem *heap, KdtreeItem *new, double dist2, long size);
+
 static void append(KdtreeItem **item, KdtreeItem *new, double dist2, long *size);
 
 Kdtree kdtree_create(long max_items, long nkey)
@@ -73,8 +78,8 @@ void kdtree_print(const Kdtree *tree)
         printf(": ");
         for (long j = 0; j < tree->item[i].nval; ++j) printf("%ld ", tree->item[i].val[j]);
         printf(": ");
-        printf("%ld ", (tree->item[i].left ? tree->item[i].left - &tree->item[0] : 0));
-        printf("%ld ", (tree->item[i].right ? tree->item[i].right - &tree->item[0] : 0));
+        printf("%td ", (tree->item[i].left ? tree->item[i].left - &tree->item[0] : 0));
+        printf("%td ", (tree->item[i].right ? tree->item[i].right - &tree->item[0] : 0));
         printf("\n");
     }
 }
@@ -141,7 +146,7 @@ static void replace(KdtreeItem *heap, KdtreeItem *new, double dist2, long size)
     while (left < size) {
         const long right = left + 1;
         long max = i;
-        if (left < size && heap[left].dist2 > heap[max].dist2) max = left;
+        if (heap[left].dist2 > heap[max].dist2) max = left;
         if (right < size && heap[right].dist2 > heap[max].dist2) max = right;
         if (max != i) {
             KdtreeItem swap = heap[i];

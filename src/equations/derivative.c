@@ -4,9 +4,13 @@
 #include "equations.h"
 
 static void initialize_derivative(Equations *eqns);
+
 static void apply_boundary_conditions(Equations *eqns, double time);
+
 static void integrate_fluxes(Equations *eqns);
+
 static void compute_derivative(Equations *eqns, double time);
+
 static void integrate_reconstructed_fluxes(Equations *eqns);
 
 void equations_derivative(Equations *eqns, double time)
@@ -84,7 +88,7 @@ static void integrate_fluxes(Equations *eqns)
     double f[n_vars];
     memory_setzero(f, n_vars, sizeof(*f));
 
-    sync_begin(eqns, n_vars, u);
+    sync_begin(eqns, *u, n_vars);
 
     for (long i = 0; i < n_inner_faces; ++i) {
         flux(eqns, n[i], u[cell[i][L]], u[cell[i][R]], f);
@@ -154,7 +158,7 @@ static void integrate_reconstructed_fluxes(Equations *eqns)
     double ul[n_vars], ur[n_vars], f[n_vars];
     memory_setzero(f, n_vars, sizeof(*f));
 
-    sync_begin(eqns, n_vars * N_DIMS, *dudx);
+    sync_begin(eqns, **dudx, n_vars * N_DIMS);
 
     for (long i = 0; i < n_inner_faces; ++i) {
         for (long v = 0; v < n_vars; ++v) {

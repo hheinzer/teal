@@ -34,7 +34,7 @@ void simulation_set_time_order(Simulation *sim, long time_order, long n_stages)
 
     const long n_vars = sim->eqns->n_vars;
     const long n_inner_cells = sim->eqns->mesh->n_inner_cells;
-    memory_cleanup(&sim->advance.buf);
+    memory_free(&sim->advance.buf);
     if (time_order == 1 && n_stages == 1) {
         strcpy(sim->advance.name, "euler");
         sim->advance.func = euler;

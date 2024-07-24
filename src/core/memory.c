@@ -19,7 +19,7 @@ void *memory_realloc(void *ptr, long nmemb, long size)
     return ptr;
 }
 
-void memory_cleanup(void *ptr)
+void memory_free(void *ptr)
 {
     free(*((void **)ptr));
     *((void **)ptr) = 0;

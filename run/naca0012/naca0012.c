@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 
     const double state[N_VARS] = {
         [D] = rho, [U] = vmag * cos(alpha), [V] = vmag * sin(alpha), [P] = p};
-    Equations eqns = euler_create(&mesh, 2);
+    Equations eqns = euler_create(&mesh, (argc > 1 ? 2 : 1));
     equations_set_limiter(&eqns, "venk", 1);
     equations_set_initial_state(&eqns, state);
     equations_set_boundary_condition(&eqns, "airfoil", "slipwall", state, 0);
@@ -27,8 +27,9 @@ int main(int argc, char **argv)
     equations_print(&eqns);
 
     Simulation sim = simulation_create(&eqns, argv[0]);
-    simulation_set_max_iter(&sim, 100000);
-    simulation_set_output_iter(&sim, 10000);
+    if (argc > 1) simulation_restart(&sim, argv[1]);
+    simulation_set_max_iter(&sim, sim.iter + 10000);
+    simulation_set_output_iter(&sim, 1000);
     simulation_set_abort(&sim, D, 1e-5);
     simulation_print(&sim);
     simulation_run(&sim);

@@ -9,7 +9,9 @@
 
 static void create_nodes(Mesh *mesh, const double *x0, const double *x1, const long *n_cells,
                          const long *n_nodes);
+
 static void create_cells(Mesh *mesh, const long *n_cells, const long *n_nodes);
+
 static void create_entities(Mesh *mesh, const long *n_cells);
 
 Mesh mesh_create(const double *x0, const double *x1, const long *n_cells)

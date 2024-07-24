@@ -1,13 +1,13 @@
 # compiler and default flags
-CC = gcc
+CC = clang
 MPICC = OMPI_MPICC=$(CC) mpicc
-CFLAGS = -std=c2x -g -Isrc
+CFLAGS = -std=c23 -g -Isrc
 
 # warning flags
 CFLAGS += -Wall -Wextra -Wpedantic -Wshadow -Wfloat-equal -Wcast-qual
 
 # debug flags
-CFLAGS += -Og -fno-omit-frame-pointer -fanalyzer
+CFLAGS += -Og -fno-omit-frame-pointer
 
 # release flags
 #CFLAGS += -march=native -Ofast -flto=auto -DNDEBUG
@@ -25,15 +25,21 @@ OBJ = $(SRC:src/%.c=obj/%.o)
 BIN = $(RUN:run/%.c=bin/%)
 
 # make functions
-.PHONY: all clean check
+.PHONY: all clean check format tidy
 all: $(OBJ) $(BIN)
 
 clean:
-	rm -rf obj bin
+	@rm -rf obj bin
 
 check:
-	-cppcheck --project=compile_commands.json --enable=all --inconclusive --check-level=exhaustive \
-		--suppress=missingIncludeSystem --suppress=unusedFunction
+	@cppcheck -q --project=compile_commands.json --enable=all --inconclusive --check-level=exhaustive \
+		--suppress=checkersReport --suppress=missingIncludeSystem --suppress=unusedFunction
+
+format:
+	@clang-format -i $(shell find . -type f -name "*.[ch]")
+
+tidy:
+	@clang-tidy --quiet $(shell find . -type f -name "*.[ch]")
 
 # dependencies
 CFLAGS += -MMD -MP
@@ -44,8 +50,8 @@ DEP = $(OBJ:.o=.d) $(BIN:=.d)
 .SUFFIXES:
 obj/%.o: src/%.c Makefile
 	@mkdir -p $(@D)
-	$(MPICC) $(CFLAGS) -c $< -o $@
+	@$(MPICC) $(CFLAGS) -c $< -o $@
 
-bin/%: run/%.c $(OBJ) Makefile
+bin/%: run/%.c $(OBJ)
 	@mkdir -p $(@D)
-	-$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
+	-@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@

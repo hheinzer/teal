@@ -11,19 +11,21 @@
         long *: sizeof(long),              \
         double(*)[N_DIMS]: sizeof(double), \
         char(*)[NAMELEN]: sizeof(char))
+
 #define ALLOC(buf, cnt) buf = memory_calloc(cnt, SIZE(buf))
 
 #define TYPE(buf) \
     _Generic(buf, long *: MPI_LONG, double(*)[N_DIMS]: MPI_DOUBLE, char(*)[NAMELEN]: MPI_CHAR)
+
 #define SEND(buf, cnt) MPI_Send(buf, cnt, TYPE(buf), rank, tag++, teal.comm)
 #define RECV(buf, cnt) MPI_Recv(buf, cnt, TYPE(buf), root, tag++, teal.comm, MPI_STATUS_IGNORE)
-#define ALLOC_RECV(buf, cnt) \
-    ALLOC(buf, cnt);         \
-    RECV(buf, cnt)
+
+#define ALLOC_RECV(buf, cnt) (ALLOC(buf, cnt), RECV(buf, cnt))
 
 static int ready = 0;
 
 static void wake_ranks(void);
+
 static void suspend_rank(void);
 
 void send_mesh(Mesh *mesh, long rank)
@@ -106,4 +108,5 @@ static void suspend_rank(void)
         if (flag) break;
         sleep(1);
     }
+    MPI_Wait(&req, MPI_STATUS_IGNORE);
 }

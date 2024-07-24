@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from os.path import basename
+from os.path import basename, commonprefix
 import pyvista as pv
 import matplotlib.pyplot as plt
 
@@ -37,4 +37,5 @@ ax.set_xlabel("distance")
 ax.set_ylabel(args.scalar)
 
 fig.tight_layout()
-plt.show()
+prefix = commonprefix(args.fnames).replace(".hdf", "")
+fig.savefig(prefix if prefix[-1] != "_" else prefix[:-1] + "_line.pdf", bbox_inches="tight")

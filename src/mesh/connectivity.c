@@ -7,18 +7,23 @@
 #include "core/utils.h"
 
 static void compute_periodic_cell_to_node(const Mesh *mesh, Dict *periodic);
+
 static void find_inner_faces(Mesh *mesh, const Dict *periodic, Dict *f2n);
+
 static void find_boundary_faces(Mesh *mesh, Dict *f2n);
+
 static void find_sync_faces(Mesh *mesh, const Dict *periodic, Dict *f2n);
+
 static void compute_face_connectivity(Mesh *mesh, const Dict *f2n);
+
 static void compute_entity_to_face(Mesh *mesh);
 
 void connectivity_cells(Mesh *mesh)
 {
     idx_t ne = mesh->n_cells;
     idx_t nn = mesh->n_nodes;
-    cleanup idx_t *eptr = memory_calloc(ne + 1, sizeof(*eptr));
-    cleanup idx_t *eind = memory_calloc(ne * MAX_CELL_NODES, sizeof(*eind));
+    smart idx_t *eptr = memory_calloc(ne + 1, sizeof(*eptr));
+    smart idx_t *eind = memory_calloc(ne * MAX_CELL_NODES, sizeof(*eind));
     for (long j = 0; j < mesh->n_cells; ++j) {
         eptr[j + 1] = eptr[j];
         for (long i = mesh->cell.i_node[j]; i < mesh->cell.i_node[j + 1]; ++i)
@@ -37,10 +42,10 @@ void connectivity_cells(Mesh *mesh)
 
 void connectivity_faces(Mesh *mesh)
 {
-    fcleanup(dict_free) Dict periodic = dict_create(mesh->n_ghost_cells);
+    defer(dict_free) Dict periodic = dict_create(mesh->n_ghost_cells);
     compute_periodic_cell_to_node(mesh, &periodic);
 
-    fcleanup(dict_free) Dict f2n = dict_create(mesh->n_cells * MAX_CELL_FACES);
+    defer(dict_free) Dict f2n = dict_create(mesh->n_cells * MAX_CELL_FACES);
     find_inner_faces(mesh, &periodic, &f2n);
     find_boundary_faces(mesh, &f2n);
     find_sync_faces(mesh, &periodic, &f2n);
@@ -93,7 +98,7 @@ static void find_inner_faces(Mesh *mesh, const Dict *periodic, Dict *f2n)
             const long n_common = connectivity_nodes(mesh, common, cell[L], cell[R]);
             if (n_common >= N_DIMS) dict_insert(f2n, cell, N_SIDES, common, n_common);
 
-            DictItem *item = dict_lookup(periodic, cell, N_SIDES);
+            const DictItem *item = dict_lookup(periodic, cell, N_SIDES);
             if (item) dict_insert(f2n, (long[]){cell[R], cell[L]}, N_SIDES, item->val, item->nval);
         }
     }
@@ -130,7 +135,7 @@ static void find_sync_faces(Mesh *mesh, const Dict *periodic, Dict *f2n)
 
             // if sync face is periodic, we have to look for the nodes in reverse order because
             // periodic dict only contains the connection from inner to sync cell
-            DictItem *item = dict_lookup(periodic, (long[]){cell[R], cell[L]}, N_SIDES);
+            const DictItem *item = dict_lookup(periodic, (long[]){cell[R], cell[L]}, N_SIDES);
             if (item) dict_insert(f2n, (long[]){cell[R], cell[L]}, N_SIDES, item->val, item->nval);
         }
     }
@@ -142,7 +147,7 @@ static void compute_face_connectivity(Mesh *mesh, const Dict *f2n)
     long *i_node = memory_calloc(mesh->n_faces + 1, sizeof(*i_node));
     long *node = memory_calloc(mesh->n_faces * MAX_FACE_NODES, sizeof(*node));
     long(*cell)[N_SIDES] = memory_calloc(mesh->n_faces, sizeof(*cell));
-    cleanup DictItem *item = dict_serialize_by_index(f2n);
+    smart DictItem *item = dict_serialize_by_index(f2n);
     for (long j = 0; j < mesh->n_faces; ++j) {
         ensure(item[j].nval >= N_DIMS);
         i_node[j + 1] = i_node[j];

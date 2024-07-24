@@ -9,8 +9,10 @@
 #include "teal.h"
 
 static long find_entities(const Mesh *mesh, const char *airfoil);
+
 static void extract(const Equations *eqns, double (**x)[N_DIMS], double **p, double **area,
                     double (**n)[N_DIMS], long E, long n_faces, long P);
+
 static void compute(double **cp, double *cl, double *cd, long n_faces, const double *p,
                     const double *a, const double (*n)[N_DIMS], const double *uref, double lref,
                     long D, long U, long V, long W, long P);
@@ -22,10 +24,10 @@ void airfoil_polar(const Simulation *sim, const char *airfoil, const double *ure
     const long E = find_entities(sim->eqns->mesh, airfoil);
     const long n_faces = j_face[E + 1] - j_face[E];
 
-    cleanup double(*x)[N_DIMS], *p, *a, (*n)[N_DIMS];
+    smart double(*x)[N_DIMS], *p, *a, (*n)[N_DIMS];
     extract(sim->eqns, &x, &p, &a, &n, E, n_faces, P);
 
-    cleanup double *cp;
+    smart double *cp;
     double cl = 0, cd = 0;
     compute(&cp, &cl, &cd, n_faces, p, a, n, uref, lref, D, U, V, W, P);
 

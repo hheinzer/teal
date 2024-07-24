@@ -59,36 +59,23 @@ static void create_scalar(Equations *eqns, long scalar, const char *name, double
 
 static Flux *select_flux(const char *name)
 {
-    if (!strcmp(name, "godunov"))
-        return godunov;
-    else if (!strcmp(name, "roe"))
-        return roe;
-    else if (!strcmp(name, "hll"))
-        return hll;
-    else if (!strcmp(name, "hllc"))
-        return hllc;
-    else if (!strcmp(name, "hlle"))
-        return hlle;
-    else if (!strcmp(name, "lxf"))
-        return lxf;
-    else
-        error("unsupported flux function '%s'", name);
+    if (!strcmp(name, "godunov")) return godunov;
+    if (!strcmp(name, "roe")) return roe;
+    if (!strcmp(name, "hll")) return hll;
+    if (!strcmp(name, "hllc")) return hllc;
+    if (!strcmp(name, "hlle")) return hlle;
+    if (!strcmp(name, "lxf")) return lxf;
+    error("unsupported flux function '%s'", name);
 }
 
 static ApplyBC *select_bc(const char *name)
 {
     if (!strcmp(name, "symmetry") || !strcmp(name, "wall") || !strcmp(name, "slipwall"))
         return symmetry;
-    else if (!strcmp(name, "supersonic inflow"))
-        return supersonic_inflow;
-    else if (!strcmp(name, "supersonic outflow"))
-        return supersonic_outflow;
-    else if (!strcmp(name, "subsonic inflow"))
-        return subsonic_inflow;
-    else if (!strcmp(name, "subsonic outflow"))
-        return subsonic_outflow;
-    else if (!strcmp(name, "farfield"))
-        return farfield;
-    else
-        error("unsupported boundary condition '%s'", name);
+    if (!strcmp(name, "supersonic inflow")) return supersonic_inflow;
+    if (!strcmp(name, "supersonic outflow")) return supersonic_outflow;
+    if (!strcmp(name, "subsonic inflow")) return subsonic_inflow;
+    if (!strcmp(name, "subsonic outflow")) return subsonic_outflow;
+    if (!strcmp(name, "farfield")) return farfield;
+    error("unsupported boundary condition '%s'", name);
 }

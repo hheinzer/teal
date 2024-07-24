@@ -10,6 +10,7 @@
 #define LOAD_FACTOR 0.5
 
 static uint64_t hash_fnv_64a(const void *ptr, long nmemb, long size);
+
 static int itemcmp(const void *a, const void *b);
 
 Dict dict_create(long max_items)
@@ -50,7 +51,7 @@ void dict_insert(Dict *dict, const long *key, long nkey, const long *val, long n
             dict->max_dist = max(dict->max_dist, dist);
             return;
         }
-        else if (dict->item[i].hash == hash) {
+        if (dict->item[i].hash == hash) {
             free(dict->item[i].val);
             dict->item[i].nval = nval;
             dict->item[i].val = memory_duplicate(val, nval, sizeof(*val));
@@ -78,7 +79,7 @@ void dict_append(Dict *dict, const long *key, long nkey, const long *val, long n
             dict->max_dist = max(dict->max_dist, dist);
             return;
         }
-        else if (dict->item[i].hash == hash) {
+        if (dict->item[i].hash == hash) {
             dict->item[i].val =
                 memory_realloc(dict->item[i].val, (dict->item[i].nval + nval), sizeof(*val));
             for (long j = 0; j < nval; ++j) dict->item[i].val[dict->item[i].nval + j] = val[j];
@@ -95,10 +96,8 @@ DictItem *dict_lookup(const Dict *dict, const long *key, long nkey)
     const uint64_t hash = hash_fnv_64a(key, nkey, sizeof(*key));
     long i = hash % dict->max_items;
     for (long n = 0; n < dict->max_dist; ++n) {
-        if (!dict->item[i].nkey)
-            return 0;  // WARNING: only possible because items are never removed
-        else if (dict->item[i].hash == hash)
-            return &dict->item[i];
+        if (!dict->item[i].nkey) return 0;
+        if (dict->item[i].hash == hash) return &dict->item[i];
         i = (i + 1) % dict->max_items;
     }
     return 0;
@@ -123,7 +122,7 @@ DictItem *dict_serialize_by_index(const Dict *dict)
 
 void dict_print(const Dict *dict)
 {
-    cleanup const DictItem *item = dict_serialize_by_key(dict);
+    smart const DictItem *item = dict_serialize_by_key(dict);
     for (long i = 0; i < dict->n_items; ++i) {
         for (long j = 0; j < item[i].nkey; ++j) printf("%ld ", item[i].key[j]);
         printf(": ");

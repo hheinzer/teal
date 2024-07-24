@@ -100,18 +100,18 @@ void roe(const Equations *eqns, const double *n, const double *g_ul, const doubl
     const double du3 = ur[DV] - ul[DV];
     const double du4 = ur[DW] - ul[DW];
     const double du5 = ur[DE] - ul[DE] - (du3 - vs * du1) * vs - (du4 - ws * du1) * ws;
-    const double a3 = du3 - vs * du1;
-    const double a4 = du4 - ws * du1;
-    const double a2 = (gamma - 1) / sq(as) * (du1 * (Hs - sq(us)) + us * du2 - du5);
-    const double a1 = 0.5 / as * (du1 * (us + as) - du2 - as * a2);
-    const double a5 = du1 - (a1 + a2);
-    const double a[5] = {a1, a2, a3, a4, a5};
+    const double alpha3 = du3 - vs * du1;
+    const double alpha4 = du4 - ws * du1;
+    const double alpha2 = (gamma - 1) / sq(as) * (du1 * (Hs - sq(us)) + us * du2 - du5);
+    const double alpha1 = 0.5 / as * (du1 * (us + as) - du2 - as * alpha2);
+    const double alpha5 = du1 - (alpha1 + alpha2);
+    const double alpha[5] = {alpha1, alpha2, alpha3, alpha4, alpha5};
 
     // compute flux correction
     const double lambda[5] = {es[0], es[1], es[1], es[1], es[2]};
     double df[5] = {0};
     for (long i = 0; i < 5; ++i)
-        for (long j = 0; j < 5; ++j) df[j] += a[i] * lambda[i] * Ks[i][j];
+        for (long j = 0; j < 5; ++j) df[j] += alpha[i] * lambda[i] * Ks[i][j];
 
     // compute flux
     double fl[N_VARS], fr[N_VARS], f[N_VARS];

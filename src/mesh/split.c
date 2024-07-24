@@ -9,10 +9,13 @@
 #include "teal.h"
 
 static long find_entity(const Mesh *mesh, const char *entity);
+
 static void compute_split(const Mesh *mesh, const double *root, const double *direction,
                           long *split, long E);
+
 static void compute_reorder(const Mesh *mesh, const long *split, long *new2old, long *old2new,
                             long E);
+
 static void split_entities(Mesh *mesh, const long *split, long E, long n_cells);
 
 void mesh_split(Mesh *mesh, const char *entity, const double *root, const double *direction)
@@ -22,11 +25,11 @@ void mesh_split(Mesh *mesh, const char *entity, const double *root, const double
     const long E = find_entity(mesh, entity);
     const long n_cells = mesh->entity.j_cell[E + 1] - mesh->entity.j_cell[E];
 
-    cleanup long *split = memory_calloc(n_cells, sizeof(*split));
+    smart long *split = memory_calloc(n_cells, sizeof(*split));
     compute_split(mesh, root, direction, split, E);
 
-    cleanup long *new2old = memory_calloc(mesh->n_cells, sizeof(*new2old));
-    cleanup long *old2new = memory_calloc(mesh->n_cells, sizeof(*old2new));
+    smart long *new2old = memory_calloc(mesh->n_cells, sizeof(*new2old));
+    smart long *old2new = memory_calloc(mesh->n_cells, sizeof(*old2new));
     compute_reorder(mesh, split, new2old, old2new, E);
     reorder_cells(mesh, old2new, new2old);
 

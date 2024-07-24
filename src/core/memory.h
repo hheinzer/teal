@@ -1,14 +1,16 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#define cleanup __attribute__((__cleanup__(memory_cleanup)))
-#define fcleanup(func) __attribute__((__cleanup__(func)))
+#define defer(func) [[gnu::cleanup(func)]]
+#define smart defer(memory_free)
 
 void *memory_calloc(long nmemb, long size);
 
 void *memory_realloc(void *ptr, long nmemb, long size);
 
-void memory_cleanup(void *ptr);
+/* Deallocates memory pointed to by 'ptr' and sets 'ptr' to 0. WARNING: Even though the argument is
+ * of type 'void *', the function must be called with '&ptr'. */
+void memory_free(void *ptr);
 
 void *memory_duplicate(const void *ptr, long nmemb, long size);
 

@@ -8,14 +8,19 @@
 #include "teal.h"
 
 static void find_entities(const Mesh *mesh, const char *entity0, const char *entity1, long *E);
+
 static void compute_cell_coordinates(const Mesh *mesh, const long *E, long n_cells,
                                      double (*mean)[N_DIMS], double (*x)[n_cells][N_DIMS]);
+
 static void compute_coordinate_to_cell(const Mesh *mesh, const long *E, long n_cells,
                                        const double (*x)[n_cells][N_DIMS], Kdtree *x2c);
+
 static void compute_cell_to_cell(const Mesh *mesh, const long *E, const double (*mean)[N_DIMS],
                                  const Kdtree *x2c, long n_cells,
                                  const double (*x)[n_cells][N_DIMS], long *c2c);
+
 static void make_cells_periodic(Mesh *mesh, const long *E, const long *c2c);
+
 static void make_entities_periodic(Mesh *mesh, const long *E, const double (*mean)[N_DIMS]);
 
 void mesh_periodic(Mesh *mesh, const char *entity0, const char *entity1)
@@ -29,11 +34,11 @@ void mesh_periodic(Mesh *mesh, const char *entity0, const char *entity1)
         error("entities '%s' and '%s' do not have the same number of cells", entity0, entity1);
 
     double mean[2][N_DIMS] = {0};
-    cleanup double(*x)[n_cells][N_DIMS] = memory_calloc(2, sizeof(*x));
+    smart double(*x)[n_cells][N_DIMS] = memory_calloc(2, sizeof(*x));
     compute_cell_coordinates(mesh, E, n_cells, mean, x);
 
-    fcleanup(kdtree_free) Kdtree x2c = kdtree_create(2 * n_cells, N_DIMS);
-    cleanup long *c2c = memory_calloc(mesh->n_cells, sizeof(*c2c));
+    defer(kdtree_free) Kdtree x2c = kdtree_create(2 * n_cells, N_DIMS);
+    smart long *c2c = memory_calloc(mesh->n_cells, sizeof(*c2c));
     compute_coordinate_to_cell(mesh, E, n_cells, x, &x2c);
     compute_cell_to_cell(mesh, E, mean, &x2c, n_cells, x, c2c);
 
@@ -92,7 +97,7 @@ static void compute_cell_to_cell(const Mesh *mesh, const long *E, const double (
             double key[N_DIMS];
             for (long d = 0; d < N_DIMS; ++d)
                 key[d] = x[e][n][d] - mean[e][d] + mean[(e + 1) % 2][d];
-            cleanup KdtreeItem *item = kdtree_nearest(x2c, key, 1);
+            smart KdtreeItem *item = kdtree_nearest(x2c, key, 1);
             if (!item || !isclose(item->dist2, 0))
                 error("could not find periodic connection of cell '%ld'", j0);
             const long ghost = j0;

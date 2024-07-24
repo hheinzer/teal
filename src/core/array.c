@@ -7,6 +7,7 @@
 #include "utils.h"
 
 static int longcmp(const void *a, const void *b);
+
 static int doublecmp(const void *a, const void *b);
 
 void x__array_print_long(const long *a, long n)
@@ -167,6 +168,7 @@ static int longcmp(const void *a, const void *b)
     if (*aa > *bb) return 1;
     return 0;
 }
+
 static int doublecmp(const void *a, const void *b)
 {
     const double *aa = a;

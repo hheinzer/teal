@@ -24,6 +24,8 @@ void simulation_print(const Simulation *sim)
         printf(" | " KEYFMT ": %ld\n", "number of stages", sim->n_stages);
         printf(" | " KEYFMT ": %s\n", "advance function", sim->advance.name);
         printf(" | " KEYFMT ": %g\n", "cfl number", sim->cfl);
+        if (sim->time > 0) printf(" | " KEYFMT ": %g\n", "time", sim->time);
+        if (sim->iter > 0) printf(" | " KEYFMT ": %ld\n", "iter", sim->iter);
         if (sim->max_time < DBL_MAX) printf(" | " KEYFMT ": %g\n", "max time", sim->max_time);
         if (sim->max_iter < LONG_MAX) printf(" | " KEYFMT ": %ld\n", "max iter", sim->max_iter);
         if (sim->output_time < DBL_MAX)

@@ -9,7 +9,7 @@
 #include "limiter.h"
 #include "teal.h"
 
-static void compute_output_dimensions(const long n_names, char (*name)[NAMELEN], long **dim);
+static void compute_output_dimensions(char (*name)[NAMELEN], long **dim, long n_names);
 
 void equations_create(Equations *eqns, long space_order)
 {
@@ -21,7 +21,7 @@ void equations_create(Equations *eqns, long space_order)
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     eqns->vars.u = memory_calloc(n_cells * n_vars, sizeof(*eqns->vars.u));
     eqns->vars.dudt = memory_calloc(n_inner_cells * n_vars, sizeof(*eqns->vars.dudt));
-    compute_output_dimensions(eqns->n_vars, eqns->vars.name, &eqns->vars.dim);
+    compute_output_dimensions(eqns->vars.name, &eqns->vars.dim, eqns->n_vars);
 
     if (eqns->space_order == 2) {
         eqns->vars.dudx = memory_calloc(n_cells * n_vars * N_DIMS, sizeof(*eqns->vars.dudx));
@@ -46,12 +46,12 @@ void equations_create_user(Equations *eqns, Function *compute, const char **name
     eqns->user.name = memory_calloc(n_user, sizeof(*eqns->user.name));
     for (long v = 0; v < n_user; ++v) strcpy(eqns->user.name[v], name[v]);
     eqns->user.compute = compute;
-    compute_output_dimensions(eqns->n_user, eqns->user.name, &eqns->user.dim);
+    compute_output_dimensions(eqns->user.name, &eqns->user.dim, eqns->n_user);
 }
 
 void equations_create_exact(Equations *eqns, Function *compute, long n_user)
 {
-    cleanup char **name = memory_calloc(n_user, sizeof(*name));
+    smart char **name = memory_calloc(n_user, sizeof(*name));
     for (long v = 0; v < n_user; ++v) {
         char buf[NAMELEN];
         sprintf(buf, "exact %s", eqns->vars.name[v]);
@@ -86,7 +86,7 @@ void equations_set_limiter(Equations *eqns, const char *limiter, double k)
 {
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     const ALIAS(volume, eqns->mesh->cell.volume);
-    memory_cleanup(&eqns->limiter.eps2);
+    memory_free(&eqns->limiter.eps2);
     if (!limiter) {
         strcpy(eqns->limiter.name, "");
         eqns->limiter.func = 0;
@@ -155,7 +155,7 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
     error("could not find entity '%s'", entity);
 }
 
-static void compute_output_dimensions(const long n_names, char (*name)[NAMELEN], long **dim)
+static void compute_output_dimensions(char (*name)[NAMELEN], long **dim, long n_names)
 {
     (*dim) = memory_calloc(n_names, sizeof(*(*dim)));
     for (long n = 0, i = 0; i < n_names; ++i) {

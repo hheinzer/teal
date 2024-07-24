@@ -106,7 +106,7 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
 
 void equations_print(const Equations *eqns);
 
-void equations_write(const Equations *eqns, const char *prefix, long count, double time);
+void equations_write(const Equations *eqns, const char *prefix, long count, double time, long iter);
 
 double equations_timestep(const Equations *eqns);
 

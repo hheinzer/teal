@@ -13,6 +13,7 @@ void mesh_write(const Mesh *mesh, const char *prefix)
     char fname[128];
     sprintf(fname, "%s_mesh.hdf", prefix);
 
+    const int root = (teal.rank == 0);
     hid_t file = h5_file_create(fname);
     hid_t vtkhdf = h5_group_create("VTKHDF", file);
 
@@ -20,7 +21,6 @@ void mesh_write(const Mesh *mesh, const char *prefix)
     h5_attribute_write("Version", version, 2, vtkhdf);
     h5_attribute_write("Type", "UnstructuredGrid", 0, vtkhdf);
 
-    const int root = (teal.rank == 0);
     const long n_inner_nodes = mesh->n_inner_nodes;
     const long n_inner_cells = mesh->n_inner_cells;
     const long n_global_points = sync_sum(n_inner_nodes);
@@ -36,15 +36,15 @@ void mesh_write(const Mesh *mesh, const char *prefix)
 
     h5_dataset_write("Points", *mesh->node.coord, H5DIMS(n_inner_nodes, N_DIMS), vtkhdf);
 
-    cleanup long *conn = memory_calloc(n_conns, sizeof(*conn));
+    smart long *conn = memory_calloc(n_conns, sizeof(*conn));
     for (long i = 0; i < n_conns; ++i) conn[i] = mesh->node.idx[mesh->cell.node[i]];
     h5_dataset_write("Connectivity", conn, H5DIMS(n_conns), vtkhdf);
 
-    cleanup long *offsets = memory_calloc(n_offsets, sizeof(*offsets));
+    smart long *offsets = memory_calloc(n_offsets, sizeof(*offsets));
     for (long i = 0; i < n_offsets; ++i) offsets[i] = mesh->cell.i_node[!root + i] + o_conns;
     h5_dataset_write("Offsets", offsets, H5DIMS(n_offsets), vtkhdf);
 
-    cleanup unsigned char *types = memory_calloc(n_inner_cells, sizeof(*types));
+    smart unsigned char *types = memory_calloc(n_inner_cells, sizeof(*types));
     for (long i = 0; i < n_inner_cells; ++i) {
         const long n_nodes = mesh->cell.i_node[i + 1] - mesh->cell.i_node[i];
         switch (n_nodes) {
@@ -58,7 +58,7 @@ void mesh_write(const Mesh *mesh, const char *prefix)
     h5_dataset_write("Types", types, H5DIMS(n_inner_cells), vtkhdf);
 
     hid_t cell = h5_group_create("CellData", vtkhdf);
-    cleanup long *buf = memory_calloc(n_inner_cells, sizeof(*buf));
+    smart long *buf = memory_calloc(n_inner_cells, sizeof(*buf));
 
     for (long i = 0; i < n_inner_cells; ++i) buf[i] = teal.rank;
     h5_dataset_write("rank", buf, H5DIMS(n_inner_cells), cell);

@@ -7,9 +7,9 @@
 #define MAX_CELL_FACES 6
 #define MAX_FACE_NODES 4
 
-typedef enum Dimension { X, Y, Z, N_DIMS } Dimension;
+enum Dimension { X, Y, Z, N_DIMS };
 
-typedef enum Side { L, R, N_SIDES } Side;
+enum Side { L, R, N_SIDES };
 
 typedef struct Mesh {
     long n_nodes, n_inner_nodes, n_sync_nodes;

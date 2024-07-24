@@ -15,7 +15,7 @@ void equations_gradient(Equations *eqns)
     double(*u)[n_vars] = (void *)eqns->vars.u;
     double(*dudx)[n_vars][N_DIMS] = (void *)eqns->vars.dudx;
 
-    sync_begin(eqns, n_vars, u);
+    sync_begin(eqns, *u, n_vars);
 
     memory_setzero(dudx, n_inner_cells, sizeof(*dudx));
 

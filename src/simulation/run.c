@@ -1,6 +1,5 @@
 #include <math.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 
 #include "core/array.h"
@@ -11,7 +10,11 @@
 static volatile sig_atomic_t m_terminate = 0;
 
 static void terminate(int signum);
+
+static void print_header(void);
+
 static void print(const Simulation *sim, double dt, double residual, double wtime);
+
 static void write(Simulation *sim, double *output_time, long *output_iter);
 
 void simulation_run(Simulation *sim)
@@ -25,9 +28,9 @@ void simulation_run(Simulation *sim)
     const long a_var = sim->abort_variable;
     const double a_res = sim->abort_residual;
     double residual[n_vars];
-    bool converged = false;
+    int converged = 0;
 
-    if (teal.rank == 0) print(sim, 0, 0, 0);
+    if (teal.rank == 0) print_header();
 
     signal(SIGINT, terminate);
     signal(SIGTERM, terminate);
@@ -67,17 +70,19 @@ static void terminate(int)
     m_terminate = 1;
 }
 
+static void print_header(void)
+{
+    printf(" |  %13s  %13s  %13s  %13s  %13s\n", "iter", "time", "dt", "residual", "wtime");
+}
+
 static void print(const Simulation *sim, double dt, double residual, double wtime)
 {
-    if (sim->iter == 0)
-        printf(" |  %13s  %13s  %13s  %13s  %13s\n", "iter", "time", "dt", "residual", "wtime");
-    else
-        printf(" |  %13ld  %13g  %13g  %13g  %13g\n", sim->iter, sim->time, dt, residual, wtime);
+    printf(" |  %13ld  %13g  %13g  %13g  %13g\n", sim->iter, sim->time, dt, residual, wtime);
 }
 
 static void write(Simulation *sim, double *output_time, long *output_iter)
 {
-    equations_write(sim->eqns, sim->prefix, sim->output_count, sim->time);
+    equations_write(sim->eqns, sim->prefix, sim->output_count, sim->time, sim->iter);
     sim->output_count += 1;
     *output_time = max(*output_time, sim->time + sim->output_time);
     *output_iter = max(*output_iter, sim->iter + sim->output_iter);

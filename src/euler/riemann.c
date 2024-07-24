@@ -9,10 +9,13 @@
 
 static void starpu(double *pm, double *um, double dl, double ul, double pl, double dr, double ur,
                    double pr, double cl, double cr, const double *g);
+
 static double guessp(double dl, double ul, double pl, double dr, double ur, double pr, double cl,
                      double cr, const double *g);
+
 static void prefun(double *f, double *fd, double p, double dk, double pk, double ck,
                    const double *g);
+
 static void sample(double *d, double *u, double *p, double dl, double ul, double pl, double dr,
                    double ur, double pr, double cl, double cr, double pm, double um, double s,
                    const double *g);
@@ -67,21 +70,17 @@ static double guessp(double dl, double ul, double pl, double dr, double ur, doub
     const double pmin = min(pl, pr);
     const double pmax = max(pl, pr);
     const double qmax = pmax / pmin;
-    if (qmax <= QUSER && pmin <= ppv && ppv <= pmax) {
-        return ppv;
-    }
-    else if (ppv < pmin) {
+    if (qmax <= QUSER && pmin <= ppv && ppv <= pmax) return ppv;
+    if (ppv < pmin) {
         const double pq = pow(pl / pr, g[1]);
         const double um = (pq * ul / cl + ur / cr + g[4] * (pq - 1)) / (pq / cl + 1 / cr);
         const double ptl = 1 + g[7] * (ul - um) / cl;
         const double ptr = 1 + g[7] * (um - ur) / cr;
         return 0.5 * (pl * pow(ptl, g[3]) + pr * pow(ptr, g[3]));
     }
-    else {
-        const double gel = sqrt((g[5] / dl) / (g[6] * pl + ppv));
-        const double ger = sqrt((g[5] / dr) / (g[6] * pr + ppv));
-        return (gel * pl + ger * pr - (ur - ul)) / (gel + ger);
-    }
+    const double gel = sqrt((g[5] / dl) / (g[6] * pl + ppv));
+    const double ger = sqrt((g[5] / dr) / (g[6] * pr + ppv));
+    return (gel * pl + ger * pr - (ur - ul)) / (gel + ger);
 }
 
 static void prefun(double *f, double *fd, double p, double dk, double pk, double ck,

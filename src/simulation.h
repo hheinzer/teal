@@ -45,6 +45,8 @@ void simulation_set_output_iter(Simulation *sim, long iter);
 
 void simulation_set_abort(Simulation *sim, long variable, double residual);
 
+void simulation_restart(Simulation *sim, const char *fname);
+
 void simulation_print(const Simulation *sim);
 
 void simulation_run(Simulation *sim);

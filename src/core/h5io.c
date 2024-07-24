@@ -14,16 +14,12 @@ hid_t h5_file_create(const char *name)
     H5Pclose(plist);
     return file;
 }
+
 hid_t h5_file_open(const char *name)
 {
-    hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist, teal.comm, MPI_INFO_NULL);
-    H5Pset_all_coll_metadata_ops(plist, true);
-    H5Pset_coll_metadata_write(plist, true);
-    hid_t file = H5Fopen(name, H5F_ACC_RDONLY, plist);
-    H5Pclose(plist);
-    return file;
+    return H5Fopen(name, H5F_ACC_RDONLY, H5P_DEFAULT);
 }
+
 void h5_file_close(hid_t file)
 {
     H5Fclose(file);
@@ -33,10 +29,12 @@ hid_t h5_group_create(const char *name, hid_t loc)
 {
     return H5Gcreate2(loc, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 }
+
 hid_t h5_group_open(const char *name, hid_t loc)
 {
     return H5Gopen2(loc, name, H5P_DEFAULT);
 }
+
 void h5_group_close(hid_t group)
 {
     H5Gclose(group);
@@ -53,6 +51,7 @@ void x__h5_attribute_write_string(const char *name, const char *buf, hsize_t, hi
     H5Sclose(space);
     H5Tclose(type);
 }
+
 void x__h5_attribute_write_type(const char *name, const void *buf, hsize_t dims, hid_t type,
                                 hid_t loc)
 {
@@ -72,18 +71,18 @@ void x__h5_attribute_read(const char *name, void *buf, hid_t loc)
     H5Aclose(attr);
 }
 
-void x__h5_dataset_write_type(const char *name, const void *buf, const hsize_t *count, int rank,
+void x__h5_dataset_write_type(const char *name, const void *buf, const hsize_t *dims, int rank,
                               hid_t type, hid_t loc)
 {
-    hsize_t dims[rank], offset[rank];
-    for (long i = 0; i < rank; ++i) dims[i] = count[i];
+    hsize_t fdims[rank], offset[rank];
+    for (long i = 0; i < rank; ++i) fdims[i] = dims[i];
     for (long i = 0; i < rank; ++i) offset[i] = 0;
-    MPI_Allreduce(&count[0], &dims[0], 1, MPI_UINT64_T, MPI_SUM, teal.comm);
-    MPI_Exscan(&count[0], &offset[0], 1, MPI_UINT64_T, MPI_SUM, teal.comm);
-    hid_t mspace = H5Screate_simple(rank, count, 0);
-    hid_t fspace = H5Screate_simple(rank, dims, 0);
+    MPI_Allreduce(&dims[0], &fdims[0], 1, MPI_UINT64_T, MPI_SUM, teal.comm);
+    MPI_Exscan(&dims[0], &offset[0], 1, MPI_UINT64_T, MPI_SUM, teal.comm);
+    hid_t mspace = H5Screate_simple(rank, dims, 0);
+    hid_t fspace = H5Screate_simple(rank, fdims, 0);
     hid_t dset = H5Dcreate2(loc, name, type, fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Sselect_hyperslab(fspace, H5S_SELECT_SET, offset, 0, count, 0);
+    H5Sselect_hyperslab(fspace, H5S_SELECT_SET, offset, 0, dims, 0);
     hid_t plist = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_dxpl_mpio(plist, H5FD_MPIO_INDEPENDENT);
     H5Dwrite(dset, type, mspace, fspace, plist, buf);
@@ -93,22 +92,11 @@ void x__h5_dataset_write_type(const char *name, const void *buf, const hsize_t *
     H5Dclose(dset);
 }
 
-void x__h5_dataset_read_type(const char *name, void *buf, const hsize_t *count, int rank, hid_t loc)
+void x__h5_dataset_read_type(const char *name, void *buf, hid_t loc)
 {
-    hsize_t offset[rank];
-    for (long i = 0; i < rank; ++i) offset[i] = 0;
-    MPI_Exscan(&count[0], &offset[0], 1, MPI_UNSIGNED_LONG, MPI_SUM, teal.comm);
     hid_t dset = H5Dopen2(loc, name, H5P_DEFAULT);
     hid_t type = H5Dget_type(dset);
-    hid_t mspace = H5Screate_simple(rank, count, 0);
-    hid_t fspace = H5Dget_space(dset);
-    H5Sselect_hyperslab(fspace, H5S_SELECT_SET, offset, 0, count, 0);
-    hid_t plist = H5Pcreate(H5P_DATASET_XFER);
-    H5Pset_dxpl_mpio(plist, H5FD_MPIO_COLLECTIVE);
-    H5Dread(dset, type, mspace, fspace, plist, buf);
-    H5Pclose(plist);
-    H5Sclose(fspace);
-    H5Sclose(mspace);
+    H5Dread(dset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
     H5Tclose(type);
     H5Dclose(dset);
 }

@@ -6,7 +6,7 @@
 
 #ifndef VARIABLES
 #define VARIABLES
-typedef enum Variables {
+enum Variables {
     D,   // density
     U,   // velocity-x
     V,   // velocity-y
@@ -17,15 +17,15 @@ typedef enum Variables {
     DW,  // momentum-z
     DE,  // energy
     N_VARS,
-} Variables;
+};
 #endif
 
 #ifndef SCALARS
 #define SCALARS
-typedef enum Scalars {
+enum Scalars {
     GAMMA,  // heat capacity ratio
     N_SCALARS,
-} Scalars;
+};
 #endif
 
 Equations euler_create(const Mesh *mesh, long space_order);
