@@ -1,5 +1,4 @@
-#ifndef ARRAY_H
-#define ARRAY_H
+#pragma once
 
 #define array_print(a, n) \
     _Generic(*a, long: x__array_print_long, double: x__array_print_double)(a, n)
@@ -51,5 +50,3 @@ double array_norm(const double *a, long n);
 double *array_normalize(double *a, long n);
 
 double *array_cross(const double *a, const double *b, double *c);
-
-#endif

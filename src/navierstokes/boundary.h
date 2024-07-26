@@ -2,4 +2,4 @@
 
 #include "equations.h"
 
-TimeStep timestep_conv;
+ApplyBC adiabatic_wall;

@@ -1,5 +1,5 @@
 SetFactory("OpenCASCADE");
-r1 = 1;
+r1 = 0.5;
 r2 = 20;
 n1 = 100;
 n2 = 100;

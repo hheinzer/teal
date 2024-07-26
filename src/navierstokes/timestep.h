@@ -2,4 +2,4 @@
 
 #include "equations.h"
 
-TimeStep timestep_conv;
+TimeStep timestep_visc;

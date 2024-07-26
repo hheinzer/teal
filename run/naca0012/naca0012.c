@@ -28,8 +28,8 @@ int main(int argc, char **argv)
 
     Simulation sim = simulation_create(&eqns, argv[0]);
     if (argc > 1) simulation_restart(&sim, argv[1]);
-    simulation_set_max_iter(&sim, sim.iter + 10000);
-    simulation_set_output_iter(&sim, 1000);
+    simulation_set_max_iter(&sim, sim.iter + 100000);
+    simulation_set_output_iter(&sim, 10000);
     simulation_set_abort(&sim, D, 1e-5);
     simulation_print(&sim);
     simulation_run(&sim);

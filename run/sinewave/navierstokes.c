@@ -1,4 +1,4 @@
-#include "euler.h"
+#include "navierstokes.h"
 
 #include <math.h>
 
@@ -7,7 +7,7 @@
 #include "teal.h"
 
 #define PI 3.14159265358979323846
-const double gamma = 1.4, a = 0.1, b = PI, c = 2 * PI;
+const double gamma = 1.4, prandtl = 0.72, mu = 0.001, a = 0.1, b = PI, c = 2 * PI;
 Function exact, source;
 
 int main(int argc, char **argv)
@@ -24,9 +24,11 @@ int main(int argc, char **argv)
     mesh_generate(&mesh);
     mesh_print(&mesh);
 
-    Equations eqns = euler_create(&mesh, 2);
+    Equations eqns = navierstokes_create(&mesh, 2);
     equations_create_exact(&eqns, exact, 5);
     equations_set_scalar(&eqns, GAMMA, gamma);
+    equations_set_scalar(&eqns, PRANDTL, prandtl);
+    equations_set_scalar(&eqns, MU, mu);
     equations_set_source(&eqns, source);
     equations_set_limiter(&eqns, "venk", 1);
     equations_set_initial_condition(&eqns, exact);
@@ -56,13 +58,25 @@ void exact(double *u, const double *, const double *x, double time)
 void source(double *q, const double *, const double *x, double time)
 {
     q[D] = a * (3 * b - c) * cos(b * (x[X] + x[Y] + x[Z]) - c * time);
-    q[DU] = q[DV] = q[DW] =
+    q[DU] =
         (1.0 / 2.0) * a *
         (b * (gamma - 1) * (4 * a * sin(b * (x[X] + x[Y] + x[Z]) - c * time) + 5) + 6 * b - 2 * c) *
         cos(b * (x[X] + x[Y] + x[Z]) - c * time);
-    q[DE] = 0.5 * a *
-            (12 * a * b * gamma * sin(b * x[X] + b * x[Y] + b * x[Z] - c * time) -
-             4 * a * c * sin(b * x[X] + b * x[Y] + b * x[Z] - c * time) + 15 * b * gamma + 9 * b -
-             8 * c) *
-            cos(b * x[X] + b * x[Y] + b * x[Z] - c * time);
+    q[DV] =
+        (1.0 / 2.0) * a *
+        (b * (gamma - 1) * (4 * a * sin(b * (x[X] + x[Y] + x[Z]) - c * time) + 5) + 6 * b - 2 * c) *
+        cos(b * (x[X] + x[Y] + x[Z]) - c * time);
+    q[DW] =
+        (1.0 / 2.0) * a *
+        (b * (gamma - 1) * (4 * a * sin(b * (x[X] + x[Y] + x[Z]) - c * time) + 5) + 6 * b - 2 * c) *
+        cos(b * (x[X] + x[Y] + x[Z]) - c * time);
+    q[DE] = (1.0 / 2.0) * a *
+            (6 * a * b * gamma * prandtl *
+                 sin(2 * b * x[X] + 2 * b * x[Y] + 2 * b * x[Z] - 2 * c * time) -
+             2 * a * c * prandtl * sin(2 * b * x[X] + 2 * b * x[Y] + 2 * b * x[Z] - 2 * c * time) +
+             6 * pow(b, 2) * gamma * mu * sin(b * x[X] + b * x[Y] + b * x[Z] - c * time) +
+             15 * b * gamma * prandtl * cos(b * x[X] + b * x[Y] + b * x[Z] - c * time) +
+             9 * b * prandtl * cos(b * x[X] + b * x[Y] + b * x[Z] - c * time) -
+             8 * c * prandtl * cos(b * x[X] + b * x[Y] + b * x[Z] - c * time)) /
+            prandtl;
 }

@@ -1,5 +1,4 @@
-#ifndef H5IO_H
-#define H5IO_H
+#pragma once
 
 #include <hdf5.h>
 
@@ -53,5 +52,3 @@ void x__h5_dataset_write_type(const char *name, const void *buf, const hsize_t *
 void x__h5_dataset_read_type(const char *name, void *buf, hid_t loc);
 
 void h5_link_create(const char *name, const char *file, const char *obj, hid_t loc);
-
-#endif

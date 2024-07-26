@@ -4,8 +4,10 @@
 
 #include "euler.h"
 
-double timestep(const Equations *eqns, const double *u, const double *projection, double volume)
+double timestep_conv(const Equations *eqns, const double *u, const double *projection,
+                     double volume)
 {
+    // Blazek 2015, eq. (6.22)
     const double gamma = eqns->scalar.value[GAMMA];
     const double c = sqrt(gamma * u[P] / u[D]);
     const double lambdaCx = (fabs(u[U]) + c) * projection[X];

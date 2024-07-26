@@ -1,8 +1,5 @@
-#ifndef ADVANCE_H
-#define ADVANCE_H
+#pragma once
 
 #include "simulation.h"
 
 Advance euler, lserk;
-
-#endif

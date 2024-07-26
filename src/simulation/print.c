@@ -20,6 +20,7 @@ void simulation_print(const Simulation *sim)
 
     if (teal.rank == 0) {
         printf("Simulation summary:\n");
+        printf(" | " KEYFMT ": %s\n", "prefix", sim->prefix);
         printf(" | " KEYFMT ": %ld\n", "time order", sim->time_order);
         printf(" | " KEYFMT ": %ld\n", "number of stages", sim->n_stages);
         printf(" | " KEYFMT ": %s\n", "advance function", sim->advance.name);

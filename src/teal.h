@@ -1,5 +1,4 @@
-#ifndef TEAL_H
-#define TEAL_H
+#pragma once
 
 #include <mpi.h>
 
@@ -11,5 +10,3 @@ extern struct Teal {
 void teal_initialize(int *argc, char ***argv);
 
 void teal_finalize(void);
-
-#endif

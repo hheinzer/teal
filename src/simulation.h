@@ -1,5 +1,4 @@
-#ifndef SIMULATION_H
-#define SIMULATION_H
+#pragma once
 
 #include "equations.h"
 
@@ -52,5 +51,3 @@ void simulation_print(const Simulation *sim);
 void simulation_run(Simulation *sim);
 
 void simulation_error(const Simulation *sim, long ivars, long iuser);
-
-#endif

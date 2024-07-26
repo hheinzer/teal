@@ -19,10 +19,10 @@ CFLAGS += -Og -fno-omit-frame-pointer
 LDLIBS = -lm -lgmsh -lmetis -lhdf5
 
 # sources, objects, and programs
-SRC = $(shell find src -type f -name "*.c")
-RUN = $(shell find run -type f -name "*.c")
-OBJ = $(SRC:src/%.c=obj/%.o)
-BIN = $(RUN:run/%.c=bin/%)
+SRC = $(wildcard src/**/*.c)
+RUN = $(wildcard run/**/*.c)
+OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
+BIN = $(patsubst run/%.c, bin/%, $(RUN))
 
 # make functions
 .PHONY: all clean check format tidy
@@ -36,10 +36,10 @@ check:
 		--suppress=checkersReport --suppress=missingIncludeSystem --suppress=unusedFunction
 
 format:
-	@clang-format -i $(shell find . -type f -name "*.[ch]")
+	@clang-format -i $(wildcard src/**/*.[ch]) $(wildcard run/**/*.[ch])
 
 tidy:
-	@clang-tidy --quiet $(shell find . -type f -name "*.[ch]")
+	@clang-tidy --quiet $(wildcard src/**/*.[ch]) $(wildcard run/**/*.[ch])
 
 # dependencies
 CFLAGS += -MMD -MP

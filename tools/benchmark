@@ -10,7 +10,7 @@ out=$prog.out
 for n in $ncores
 do
     sleep 60
-    mpirun -n $n $prog > $out
+    mpirun -n $n $prog $args > $out
     echo $n $(awk '/computation time/ {print $4}' $out) | tee -a tmp
 
     dir=${prog}_$n

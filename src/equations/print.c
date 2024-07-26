@@ -23,7 +23,7 @@ void equations_print(const Equations *eqns)
         printf(" | " KEYFMT ": %ld\n", "space order", eqns->space_order);
         for (long s = 0; s < eqns->n_scalars; ++s)
             printf(" | " KEYFMT ": %g\n", eqns->scalar.name[s], eqns->scalar.value[s]);
-        printf(" | " KEYFMT ": %s\n", "flux function", eqns->flux.name);
+        printf(" | " KEYFMT ": %s\n", "convective flux function", eqns->flux.name_conv);
         if (*eqns->limiter.name)
             printf(" | " KEYFMT ": %s (k = %g)\n", "limiter", eqns->limiter.name, eqns->limiter.k);
         for (long e = 0; e < n_entities; ++e)

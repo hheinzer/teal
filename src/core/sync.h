@@ -1,5 +1,4 @@
-#ifndef SYNC_H
-#define SYNC_H
+#pragma once
 
 #include "equations.h"
 #include "mesh.h"
@@ -28,5 +27,3 @@ void sync_begin(Equations *eqns, double *u, long nu);
 void sync_wait(Equations *eqns);
 
 void sync_end(Equations *eqns);
-
-#endif

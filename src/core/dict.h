@@ -1,5 +1,4 @@
-#ifndef DICT_H
-#define DICT_H
+#pragma once
 
 #include <stdint.h>
 
@@ -30,5 +29,3 @@ DictItem *dict_serialize_by_key(const Dict *dict);
 DictItem *dict_serialize_by_index(const Dict *dict);
 
 void dict_print(const Dict *dict);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef EQUATIONS_H
-#define EQUATIONS_H
+#pragma once
 
 #include <mpi.h>
 
@@ -12,10 +11,15 @@ typedef struct Equations Equations;
 typedef double TimeStep(const Equations *eqns, const double *u, const double *projection,
                         double volume);
 
-typedef void Flux(const Equations *eqns, const double *n, const double *g_ul, const double *g_ur,
-                  double *g_f);
+typedef void ConvFlux(const Equations *eqns, const double *n, const double *g_ul,
+                      const double *g_ur, double *g_f);
 
-typedef Flux *SelectFlux(const char *name);
+typedef void ViscFlux(const Equations *eqns, const double *n, const double *um,
+                      const double (*dudxm)[N_DIMS], double *f);
+
+typedef ConvFlux *SelectConvFlux(const char *name);
+
+typedef ViscFlux *SelectViscFlux(const char *name);
 
 typedef void ApplyBC(const Equations *eqns, const double *n, const double *state, const double *ui,
                      double *ug);
@@ -45,9 +49,11 @@ struct Equations {
     } scalar;
 
     struct {
-        SelectFlux *select;
-        char name[NAMELEN];
-        Flux *func;
+        SelectConvFlux *select_conv;
+        SelectViscFlux *select_visc;
+        char name_conv[NAMELEN], name_visc[NAMELEN];
+        ConvFlux *conv;
+        ViscFlux *visc;
     } flux;
 
     TimeStep *timestep;
@@ -91,7 +97,9 @@ void equations_create_exact(Equations *eqns, Function *compute, long n_user);
 
 void equations_set_scalar(Equations *eqns, long scalar, double value);
 
-void equations_set_flux(Equations *eqns, const char *name);
+void equations_set_convective_flux(Equations *eqns, const char *name);
+
+void equations_set_viscous_flux(Equations *eqns, const char *name);
 
 void equations_set_source(Equations *eqns, Function *source);
 
@@ -117,5 +125,3 @@ void equations_gradient(Equations *eqns);
 void equations_limiter(Equations *eqns);
 
 void equations_residual(const Equations *eqns, double *residual);
-
-#endif

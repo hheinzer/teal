@@ -1,5 +1,4 @@
-#ifndef MESH_H
-#define MESH_H
+#pragma once
 
 #define NAMELEN 128
 
@@ -73,5 +72,3 @@ void mesh_generate(Mesh *mesh);
 void mesh_print(const Mesh *mesh);
 
 void mesh_write(const Mesh *mesh, const char *prefix);
-
-#endif

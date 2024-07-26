@@ -18,7 +18,6 @@ parser.add_argument("--vmax", help="maximum scalar value", type=float)
 parser.add_argument("-x", "--explode", help="show exploded mesh", action=BooleanOptionalAction)
 parser.add_argument("-e", "--edges", help="show mesh edges", action=BooleanOptionalAction)
 parser.add_argument("-c", "--cmap", help="colormap", default="coolwarm")
-parser.add_argument("-n", "--nthreads", help="number of threads to use for pool", type=int)
 args = parser.parse_args()
 
 
@@ -35,6 +34,8 @@ def main():
     fnames = np.array_split(fnames, size)[rank]
     for fname in fnames:
         plot(fname)
+
+    comm.Barrier()
 
     if rank == 0:
         merge_pdfs(args.fnames, args.scalar)
@@ -90,8 +91,8 @@ def plot(fname):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     cb.set_label(args.scalar)
-    if "TimeValue" in mesh.array_names:
-        ax.set_title(f"time = {mesh['TimeValue'][0]:g}")
+    if "time" in mesh.array_names:
+        ax.set_title(f"time = {mesh['time'][0]:g}")
 
     fig.tight_layout()
     fig.savefig(fname.replace(".hdf", ".pdf"), bbox_inches="tight")
@@ -119,7 +120,7 @@ def create_video(fnames, scalar):
         " ".join(
             [
                 "ffmpeg -y -loglevel warning",
-                "-framerate 10",
+                "-framerate 30",
                 f"-i {prefix}_%05d.png",
                 "-pix_fmt yuv420p",
                 "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2'",

@@ -22,9 +22,11 @@ enum Variable {
 #ifndef SCALAR
 #define SCALAR
 enum Scalar {
-    GAMMA,  // heat capacity ratio
+    GAMMA,    // heat capacity ratio
+    PRANDTL,  // Prandtl number
+    MU,       // dynamic viscosity
     N_SCALARS,
 };
 #endif
 
-Equations euler_create(const Mesh *mesh, long space_order);
+Equations navierstokes_create(const Mesh *mesh, long space_order);

@@ -1,5 +1,4 @@
-#ifndef KDTREE_H
-#define KDTREE_H
+#pragma once
 
 typedef struct KdtreeItem {
     const double *key;
@@ -24,5 +23,3 @@ KdtreeItem *kdtree_nearest(const Kdtree *tree, const double *key, long k);
 KdtreeItem *kdtree_radius(const Kdtree *tree, const double *key, long *k, double r);
 
 void kdtree_print(const Kdtree *tree);
-
-#endif

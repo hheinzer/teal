@@ -1,7 +1,7 @@
 from sympy import symbols, sin, Matrix, ccode, simplify
 
 # define independent variables
-gamma, mu, x, y, z, t, a, b, c = symbols("gamma mu x[X] x[Y] x[Z] time a b c")
+gamma, x, y, z, t, a, b, c = symbols("gamma x[X] x[Y] x[Z] time a b c")
 
 # define conserved variables (manufactured solution)
 rho = 2 + a * sin(b * (x + y + z) - c * t)
@@ -15,11 +15,6 @@ u = rhou / rho
 v = rhov / rho
 w = rhow / rho
 p = (gamma - 1) * (rhoe - rho * (u**2 + v**2 + w**2) / 2)
-
-# compute exact solution
-U = Matrix([rho, u, v, w, p])
-for i, var in enumerate(["D", "U", "V", "W", "P"]):
-    print(f"u[{var}] =", ccode(simplify(U[i])), ";")
 
 # compute source terms
 W = Matrix([rho, rhou, rhov, rhow, rhoe])

@@ -554,12 +554,12 @@ static void compute_face_reconstruction(Mesh *mesh, const Dict *periodic)
         }
     }
     for (long i = 0; i < mesh->n_inner_cells; ++i) {
-        r11[i] = sqrt(r11[i]) + EPS;
+        r11[i] = sqrt(r11[i] + EPS);
         r12[i] = r12[i] / r11[i];
-        r22[i] = sqrt(r22[i] - sq(r12[i])) + EPS;
+        r22[i] = sqrt(r22[i] - sq(r12[i]) + EPS);
         r13[i] = r13[i] / r11[i];
         r23[i] = (r23[i] - r12[i] * r13[i]) / r22[i];
-        r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i]))) + EPS;
+        r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i])) + EPS);
     }
 
     double(*weight)[N_DIMS] = memory_calloc(mesh->n_faces, sizeof(*weight));

@@ -71,10 +71,16 @@ void equations_set_scalar(Equations *eqns, long scalar, double value)
     eqns->scalar.value[scalar] = value;
 }
 
-void equations_set_flux(Equations *eqns, const char *name)
+void equations_set_convective_flux(Equations *eqns, const char *name)
 {
-    strcpy(eqns->flux.name, name);
-    eqns->flux.func = eqns->flux.select(name);
+    strcpy(eqns->flux.name_conv, name);
+    eqns->flux.conv = eqns->flux.select_conv(name);
+}
+
+void equations_set_viscous_flux(Equations *eqns, const char *name)
+{
+    strcpy(eqns->flux.name_visc, name);
+    eqns->flux.visc = eqns->flux.select_visc(name);
 }
 
 void equations_set_source(Equations *eqns, Function *source)
