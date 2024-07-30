@@ -27,8 +27,8 @@ int main(int argc, char **argv)
 
     Equations eqns = euler_create(&mesh, 2);
     equations_set_initial_condition(&eqns, dmr);
-    equations_set_boundary_condition(&eqns, "bottom0", "supersonic outflow", 0, 0);
-    equations_set_boundary_condition(&eqns, "bottom1", "slipwall", 0, 0);
+    equations_set_boundary_condition(&eqns, "bottom-0", "supersonic outflow", 0, 0);
+    equations_set_boundary_condition(&eqns, "bottom-1", "slipwall", 0, 0);
     equations_set_boundary_condition(&eqns, "right", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(&eqns, "top", "custom", 0, dmr);
     equations_set_boundary_condition(&eqns, "left", "supersonic inflow", state1, 0);

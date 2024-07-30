@@ -21,7 +21,7 @@ static void compute_cell_to_cell(const Mesh *mesh, const long *E, const double (
 
 static void make_cells_periodic(Mesh *mesh, const long *E, const long *c2c);
 
-static void make_entities_periodic(Mesh *mesh, const long *E, const double (*mean)[N_DIMS]);
+static void compute_entitiy_offsets(Mesh *mesh, const long *E, const double (*mean)[N_DIMS]);
 
 void mesh_periodic(Mesh *mesh, const char *entity0, const char *entity1)
 {
@@ -43,7 +43,7 @@ void mesh_periodic(Mesh *mesh, const char *entity0, const char *entity1)
     compute_cell_to_cell(mesh, E, mean, &x2c, n_cells, x, c2c);
 
     make_cells_periodic(mesh, E, c2c);
-    make_entities_periodic(mesh, E, mean);
+    compute_entitiy_offsets(mesh, E, mean);
 }
 
 static void find_entities(const Mesh *mesh, const char *entity0, const char *entity1, long *E)
@@ -131,11 +131,8 @@ static void make_cells_periodic(Mesh *mesh, const long *E, const long *c2c)
     mesh->cell.cell = memory_realloc(cell, i_cell[mesh->n_cells], sizeof(*cell));
 }
 
-static void make_entities_periodic(Mesh *mesh, const long *E, const double (*mean)[N_DIMS])
+static void compute_entitiy_offsets(Mesh *mesh, const long *E, const double (*mean)[N_DIMS])
 {
-    ALIAS(name, mesh->entity.name);
-    for (long e = 0; e < 2; ++e) strcpy(name[E[e]], "periodic");
-
     ALIAS(offset, mesh->entity.offset);
     for (long d = 0; d < N_DIMS; ++d) {
         offset[E[0]][d] = mean[0][d] - mean[1][d];

@@ -60,11 +60,11 @@ void equations_write(const Equations *eqns, const char *prefix, long count, doub
     const ALIAS(udim, eqns->user.dim);
     const ALIAS(uname, eqns->user.name);
     const ALIAS(x, eqns->mesh->cell.center);
-    ALIAS(compute, eqns->user.compute);
+    ALIAS(func, eqns->user.func);
     double user[n_user];
     for (long n = 0, v = 0; v < n_user; v += udim[n], ++n) {
         for (long i = 0; i < n_inner_cells; ++i) {
-            compute(user, vars[i], x[i], time);
+            func(user, vars[i], x[i], time);
             for (long d = 0; d < udim[n]; ++d) buf[i * udim[n] + d] = user[v + d];
         }
         h5_dataset_write(uname[v], buf, H5DIMS(n_inner_cells, udim[n]), cell);

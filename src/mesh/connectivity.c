@@ -56,7 +56,6 @@ void connectivity_faces(Mesh *mesh)
 
 long connectivity_nodes(const Mesh *mesh, long *node, long j0, long j1)
 {
-    // WARNING: only works for unique node indices
     ensure(j0 != j1);
     long n_nodes = 0;
     for (long i0 = mesh->cell.i_node[j0]; i0 < mesh->cell.i_node[j0 + 1]; ++i0) {

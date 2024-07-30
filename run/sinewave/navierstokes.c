@@ -7,7 +7,7 @@
 #include "teal.h"
 
 #define PI 3.14159265358979323846
-const double gamma = 1.4, prandtl = 0.72, mu = 0.001, a = 0.1, b = PI, c = 2 * PI;
+const double gamma = 1.4, prandtl = 0.72, mu = 0.1, a = 0.1, b = PI, c = 2 * PI;
 Function exact, source;
 
 int main(int argc, char **argv)

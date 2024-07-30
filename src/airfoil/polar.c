@@ -37,7 +37,7 @@ void airfoil_polar(const Simulation *sim, const char *airfoil, const double *ure
     }
 
     char fname[128];
-    sprintf(fname, "%s_polar.h5", sim->prefix);
+    sprintf(fname, "%s_polar.hdf", sim->prefix);
     hid_t file = h5_file_create(fname);
     h5_dataset_write("x", *x, H5DIMS(n_faces, N_DIMS), file);
     h5_dataset_write("cp", cp, H5DIMS(n_faces), file);
@@ -72,7 +72,7 @@ static void extract(const Equations *eqns, double (**x)[N_DIMS], double **p, dou
     *n = memory_calloc(n_faces, sizeof(**n));
     for (long m = 0, j = j_face[E]; j < j_face[E + 1]; ++j) {
         for (long d = 0; d < N_DIMS; ++d) (*x)[m][d] = center[j][d];
-        (*p)[m] = u[cell[j][L]][P];
+        (*p)[m] = 0.5 * (u[cell[j][L]][P] + u[cell[j][R]][P]);
         (*a)[m] = area[j];
         for (long d = 0; d < N_DIMS; ++d) (*n)[m][d] = normal[j][d];
         m += 1;

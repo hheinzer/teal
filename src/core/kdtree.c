@@ -93,6 +93,7 @@ static void insert(Kdtree *tree, const double *key, const long *val, long nval, 
     if (next)
         insert(tree, key, val, nval, next, depth + 1);
     else {
+        if (isclose(metric(key, root->key, tree->nkey), 0)) error("collisions are not allowed");
         if (dx < 0)
             next = root->left = &tree->item[tree->n_items];
         else

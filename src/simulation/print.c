@@ -11,6 +11,8 @@ static double compute_size(const Simulation *sim);
 
 void simulation_print(const Simulation *sim)
 {
+    if (teal.quiet) return;
+
     const ALIAS(name, sim->eqns->vars.name);
     const char *var = (sim->abort_variable < 0 ? "maximum" : name[sim->abort_variable]);
     const double dt = sim->cfl * equations_timestep(sim->eqns);
@@ -21,6 +23,7 @@ void simulation_print(const Simulation *sim)
     if (teal.rank == 0) {
         printf("Simulation summary:\n");
         printf(" | " KEYFMT ": %s\n", "prefix", sim->prefix);
+        if (teal.restart) printf(" | " KEYFMT ": %s\n", "restart", teal.restart);
         printf(" | " KEYFMT ": %ld\n", "time order", sim->time_order);
         printf(" | " KEYFMT ": %ld\n", "number of stages", sim->n_stages);
         printf(" | " KEYFMT ": %s\n", "advance function", sim->advance.name);

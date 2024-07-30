@@ -6,6 +6,7 @@
 #include "core/memory.h"
 #include "core/utils.h"
 #include "simulation.h"
+#include "teal.h"
 
 Simulation simulation_create(Equations *eqns, const char *prefix)
 {
@@ -15,12 +16,14 @@ Simulation simulation_create(Equations *eqns, const char *prefix)
     sim.prefix = prefix;
 
     simulation_set_time_order(&sim, eqns->space_order, eqns->space_order + 1);
-    simulation_set_cfl(&sim, 0.9);
+    simulation_set_cfl(&sim, 0.99);
     simulation_set_max_time(&sim, DBL_MAX);
     simulation_set_output_time(&sim, DBL_MAX);
     simulation_set_max_iter(&sim, LONG_MAX);
     simulation_set_output_iter(&sim, LONG_MAX);
     simulation_set_abort(&sim, -1, 0);
+
+    if (teal.restart) simulation_restart(&sim, teal.restart);
 
     return sim;
 }
@@ -51,24 +54,24 @@ void simulation_set_cfl(Simulation *sim, double cfl)
     sim->cfl = cfl;
 }
 
-void simulation_set_max_time(Simulation *sim, double time)
+void simulation_set_max_time(Simulation *sim, double max_time)
 {
-    sim->max_time = time;
+    sim->max_time = sim->time + max_time;
 }
 
-void simulation_set_output_time(Simulation *sim, double time)
+void simulation_set_output_time(Simulation *sim, double output_time)
 {
-    sim->output_time = time;
+    sim->output_time = output_time;
 }
 
-void simulation_set_max_iter(Simulation *sim, long iter)
+void simulation_set_max_iter(Simulation *sim, long max_iter)
 {
-    sim->max_iter = iter;
+    sim->max_iter = sim->iter + max_iter;
 }
 
-void simulation_set_output_iter(Simulation *sim, long iter)
+void simulation_set_output_iter(Simulation *sim, long output_iter)
 {
-    sim->output_iter = iter;
+    sim->output_iter = output_iter;
 }
 
 void simulation_set_abort(Simulation *sim, long variable, double residual)

@@ -1,10 +1,7 @@
 # compiler and default flags
 CC = clang
 MPICC = OMPI_MPICC=$(CC) mpicc
-CFLAGS = -std=c23 -g -Isrc
-
-# warning flags
-CFLAGS += -Wall -Wextra -Wpedantic -Wshadow -Wfloat-equal -Wcast-qual
+CFLAGS = -std=c23 -g -Isrc -Wall -Wextra -Wpedantic
 
 # debug flags
 CFLAGS += -Og -fno-omit-frame-pointer
@@ -13,7 +10,7 @@ CFLAGS += -Og -fno-omit-frame-pointer
 #CFLAGS += -march=native -Ofast -flto=auto -DNDEBUG
 
 # profiling flags
-#CFLAGS += -pg -fno-lto -fno-inline
+#CFLAGS += -pg
 
 # libraries
 LDLIBS = -lm -lgmsh -lmetis -lhdf5

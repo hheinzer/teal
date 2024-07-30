@@ -1,4 +1,6 @@
 #include <mpi.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "core/array.h"
 #include "core/h5io.h"
@@ -22,6 +24,9 @@ void simulation_restart(Simulation *sim, const char *fname)
     const long nlu = n_local_cells * n_vars;
     const ALIAS(lx, sim->eqns->mesh->cell.center);
     ALIAS(lu, sim->eqns->vars.u);
+
+    const char *underscore = strrchr(fname, '_');
+    if (underscore) sim->output_count = max(strtol(underscore + 1, 0, 10), 0);
 
     if (teal.rank == 0) {
         smart long *n_inner_cells = memory_calloc(teal.size, sizeof(*n_inner_cells));

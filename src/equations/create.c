@@ -32,7 +32,7 @@ void equations_create(Equations *eqns, long space_order)
     eqns->bc.name = memory_calloc(n_entities, sizeof(*eqns->bc.name));
     eqns->bc.state = memory_calloc(n_entities, sizeof(*eqns->bc.state));
     eqns->bc.apply = memory_calloc(n_entities, sizeof(*eqns->bc.apply));
-    eqns->bc.custom = memory_calloc(n_entities, sizeof(*eqns->bc.custom));
+    eqns->bc.func = memory_calloc(n_entities, sizeof(*eqns->bc.func));
 
     const long n_send = eqns->mesh->sync.i_send[teal.size];
     eqns->sync.buf = memory_calloc(n_send * n_vars * N_DIMS, sizeof(*eqns->sync.buf));
@@ -40,16 +40,16 @@ void equations_create(Equations *eqns, long space_order)
     eqns->sync.send = memory_calloc(teal.size, sizeof(*eqns->sync.send));  // NOLINT
 }
 
-void equations_create_user(Equations *eqns, Function *compute, const char **name, long n_user)
+void equations_create_user(Equations *eqns, const char **name, Function *func, long n_user)
 {
     eqns->n_user = n_user;
     eqns->user.name = memory_calloc(n_user, sizeof(*eqns->user.name));
     for (long v = 0; v < n_user; ++v) strcpy(eqns->user.name[v], name[v]);
-    eqns->user.compute = compute;
+    eqns->user.func = func;
     compute_output_dimensions(eqns->user.name, &eqns->user.dim, eqns->n_user);
 }
 
-void equations_create_exact(Equations *eqns, Function *compute, long n_user)
+void equations_create_exact(Equations *eqns, Function *func, long n_user)
 {
     smart char **name = memory_calloc(n_user, sizeof(*name));
     for (long v = 0; v < n_user; ++v) {
@@ -62,7 +62,7 @@ void equations_create_exact(Equations *eqns, Function *compute, long n_user)
         }
         name[v] = memory_strdup(buf);
     }
-    equations_create_user(eqns, compute, (void *)name, n_user);
+    equations_create_user(eqns, (void *)name, func, n_user);
     for (long v = 0; v < n_user; ++v) free(name[v]);
 }
 
@@ -83,39 +83,44 @@ void equations_set_viscous_flux(Equations *eqns, const char *name)
     eqns->flux.visc = eqns->flux.select_visc(name);
 }
 
-void equations_set_source(Equations *eqns, Function *source)
+void equations_set_prepare(Equations *eqns, Prepare *prepare)
 {
-    eqns->source = source;
+    eqns->source.prepare = prepare;
 }
 
-void equations_set_limiter(Equations *eqns, const char *limiter, double k)
+void equations_set_source(Equations *eqns, Function *func)
+{
+    eqns->source.func = func;
+}
+
+void equations_set_limiter(Equations *eqns, const char *name, double k)
 {
     const long n_inner_cells = eqns->mesh->n_inner_cells;
-    const ALIAS(volume, eqns->mesh->cell.volume);
+    const ALIAS(cv, eqns->mesh->cell.volume);
     memory_free(&eqns->limiter.eps2);
-    if (!limiter) {
+    if (!name) {
         strcpy(eqns->limiter.name, "");
         eqns->limiter.func = 0;
     }
-    else if (!strcmp(limiter, "barth jespersen") || !strcmp(limiter, "minmod")) {
-        strcpy(eqns->limiter.name, limiter);
+    else if (!strcmp(name, "barth jespersen") || !strcmp(name, "minmod")) {
+        strcpy(eqns->limiter.name, name);
         eqns->limiter.func = barth_jespersen;
         eqns->limiter.eps2 = memory_calloc(n_inner_cells, sizeof(*eqns->limiter.eps2));
     }
-    else if (!strcmp(limiter, "venkatakrishnan") || !strcmp(limiter, "venk")) {
-        strcpy(eqns->limiter.name, limiter);
+    else if (!strcmp(name, "venkatakrishnan") || !strcmp(name, "venk")) {
+        strcpy(eqns->limiter.name, name);
         eqns->limiter.func = venkatakrishnan;
         eqns->limiter.eps2 = memory_calloc(n_inner_cells, sizeof(*eqns->limiter.eps2));
 
         eqns->limiter.k = k;
         for (long i = 0; i < n_inner_cells; ++i)
-            eqns->limiter.eps2[i] = pow(k * pow(volume[i], 1.0 / N_DIMS), 3);
+            eqns->limiter.eps2[i] = pow(k * pow(cv[i], 1.0 / N_DIMS), 3);
     }
     else
-        error("unsupported limiter function '%s'", limiter);
+        error("unsupported limiter function '%s'", name);
 }
 
-void equations_set_initial_condition(Equations *eqns, Function *initial)
+void equations_set_initial_condition(Equations *eqns, Function *func)
 {
     const long n_vars = eqns->n_vars;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
@@ -124,7 +129,7 @@ void equations_set_initial_condition(Equations *eqns, Function *initial)
     double(*u)[n_vars] = (void *)eqns->vars.u;
 
     for (long i = 0; i < n_inner_cells; ++i) {
-        initial(u[i], 0, x[i], 0);
+        func(u[i], 0, x[i], 0);
         update(eqns, u[i]);
     }
 }
@@ -143,7 +148,7 @@ void equations_set_initial_state(Equations *eqns, const double *state)
 }
 
 void equations_set_boundary_condition(Equations *eqns, const char *entity, const char *bc,
-                                      const double *state, Function *custom)
+                                      const double *state, Function *func)
 {
     const long n_entities = eqns->mesh->n_entities;
     const ALIAS(name, eqns->mesh->entity.name);
@@ -153,9 +158,9 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
         eqns->bc.state[e] = state;
         if (strcmp(bc, "custom"))
             eqns->bc.apply[e] = eqns->bc.select(bc);
-        else if (!custom)
-            error("custom boundary condition for entity '%s' requires custom function", entity);
-        eqns->bc.custom[e] = custom;
+        else if (!func)
+            error("custom boundary condition for entity '%s' requires function", entity);
+        eqns->bc.func[e] = func;
         return;
     }
     error("could not find entity '%s'", entity);

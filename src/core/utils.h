@@ -1,15 +1,15 @@
 #pragma once
 
-#define EPS 1e-8       // floating-point tolerance
-#define KEYFMT "%30s"  // format for printing keys
+#define EPS 1e-8
+#define KEYFMT "%30s"
 
 /* Create an alias 'a' for variable 'b'. */
 #define ALIAS(a, b) __typeof__(*b) *a = b
 
 /* Print error message '...' and abort the program. */
 #define error(...) x__error(__FILE__, __LINE__, __func__, __VA_ARGS__)
-[[noreturn]] void x__error(const char *file, unsigned int line, const char *func,
-                           const char *format, ...);
+[[gnu::noreturn]] void x__error(const char *file, unsigned int line, const char *func,
+                                const char *format, ...);
 
 /* Ensure that expression 'expr' is true, otherwise abort the program. */
 #ifndef NDEBUG
@@ -17,8 +17,8 @@
 #else
 #define ensure(expr) ((void)0)
 #endif
-[[noreturn]] void x__ensure(const char *expr, const char *file, unsigned int line,
-                            const char *func);
+[[gnu::noreturn]] void x__ensure(const char *expr, const char *file, unsigned int line,
+                                 const char *func);
 
 /* Compute 'a' to the power of 2. */
 #define sq(a) _Generic(a, long: x__sq_long, double: x__sq_double)(a)

@@ -9,6 +9,8 @@ static double compute_size(const Equations *eqns);
 
 void equations_print(const Equations *eqns)
 {
+    if (teal.quiet) return;
+
     const long n_entities = eqns->mesh->n_entities;
     const ALIAS(entity, eqns->mesh->entity.name);
     const ALIAS(j_cell, eqns->mesh->entity.j_cell);
@@ -38,9 +40,6 @@ static double compute_size(const Equations *eqns)
 {
     double size = sizeof(*eqns);
 
-    size += eqns->n_scalars * sizeof(*eqns->scalar.name);
-    size += eqns->n_scalars * sizeof(*eqns->scalar.value);
-
     const long n_cells = eqns->mesh->n_cells;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     size += eqns->n_vars * sizeof(*eqns->vars.name);
@@ -48,6 +47,9 @@ static double compute_size(const Equations *eqns)
     if (eqns->space_order == 2) size += n_cells * eqns->n_vars * N_DIMS * sizeof(*eqns->vars.dudx);
     size += n_inner_cells * eqns->n_vars * sizeof(*eqns->vars.dudt);
     size += eqns->n_vars * sizeof(*eqns->vars.dim);
+
+    size += eqns->n_scalars * sizeof(*eqns->scalar.name);
+    size += eqns->n_scalars * sizeof(*eqns->scalar.value);
 
     if (eqns->limiter.func) size += n_inner_cells * sizeof(*eqns->limiter.eps2);
 
@@ -58,7 +60,7 @@ static double compute_size(const Equations *eqns)
     size += n_entities * sizeof(*eqns->bc.name);
     size += n_entities * sizeof(*eqns->bc.state);
     size += n_entities * sizeof(*eqns->bc.apply);
-    size += n_entities * sizeof(*eqns->bc.custom);
+    size += n_entities * sizeof(*eqns->bc.func);
 
     const long n_send = eqns->mesh->sync.i_send[teal.size];
     size += n_send * eqns->n_vars * N_DIMS * sizeof(*eqns->sync.buf);

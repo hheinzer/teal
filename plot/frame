@@ -1,3 +1,4 @@
+#!/bin/python
 from argparse import ArgumentParser, BooleanOptionalAction
 from os import remove, system
 from os.path import commonprefix
@@ -15,8 +16,10 @@ parser.add_argument("fnames", nargs="+", help="files that should be plotted")
 parser.add_argument("scalar", help="scalar to plot")
 parser.add_argument("--vmin", help="minimum scalar value", type=float)
 parser.add_argument("--vmax", help="maximum scalar value", type=float)
-parser.add_argument("-x", "--explode", help="show exploded mesh", action=BooleanOptionalAction)
-parser.add_argument("-e", "--edges", help="show mesh edges", action=BooleanOptionalAction)
+parser.add_argument("-x", "--explode", help="plot exploded mesh", action=BooleanOptionalAction)
+parser.add_argument("-e", "--edges", help="plot mesh edges", action=BooleanOptionalAction)
+parser.add_argument("-p", "--points", help="plot over point data", action=BooleanOptionalAction)
+parser.add_argument("-t", "--time", help="use time as title", action=BooleanOptionalAction)
 parser.add_argument("-c", "--cmap", help="colormap", default="coolwarm")
 args = parser.parse_args()
 
@@ -25,19 +28,17 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    assert size <= len(args.fnames)
 
     fnames = []
     for i in range(size):
         fnames += args.fnames[i::size]
-
     fnames = np.array_split(fnames, size)[rank]
+
     for fname in fnames:
         plot(fname)
 
     comm.Barrier()
-
-    if rank == 0:
+    if rank == 0 and len(args.fnames) > 1:
         merge_pdfs(args.fnames, args.scalar)
         create_video(args.fnames, args.scalar)
 
@@ -47,6 +48,7 @@ def plot(fname):
 
     mesh = pv.read(fname)
     mesh = mesh.explode(1) if args.explode else mesh
+    mesh = mesh.cell_data_to_point_data() if args.points else mesh
     extent = mesh.bounds
     vmin = (
         args.vmin
@@ -91,12 +93,12 @@ def plot(fname):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     cb.set_label(args.scalar)
-    if "time" in mesh.array_names:
-        ax.set_title(f"time = {mesh['time'][0]:g}")
+    if args.time and "time" in mesh.array_names:
+        ax.set_title(f"time = {mesh['time'][0]:16.4f}")
 
     fig.tight_layout()
     fig.savefig(fname.replace(".hdf", ".pdf"), bbox_inches="tight")
-    fig.savefig(fname.replace(".hdf", ".png"), dpi=300, bbox_inches="tight")
+    fig.savefig(fname.replace(".hdf", ".png"), dpi=600, bbox_inches="tight")
     plt.close()
 
     tend = time()
@@ -120,7 +122,7 @@ def create_video(fnames, scalar):
         " ".join(
             [
                 "ffmpeg -y -loglevel warning",
-                "-framerate 30",
+                "-framerate 20",
                 f"-i {prefix}_%05d.png",
                 "-pix_fmt yuv420p",
                 "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2'",

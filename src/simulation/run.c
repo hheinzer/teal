@@ -62,7 +62,8 @@ void simulation_run(Simulation *sim)
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
 
-    if (teal.rank == 0) printf(" | " KEYFMT ": %g\n", "computation time", timer_stop - timer_start);
+    if (teal.rank == 0 && !teal.quiet)
+        printf(" | " KEYFMT ": %g\n", "computation time", timer_stop - timer_start);
 }
 
 static void terminate(int)
@@ -72,11 +73,13 @@ static void terminate(int)
 
 static void print_header(void)
 {
+    if (teal.quiet) return;
     printf(" |  %13s  %13s  %13s  %13s  %13s\n", "iter", "time", "dt", "residual", "wtime");
 }
 
 static void print(const Simulation *sim, double dt, double residual, double wtime)
 {
+    if (teal.quiet) return;
     printf(" |  %13ld  %13g  %13g  %13g  %13g\n", sim->iter, sim->time, dt, residual, wtime);
 }
 

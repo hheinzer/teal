@@ -21,7 +21,7 @@ void equations_free(Equations *eqns)
     free(eqns->bc.name);
     free(eqns->bc.state);
     free(eqns->bc.apply);
-    free(eqns->bc.custom);
+    free(eqns->bc.func);
 
     free(eqns->sync.buf);
     free(eqns->sync.recv);

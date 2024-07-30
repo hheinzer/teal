@@ -10,15 +10,15 @@
 
 static long find_entity(const Mesh *mesh, const char *entity);
 
-static void compute_split(const Mesh *mesh, const double *root, const double *direction,
-                          long *split, long E);
+static void compute_split(const Mesh *mesh, const double *root, const double *normal, long *split,
+                          long E);
 
 static void compute_reorder(const Mesh *mesh, const long *split, long *new2old, long *old2new,
                             long E);
 
 static void split_entities(Mesh *mesh, const long *split, long E, long n_cells);
 
-void mesh_split(Mesh *mesh, const char *entity, const double *root, const double *direction)
+void mesh_split(Mesh *mesh, const char *entity, const double *root, const double *normal)
 {
     if (teal.rank != 0) return;
 
@@ -26,7 +26,7 @@ void mesh_split(Mesh *mesh, const char *entity, const double *root, const double
     const long n_cells = mesh->entity.j_cell[E + 1] - mesh->entity.j_cell[E];
 
     smart long *split = memory_calloc(n_cells, sizeof(*split));
-    compute_split(mesh, root, direction, split, E);
+    compute_split(mesh, root, normal, split, E);
 
     smart long *new2old = memory_calloc(mesh->n_cells, sizeof(*new2old));
     smart long *old2new = memory_calloc(mesh->n_cells, sizeof(*old2new));
@@ -45,8 +45,8 @@ static long find_entity(const Mesh *mesh, const char *entity)
     return E;
 }
 
-static void compute_split(const Mesh *mesh, const double *root, const double *direction,
-                          long *split, long E)
+static void compute_split(const Mesh *mesh, const double *root, const double *normal, long *split,
+                          long E)
 {
     const ALIAS(j_cell, mesh->entity.j_cell);
     const ALIAS(i_node, mesh->cell.i_node);
@@ -62,7 +62,7 @@ static void compute_split(const Mesh *mesh, const double *root, const double *di
         double RC[N_DIMS];
         for (long d = 0; d < N_DIMS; ++d) RC[d] = center[d] - root[d];
 
-        split[s++] = (array_dot(RC, direction, N_DIMS) > 0 ? 0 : 1);
+        split[s++] = (array_dot(RC, normal, N_DIMS) > 0 ? 0 : 1);
     }
 }
 
@@ -97,11 +97,8 @@ static void split_entities(Mesh *mesh, const long *split, long E, long n_cells)
     }
     strcpy(name[E + 1], name[E]);
     for (long d = 0; d < N_DIMS; ++d) offset[E + 1][d] = offset[E][d];
-    for (long e = 0; e < 2; ++e) {
-        char buf[NAMELEN];
-        sprintf(buf, "%s%ld", name[E + e], e);
-        strcpy(name[E + e], buf);
-    }
+    strcat(name[E + 0], "-0");
+    strcat(name[E + 1], "-1");
     for (long s = 0; s < n_cells; ++s) j_cell[E + 1] -= split[s];
     mesh->entity.name = name;
     mesh->entity.j_cell = j_cell;

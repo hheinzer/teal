@@ -47,6 +47,7 @@ static void create_nodes(Mesh *mesh, long **node_idx)
     *node_idx = tag_2_idx(node_tag, n_node_tags);
     gmshFree(node_tag);
 
+    if (n_node_tags == 0) error("mesh contains '%ld' nodes", n_node_tags);
     mesh->n_nodes = n_node_tags;
     mesh->node.coord = (void *)coord;
 }
@@ -109,6 +110,7 @@ static void create_cells(Mesh *mesh, const long *node_idx)
         gmshFree(ptag);
     }
 
+    if (n_cells == 0) error("mesh contains '%ld' cell", n_cells);
     mesh->n_cells = n_cells;
     mesh->cell.i_node = i_node;
     mesh->cell.node = node;
@@ -157,6 +159,7 @@ static void create_entities(Mesh *mesh)
         gmshFree(ptag);
     }
 
+    if (n_entities == 0) error("mesh contains '%ld' entities", n_entities);
     mesh->n_entities = n_entities;
     mesh->entity.name = name;
     mesh->entity.j_cell = j_cell;

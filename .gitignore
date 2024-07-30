@@ -1,3 +1,10 @@
 obj
 bin
+
 *.msh
+*.hdf
+
+*.out
+*.png
+*.pdf
+*.mp4

@@ -5,26 +5,13 @@
 
 #ifndef VARIABLE
 #define VARIABLE
-enum Variable {
-    D,   // density
-    U,   // velocity-x
-    V,   // velocity-y
-    W,   // velocity-z
-    P,   // pressure
-    DU,  // momentum-x
-    DV,  // momentum-y
-    DW,  // momentum-z
-    DE,  // energy
-    N_VARS,
-};
+enum Variable { D, U, V, W, P, DU, DV, DW, DE, N_VARS };
 #endif
 
 #ifndef SCALAR
 #define SCALAR
-enum Scalar {
-    GAMMA,  // heat capacity ratio
-    N_SCALARS,
-};
+enum Scalar { GAMMA, N_SCALARS };
 #endif
 
+/* Create Euler equation system on 'mesh' using a 'space_order' discretization. */
 Equations euler_create(const Mesh *mesh, long space_order);

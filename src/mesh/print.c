@@ -10,6 +10,8 @@ static double compute_size(const Mesh *mesh);
 
 void mesh_print(const Mesh *mesh)
 {
+    if (teal.quiet) return;
+
     const long n_inner_nodes = sync_sum(mesh->n_inner_nodes);
     const long n_inner_cells = sync_sum(mesh->n_inner_cells);
     const long n_inner_faces = sync_sum(mesh->n_inner_faces);
