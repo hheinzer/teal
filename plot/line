@@ -21,7 +21,7 @@ for fname in args.fnames:
     xmin = mesh.points.min(axis=0)
     xmax = mesh.points.max(axis=0)
     pointa = 0.5 * (xmin + xmax)
-    pointb = pointa
+    pointb = 0.5 * (xmin + xmax)
     pointa[0] = args.pointa if args.pointa is not None else xmin[0]
     pointb[0] = args.pointb if args.pointb is not None else xmax[0]
     resolution = args.resolution if args.resolution is not None else mesh.n_cells + 1

@@ -24,6 +24,12 @@ double x__sync_sum_double(double v);
 long x__sync_exscan_sum_long(long v);
 double x__sync_exscan_sum_double(double v);
 
+/* Collectively compute dot product of 'n' elements of arrays 'a' and 'b'. */
+double sync_dot(const double *a, const double *b, long n);
+
+/* Collectively compute L2 norm of 'n' elements of array 'a'. */
+double sync_norm(const double *a, long n);
+
 /* Synchronize 'nu' variables of buffer 'u' among all ranks using the sync info of 'mesh'. */
 void sync_all(const Mesh *mesh, double *u, long nu);
 

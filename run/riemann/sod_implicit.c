@@ -5,9 +5,9 @@
 #include "teal.h"
 
 const double gamma = 1.4;
-const double dl = 1, ul = 0.75, pl = 1;
+const double dl = 1, ul = 0, pl = 1;
 const double dr = 0.125, ur = 0, pr = 0.1;
-const double xd = 0.3, max_time = 0.2;
+const double xd = 0.5, max_time = 0.25;
 Function exact;
 
 int main(int argc, char **argv)
@@ -31,6 +31,7 @@ int main(int argc, char **argv)
     equations_print(&eqns);
 
     Simulation sim = simulation_create(&eqns, argv[0]);
+    simulation_set_implicit(&sim, 25, 5, 1e-3, 1e-3);
     simulation_set_max_time(&sim, max_time);
     simulation_print(&sim);
     simulation_run(&sim);

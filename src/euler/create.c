@@ -18,6 +18,7 @@ Equations euler_create(const Mesh *mesh, long space_order)
 {
     Equations eqns = {0};
 
+    eqns.n_cons = N_CONS;
     eqns.n_vars = N_VARS;
     eqns.n_scalars = N_SCALARS;
     strcpy(eqns.name, "Euler");
@@ -25,14 +26,14 @@ Equations euler_create(const Mesh *mesh, long space_order)
 
     eqns.vars.name = memory_calloc(N_VARS, sizeof(*eqns.vars.name));
     strcpy(eqns.vars.name[D], "density");
-    strcpy(eqns.vars.name[U], "velocity-x");
-    strcpy(eqns.vars.name[V], "velocity-y");
-    strcpy(eqns.vars.name[W], "velocity-z");
-    strcpy(eqns.vars.name[P], "pressure");
     strcpy(eqns.vars.name[DU], "momentum-x");
     strcpy(eqns.vars.name[DV], "momentum-y");
     strcpy(eqns.vars.name[DW], "momentum-z");
     strcpy(eqns.vars.name[DE], "energy");
+    strcpy(eqns.vars.name[U], "velocity-x");
+    strcpy(eqns.vars.name[V], "velocity-y");
+    strcpy(eqns.vars.name[W], "velocity-z");
+    strcpy(eqns.vars.name[P], "pressure");
 
     eqns.scalar.name = memory_calloc(N_SCALARS, sizeof(*eqns.scalar.name));
     eqns.scalar.value = memory_calloc(N_SCALARS, sizeof(*eqns.scalar.value));

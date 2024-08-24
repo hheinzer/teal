@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     mesh_print(&mesh);
 
     Equations eqns = euler_create(&mesh, 2);
-    equations_create_exact(&eqns, exact, 5);
+    equations_create_exact(&eqns, exact);
     equations_set_scalar(&eqns, GAMMA, gamma);
     equations_set_source(&eqns, source);
     equations_set_limiter(&eqns, "venk", 1);

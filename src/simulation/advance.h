@@ -2,4 +2,4 @@
 
 #include "simulation.h"
 
-Advance euler, lserk;
+Advance explicit_euler, lserk, implicit_euler;

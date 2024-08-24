@@ -1,5 +1,6 @@
 #include "sync.h"
 
+#include <math.h>
 #include <mpi.h>
 
 #include "memory.h"
@@ -64,6 +65,18 @@ double x__sync_exscan_sum_double(double v)
     double r = 0;
     MPI_Exscan(&v, &r, 1, MPI_DOUBLE, MPI_SUM, teal.comm);
     return r;
+}
+
+double sync_dot(const double *a, const double *b, long n)
+{
+    double dot = a[0] * b[0];
+    for (long i = 1; i < n; ++i) dot += a[i] * b[i];
+    return x__sync_sum_double(dot);
+}
+
+double sync_norm(const double *a, long n)
+{
+    return sqrt(sync_dot(a, a, n));
 }
 
 void sync_all(const Mesh *mesh, double *u, long nu)

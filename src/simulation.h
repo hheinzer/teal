@@ -12,10 +12,12 @@ struct Simulation {
     const char *prefix;
 
     long time_order, n_stages;
+    long n_newton, n_krylov;
+    double tol_newton, tol_krylov;
     struct {
         char name[NAMELEN];
         Advance *func;
-        double *buf;
+        double *u0, *xk, *f0, *fk, *rk, *dx, *V, *g, *w, *H, *s, *c, *y;
     } advance;
 
     double cfl;
@@ -33,8 +35,14 @@ Simulation simulation_create(Equations *eqns, const char *prefix);
 /* Deallocate memory of 'sim' and set all fields to 0. */
 void simulation_free(Simulation *sim);
 
-/* Set the 'time_order' and 'n_stages' of 'sim'. */
-void simulation_set_time_order(Simulation *sim, long time_order, long n_stages);
+/* Select explicit time integration of 'sim' and set the 'time_order' and 'n_stages'. */
+void simulation_set_explicit(Simulation *sim, long time_order, long n_stages);
+
+/* Select implicit time integration of 'sim' and set the number of Newton and Krylov iterations
+ * 'n_newton' and 'n_krylov' and the tolerances for the Newton and Krylov solvers 'tol_newton' and
+ * 'tol_krylov'. */
+void simulation_set_implicit(Simulation *sim, long n_newton, long n_krylov, double tol_newton,
+                             double tol_krylov);
 
 /* Set the 'cfl' number of 'sim'. */
 void simulation_set_cfl(Simulation *sim, double cfl);

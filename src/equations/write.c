@@ -62,6 +62,7 @@ void equations_write(const Equations *eqns, const char *prefix, long count, doub
     const ALIAS(x, eqns->mesh->cell.center);
     ALIAS(func, eqns->user.func);
     double user[n_user];
+    memory_setzero(user, n_user, sizeof(*user));
     for (long n = 0, v = 0; v < n_user; v += udim[n], ++n) {
         for (long i = 0; i < n_inner_cells; ++i) {
             func(user, vars[i], x[i], time);

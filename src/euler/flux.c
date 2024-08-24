@@ -34,7 +34,7 @@ void godunov(const Equations *eqns, const double *n, const double *ul, const dou
     prim_to_cons(eqns, u);
 
     // compute flux
-    double lf[N_VARS];
+    double lf[N_CONS];
     physical_flux(u, lf);
     local_to_global(n, lf, f);
 }
@@ -112,7 +112,7 @@ void roe(const Equations *eqns, const double *n, const double *ul, const double 
         for (long j = 0; j < 5; ++j) df[j] += alpha[i] * lambda[i] * Ks[i][j];
 
     // compute flux
-    double fl[N_VARS], fr[N_VARS], lf[N_VARS];
+    double fl[N_CONS], fr[N_CONS], lf[N_CONS];
     physical_flux(lul, fl);
     physical_flux(lur, fr);
     lf[D] = 0.5 * (fl[D] + fr[D] - df[0]);
@@ -155,7 +155,7 @@ void hll(const Equations *eqns, const double *n, const double *ul, const double 
     const double sr = max(lur[U] + ar, us + as);
 
     // compute flux
-    double fl[N_VARS], fr[N_VARS], lf[N_VARS];
+    double fl[N_CONS], fr[N_CONS], lf[N_CONS];
     if (0 <= sl)
         physical_flux(lul, lf);
     else if (0 >= sr)
@@ -204,7 +204,7 @@ void hllc(const Equations *eqns, const double *n, const double *ul, const double
     const double sr = max(lur[U] + ar, us + as);
 
     // compute flux
-    double lf[N_VARS];
+    double lf[N_CONS];
     if (0 <= sl)
         physical_flux(lul, lf);
     else if (0 >= sr)
@@ -276,7 +276,7 @@ void hlle(const Equations *eqns, const double *n, const double *ul, const double
     const double sr = max(lur[U] + ar, us + d);
 
     // compute flux
-    double fl[N_VARS], fr[N_VARS], lf[N_VARS];
+    double fl[N_CONS], fr[N_CONS], lf[N_CONS];
     if (0 <= sl)
         physical_flux(lul, lf);
     else if (0 >= sr)
@@ -309,7 +309,7 @@ void lxf(const Equations *eqns, const double *n, const double *ul, const double 
     const double s = max(fabs(lul[U]) + cl, fabs(lur[U]) + cr);
 
     // compute flux
-    double fl[N_VARS], fr[N_VARS], lf[N_VARS];
+    double fl[N_CONS], fr[N_CONS], lf[N_CONS];
     physical_flux(lul, fl);
     physical_flux(lur, fr);
     lf[D] = 0.5 * (fl[D] + fr[D] - s * (lur[D] - lul[D]));

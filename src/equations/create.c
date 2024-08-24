@@ -16,11 +16,12 @@ void equations_create(Equations *eqns, long space_order)
     if (space_order < 1 || 2 < space_order) error("unsupported space order '%ld'", space_order);
     eqns->space_order = space_order;
 
+    const long n_cons = eqns->n_cons;
     const long n_vars = eqns->n_vars;
     const long n_cells = eqns->mesh->n_cells;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     eqns->vars.u = memory_calloc(n_cells * n_vars, sizeof(*eqns->vars.u));
-    eqns->vars.dudt = memory_calloc(n_inner_cells * n_vars, sizeof(*eqns->vars.dudt));
+    eqns->vars.dudt = memory_calloc(n_inner_cells * n_cons, sizeof(*eqns->vars.dudt));
     compute_output_dimensions(eqns->vars.name, &eqns->vars.dim, eqns->n_vars);
 
     if (eqns->space_order == 2) {
@@ -49,8 +50,9 @@ void equations_create_user(Equations *eqns, const char **name, Function *func, l
     compute_output_dimensions(eqns->user.name, &eqns->user.dim, eqns->n_user);
 }
 
-void equations_create_exact(Equations *eqns, Function *func, long n_user)
+void equations_create_exact(Equations *eqns, Function *func)
 {
+    const long n_user = eqns->n_vars;
     smart char **name = memory_calloc(n_user, sizeof(*name));
     for (long v = 0; v < n_user; ++v) {
         char buf[NAMELEN];

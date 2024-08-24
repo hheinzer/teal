@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     mesh_print(&mesh);
 
     Equations eqns = euler_create(&mesh, 2);
-    equations_create_exact(&eqns, exact, 5);
+    equations_create_exact(&eqns, exact);
     equations_set_scalar(&eqns, GAMMA, gamma);
     equations_set_initial_condition(&eqns, exact);
     equations_set_boundary_condition(&eqns, "left", "supersonic outflow", 0, 0);

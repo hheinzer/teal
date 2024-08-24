@@ -45,7 +45,7 @@ static double compute_size(const Equations *eqns)
     size += eqns->n_vars * sizeof(*eqns->vars.name);
     size += n_cells * eqns->n_vars * sizeof(*eqns->vars.u);
     if (eqns->space_order == 2) size += n_cells * eqns->n_vars * N_DIMS * sizeof(*eqns->vars.dudx);
-    size += n_inner_cells * eqns->n_vars * sizeof(*eqns->vars.dudt);
+    size += n_inner_cells * eqns->n_cons * sizeof(*eqns->vars.dudt);
     size += eqns->n_vars * sizeof(*eqns->vars.dim);
 
     size += eqns->n_scalars * sizeof(*eqns->scalar.name);

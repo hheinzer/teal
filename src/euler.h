@@ -5,7 +5,8 @@
 
 #ifndef VARIABLE
 #define VARIABLE
-enum Variable { D, U, V, W, P, DU, DV, DW, DE, N_VARS };
+enum Conserved { D, DU, DV, DW, DE, N_CONS };
+enum Primitive { U = N_CONS, V, W, P, N_VARS };
 #endif
 
 #ifndef SCALAR

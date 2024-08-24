@@ -53,9 +53,9 @@ void equations_derivative(Equations *eqns, double time)
 
 static void initialize_derivative(Equations *eqns)
 {
-    const long n_vars = eqns->n_vars;
+    const long n_cons = eqns->n_cons;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
-    double(*dudt)[n_vars] = (void *)eqns->vars.dudt;
+    double(*dudt)[n_cons] = (void *)eqns->vars.dudt;
     memory_setzero(dudt, n_inner_cells, sizeof(*dudt));
 }
 
@@ -93,6 +93,7 @@ static void apply_boundary_conditions(Equations *eqns, double time)
 
 static void integrate_conv_fluxes(Equations *eqns)
 {
+    const long n_cons = eqns->n_cons;
     const long n_vars = eqns->n_vars;
     const long n_inner_faces = eqns->mesh->n_inner_faces;
     const long n_bound_faces = eqns->mesh->n_bound_faces;
@@ -102,16 +103,16 @@ static void integrate_conv_fluxes(Equations *eqns)
     const ALIAS(area, eqns->mesh->face.area);
     ALIAS(conv, eqns->flux.conv);
     double(*u)[n_vars] = (void *)eqns->vars.u;
-    double(*dudt)[n_vars] = (void *)eqns->vars.dudt;
-    double f[n_vars];
-    memory_setzero(f, n_vars, sizeof(*f));
+    double(*dudt)[n_cons] = (void *)eqns->vars.dudt;
+    double f[n_cons];
+    memory_setzero(f, n_cons, sizeof(*f));
 
     sync_begin(eqns, *u, n_vars);
 
     for (long i = 0; i < n_inner_faces; ++i) {
         const long cL = cell[i][L], cR = cell[i][R];
         conv(eqns, n[i], u[cL], u[cR], f);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += f[v] * area[i];
             dudt[cR][v] -= f[v] * area[i];
         }
@@ -119,7 +120,7 @@ static void integrate_conv_fluxes(Equations *eqns)
     for (long i = n_inner_faces; i < n_inner_faces + n_bound_faces; ++i) {
         const long cL = cell[i][L], cR = cell[i][R];
         conv(eqns, n[i], u[cL], u[cR], f);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += f[v] * area[i];
         }
     }
@@ -129,7 +130,7 @@ static void integrate_conv_fluxes(Equations *eqns)
     for (long i = n_inner_faces + n_bound_faces; i < n_faces; ++i) {
         const long cL = cell[i][L], cR = cell[i][R];
         conv(eqns, n[i], u[cL], u[cR], f);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += f[v] * area[i];
         }
     }
@@ -139,6 +140,7 @@ static void integrate_conv_fluxes(Equations *eqns)
 
 static void integrate_reconstructed_conv_visc_fluxes(Equations *eqns)
 {
+    const long n_cons = eqns->n_cons;
     const long n_vars = eqns->n_vars;
     const long n_inner_faces = eqns->mesh->n_inner_faces;
     const long n_bound_faces = eqns->mesh->n_bound_faces;
@@ -152,10 +154,10 @@ static void integrate_reconstructed_conv_visc_fluxes(Equations *eqns)
     ALIAS(conv, eqns->flux.conv);
     ALIAS(visc, eqns->flux.visc);
     double(*dudx)[n_vars][N_DIMS] = (void *)eqns->vars.dudx;
-    double(*dudt)[n_vars] = (void *)eqns->vars.dudt;
-    double ul[n_vars], ur[n_vars], fc[n_vars], um[n_vars], dudxm[n_vars][N_DIMS], fv[n_vars];
-    memory_setzero(fc, n_vars, sizeof(*fc));
-    memory_setzero(fv, n_vars, sizeof(*fv));
+    double(*dudt)[n_cons] = (void *)eqns->vars.dudt;
+    double ul[n_vars], ur[n_vars], fc[n_cons], um[n_vars], dudxm[n_vars][N_DIMS], fv[n_cons];
+    memory_setzero(fc, n_cons, sizeof(*fc));
+    memory_setzero(fv, n_cons, sizeof(*fv));
 
     sync_begin(eqns, **dudx, n_vars * N_DIMS);
 
@@ -166,7 +168,7 @@ static void integrate_reconstructed_conv_visc_fluxes(Equations *eqns)
         average(eqns, tl[i], u[cL], u[cR], dudx[cL], dudx[cR], um, dudxm);
         conv(eqns, n[i], ul, ur, fc);
         visc(eqns, n[i], um, dudxm, fv);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += (fc[v] - fv[v]) * area[i];
             dudt[cR][v] -= (fc[v] - fv[v]) * area[i];
         }
@@ -177,7 +179,7 @@ static void integrate_reconstructed_conv_visc_fluxes(Equations *eqns)
         average(eqns, tl[i], u[cL], u[cR], dudx[cL], dudx[cR], um, dudxm);
         conv(eqns, n[i], ul, u[cR], fc);
         visc(eqns, n[i], um, dudxm, fv);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += (fc[v] - fv[v]) * area[i];
         }
     }
@@ -191,7 +193,7 @@ static void integrate_reconstructed_conv_visc_fluxes(Equations *eqns)
         average(eqns, tl[i], u[cL], u[cR], dudx[cL], dudx[cR], um, dudxm);
         conv(eqns, n[i], ul, ur, fc);
         visc(eqns, n[i], um, dudxm, fv);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += (fc[v] - fv[v]) * area[i];
         }
     }
@@ -201,6 +203,7 @@ static void integrate_reconstructed_conv_visc_fluxes(Equations *eqns)
 
 static void integrate_reconstructed_conv_fluxes(Equations *eqns)
 {
+    const long n_cons = eqns->n_cons;
     const long n_vars = eqns->n_vars;
     const long n_inner_faces = eqns->mesh->n_inner_faces;
     const long n_bound_faces = eqns->mesh->n_bound_faces;
@@ -212,9 +215,9 @@ static void integrate_reconstructed_conv_fluxes(Equations *eqns)
     const double(*u)[n_vars] = (void *)eqns->vars.u;
     ALIAS(conv, eqns->flux.conv);
     double(*dudx)[n_vars][N_DIMS] = (void *)eqns->vars.dudx;
-    double(*dudt)[n_vars] = (void *)eqns->vars.dudt;
-    double ul[n_vars], ur[n_vars], fc[n_vars];
-    memory_setzero(fc, n_vars, sizeof(*fc));
+    double(*dudt)[n_cons] = (void *)eqns->vars.dudt;
+    double ul[n_vars], ur[n_vars], fc[n_cons];
+    memory_setzero(fc, n_cons, sizeof(*fc));
 
     sync_begin(eqns, **dudx, n_vars * N_DIMS);
 
@@ -223,7 +226,7 @@ static void integrate_reconstructed_conv_fluxes(Equations *eqns)
         reconstruct(eqns, dx[i][L], u[cL], dudx[cL], ul);
         reconstruct(eqns, dx[i][R], u[cR], dudx[cR], ur);
         conv(eqns, n[i], ul, ur, fc);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += fc[v] * area[i];
             dudt[cR][v] -= fc[v] * area[i];
         }
@@ -232,7 +235,7 @@ static void integrate_reconstructed_conv_fluxes(Equations *eqns)
         const long cL = cell[i][L], cR = cell[i][R];
         reconstruct(eqns, dx[i][L], u[cL], dudx[cL], ul);
         conv(eqns, n[i], ul, u[cR], fc);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += fc[v] * area[i];
         }
     }
@@ -244,7 +247,7 @@ static void integrate_reconstructed_conv_fluxes(Equations *eqns)
         reconstruct(eqns, dx[i][L], u[cL], dudx[cL], ul);
         reconstruct(eqns, dx[i][R], u[cR], dudx[cR], ur);
         conv(eqns, n[i], ul, ur, fc);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += fc[v] * area[i];
         }
     }
@@ -254,6 +257,7 @@ static void integrate_reconstructed_conv_fluxes(Equations *eqns)
 
 static void integrate_reconstructed_visc_fluxes(Equations *eqns)
 {
+    const long n_cons = eqns->n_cons;
     const long n_vars = eqns->n_vars;
     const long n_inner_faces = eqns->mesh->n_inner_faces;
     const long n_bound_faces = eqns->mesh->n_bound_faces;
@@ -265,9 +269,9 @@ static void integrate_reconstructed_visc_fluxes(Equations *eqns)
     const double(*u)[n_vars] = (void *)eqns->vars.u;
     ALIAS(visc, eqns->flux.visc);
     double(*dudx)[n_vars][N_DIMS] = (void *)eqns->vars.dudx;
-    double(*dudt)[n_vars] = (void *)eqns->vars.dudt;
-    double um[n_vars], dudxm[n_vars][N_DIMS], fv[n_vars];
-    memory_setzero(fv, n_vars, sizeof(*fv));
+    double(*dudt)[n_cons] = (void *)eqns->vars.dudt;
+    double um[n_vars], dudxm[n_vars][N_DIMS], fv[n_cons];
+    memory_setzero(fv, n_cons, sizeof(*fv));
 
     sync_begin(eqns, **dudx, n_vars * N_DIMS);
 
@@ -275,7 +279,7 @@ static void integrate_reconstructed_visc_fluxes(Equations *eqns)
         const long cL = cell[i][L], cR = cell[i][R];
         average(eqns, tl[i], u[cL], u[cR], dudx[cL], dudx[cR], um, dudxm);
         visc(eqns, n[i], um, dudxm, fv);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += -fv[v] * area[i];
             dudt[cR][v] -= -fv[v] * area[i];
         }
@@ -284,7 +288,7 @@ static void integrate_reconstructed_visc_fluxes(Equations *eqns)
         const long cL = cell[i][L], cR = cell[i][R];
         average(eqns, tl[i], u[cL], u[cR], dudx[cL], dudx[cR], um, dudxm);
         visc(eqns, n[i], um, dudxm, fv);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += -fv[v] * area[i];
         }
     }
@@ -295,7 +299,7 @@ static void integrate_reconstructed_visc_fluxes(Equations *eqns)
         const long cL = cell[i][L], cR = cell[i][R];
         average(eqns, tl[i], u[cL], u[cR], dudx[cL], dudx[cR], um, dudxm);
         visc(eqns, n[i], um, dudxm, fv);
-        for (long v = 0; v < n_vars; ++v) {
+        for (long v = 0; v < n_cons; ++v) {
             dudt[cL][v] += -fv[v] * area[i];
         }
     }
@@ -329,27 +333,28 @@ static void average(const Equations *eqns, const double *tl, const double *ul, c
 
 static void compute_derivative(Equations *eqns, double time)
 {
+    const long n_cons = eqns->n_cons;
     const long n_vars = eqns->n_vars;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     const ALIAS(x, eqns->mesh->cell.center);
     const ALIAS(cv, eqns->mesh->cell.volume);
     ALIAS(func, eqns->source.func);
     ALIAS(prepare, eqns->source.prepare);
-    double(*dudt)[n_vars] = (void *)eqns->vars.dudt;
+    double(*dudt)[n_cons] = (void *)eqns->vars.dudt;
 
     if (!func) {
         for (long i = 0; i < n_inner_cells; ++i)
-            for (long v = 0; v < n_vars; ++v) dudt[i][v] = -dudt[i][v] / cv[i];
+            for (long v = 0; v < n_cons; ++v) dudt[i][v] = -dudt[i][v] / cv[i];
     }
     else {
         const double(*u)[n_vars] = (void *)eqns->vars.u;
-        double q[n_vars];
-        memory_setzero(q, n_vars, sizeof(*q));
+        double q[n_cons];
+        memory_setzero(q, n_cons, sizeof(*q));
 
         if (prepare) prepare(eqns);
         for (long i = 0; i < n_inner_cells; ++i) {
             func(q, u[i], x[i], time);
-            for (long v = 0; v < n_vars; ++v) dudt[i][v] = -dudt[i][v] / cv[i] + q[v];
+            for (long v = 0; v < n_cons; ++v) dudt[i][v] = -dudt[i][v] / cv[i] + q[v];
         }
     }
 }

@@ -24,10 +24,10 @@ void simulation_run(Simulation *sim)
     mesh_write(sim->eqns->mesh, sim->prefix);
     write(sim, &output_time, &output_iter);
 
-    const long n_vars = sim->eqns->n_vars;
+    const long n_cons = sim->eqns->n_cons;
     const long a_var = sim->abort_variable;
     const double a_res = sim->abort_residual;
-    double residual[n_vars];
+    double residual[n_cons];
     int converged = 0;
 
     if (teal.rank == 0) print_header();
@@ -45,7 +45,7 @@ void simulation_run(Simulation *sim)
         sim->iter += 1;
 
         equations_residual(sim->eqns, residual);
-        const double max_residual = (a_var < 0 ? array_max(residual, n_vars) : residual[a_var]);
+        const double max_residual = (a_var < 0 ? array_max(residual, n_cons) : residual[a_var]);
         converged = (max_residual < a_res);
 
         if (sim->time >= min(sim->max_time, output_time) ||

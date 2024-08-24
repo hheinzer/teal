@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     mesh_print(&mesh);
 
     Equations eqns = navierstokes_create(&mesh, 2);
-    equations_create_exact(&eqns, exact, 5);
+    equations_create_exact(&eqns, exact);
     equations_set_scalar(&eqns, GAMMA, gamma);
     equations_set_scalar(&eqns, PRANDTL, prandtl);
     equations_set_scalar(&eqns, MU, mu);

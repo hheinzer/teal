@@ -1,8 +1,8 @@
 SetFactory("OpenCASCADE");
-nx = 200;
-ny = 160;
-nz = 1; // 80
-bump = 0.01;
+nx = 300;
+ny = 240;
+nz = 1;
+bump = 0.03;
 
 X = {0, 9, 14, 20, 30, 40, 55};
 a = {28, 25.07355893131, 2.579601052357e1, 4.046435022819e1, 1.792461334664e1, 5.639011190988e1};
@@ -57,6 +57,5 @@ Physical Volume("domain", 34) = {1, 2, 3};
 Transfinite Curve {10, 8, 6, 4} = (ny + 1) Using Bump bump;
 Transfinite Curve {1, 3, 5, 9} = ((54 / 28) * (nx + 1) / 9 + 1) Using Progression 1;
 Transfinite Curve {2, 7} = ((9 - 2 * 54 / 28) * (nx + 1) / 9 + 1) Using Progression 1;
-
 Transfinite Surface {1, 2, 3};
 Recombine Surface {1, 2, 3};

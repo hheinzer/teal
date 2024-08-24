@@ -54,7 +54,7 @@ typedef double Limiter(const double (*dx)[N_DIMS], const double *dudx, double u,
 typedef void Prepare(const Equations *eqns);
 
 struct Equations {
-    long n_vars, n_scalars, n_user;
+    long n_cons, n_vars, n_scalars, n_user;
     long space_order;
     char name[NAMELEN];
     const Mesh *mesh;
@@ -124,9 +124,9 @@ void equations_free(Equations *eqns);
  * computed according to 'func'. */
 void equations_create_user(Equations *eqns, const char **name, Function *func, long n_user);
 
-/* Create 'n_user' exact user variables for 'eqns'. The names are taken from the solution variables
- * prefixed with "exact". The variables are computed according to 'func'. */
-void equations_create_exact(Equations *eqns, Function *func, long n_user);
+/* Create exact user variables for 'eqns'. The names are taken from the solution variables prefixed
+ * with "exact". The variables are computed according to 'func'. */
+void equations_create_exact(Equations *eqns, Function *func);
 
 /* Set the 'scalar' of 'eqns' to 'value'. */
 void equations_set_scalar(Equations *eqns, long scalar, double value);

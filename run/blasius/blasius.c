@@ -34,8 +34,10 @@ int main(int argc, char **argv)
     equations_print(&eqns);
 
     Simulation sim = simulation_create(&eqns, argv[0]);
-    simulation_set_output_iter(&sim, 10000);
-    simulation_set_abort(&sim, D, 1e-5);
+    simulation_set_implicit(&sim, 1000, 20, 0.1, 0.9);
+    simulation_set_cfl(&sim, 100);
+    simulation_set_output_iter(&sim, 10);
+    simulation_set_abort(&sim, DU, 1e-5);
     simulation_print(&sim);
     simulation_run(&sim);
 
