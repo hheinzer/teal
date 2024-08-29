@@ -1,6 +1,9 @@
 obj
 bin
 
+docs/build
+docs/doxygen
+
 *.msh
 *.hdf
 

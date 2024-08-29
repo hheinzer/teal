@@ -2,4 +2,4 @@
 
 #include "equations.h"
 
-ApplyBC adiabatic_wall;
+SelectApplyBC navierstokes_bc;

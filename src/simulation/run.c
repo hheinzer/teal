@@ -1,15 +1,20 @@
+#include <assert.h>
+#include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
 
-#include "core/array.h"
-#include "core/utils.h"
 #include "simulation.h"
-#include "teal.h"
+#include "teal/array.h"
+#include "teal/option.h"
+#include "teal/print.h"
+#include "teal/sync.h"
+#include "teal/utils.h"
 
 static volatile sig_atomic_t m_terminate = 0;
 
-static void terminate(int signum);
+static void terminate(int);
 
 static void print_header(void);
 
@@ -25,12 +30,12 @@ void simulation_run(Simulation *sim)
     write(sim, &output_time, &output_iter);
 
     const long n_cons = sim->eqns->n_cons;
-    const long a_var = sim->abort_variable;
-    const double a_res = sim->abort_residual;
+    const long abort = sim->abort_variable;
+    const double abort_residual = sim->abort_residual;
     double residual[n_cons];
     int converged = 0;
 
-    if (teal.rank == 0) print_header();
+    if (sync.rank == 0) print_header();
 
     signal(SIGINT, terminate);
     signal(SIGTERM, terminate);
@@ -40,19 +45,20 @@ void simulation_run(Simulation *sim)
 
     while (sim->time < sim->max_time && sim->iter < sim->max_iter && !converged && !m_terminate) {
         const double max_dt = min(sim->max_time, output_time) - sim->time;
-        const double dt = sim->advance.func(sim, max_dt);
-        ensure(isfinite(dt));
+        const double dt = sim->advance.method(sim, max_dt);
+        assert(isfinite(dt));
         sim->iter += 1;
 
         equations_residual(sim->eqns, residual);
-        const double max_residual = (a_var < 0 ? array_max(residual, n_cons) : residual[a_var]);
-        converged = (max_residual < a_res);
+        for (long i = 0; i < n_cons; ++i) assert(isfinite(residual[i]));
+        const double max_residual = (abort < 0 ? array_max(residual, n_cons) : residual[abort]);
+        converged = (max_residual < abort_residual);
 
         if (sim->time >= min(sim->max_time, output_time) ||
             sim->iter >= min(sim->max_iter, output_iter) || converged || m_terminate) {
             const double timer_now = MPI_Wtime();
             write(sim, &output_time, &output_iter);
-            if (teal.rank == 0) print(sim, dt, max_residual, timer_now - timer_last);
+            if (sync.rank == 0) print(sim, dt, max_residual, timer_now - timer_last);
             timer_last = timer_now;
         }
     }
@@ -62,8 +68,11 @@ void simulation_run(Simulation *sim)
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
 
-    if (teal.rank == 0 && !teal.quiet)
-        printf(" | " KEYFMT ": %g\n", "computation time", timer_stop - timer_start);
+    if (sync.rank == 0 && !option.quiet) {
+        print_key("computation time", "%g", timer_stop - timer_start);
+        if (sim->iter_newton) print_key("Newton iterations", "%ld", sim->iter_newton);
+        if (sim->iter_krylov) print_key("Krylov iterations", "%ld", sim->iter_krylov);
+    }
 }
 
 static void terminate(int)
@@ -73,20 +82,20 @@ static void terminate(int)
 
 static void print_header(void)
 {
-    if (teal.quiet) return;
+    if (option.quiet) return;
     printf(" |  %13s  %13s  %13s  %13s  %13s\n", "iter", "time", "dt", "residual", "wtime");
 }
 
 static void print(const Simulation *sim, double dt, double residual, double wtime)
 {
-    if (teal.quiet) return;
+    if (option.quiet) return;
     printf(" |  %13ld  %13g  %13g  %13g  %13g\n", sim->iter, sim->time, dt, residual, wtime);
 }
 
 static void write(Simulation *sim, double *output_time, long *output_iter)
 {
-    equations_write(sim->eqns, sim->prefix, sim->output_count, sim->time, sim->iter);
+    equations_write(sim->eqns, sim->prefix, sim->output_count, sim->time);
     sim->output_count += 1;
-    *output_time = max(*output_time, sim->time + sim->output_time);
-    *output_iter = max(*output_iter, sim->iter + sim->output_iter);
+    if (sim->output_time < DBL_MAX) *output_time = sim->time + sim->output_time;
+    if (sim->output_iter < LONG_MAX) *output_iter = sim->iter + sim->output_iter;
 }

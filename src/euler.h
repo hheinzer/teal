@@ -2,17 +2,15 @@
 
 #include "equations.h"
 #include "mesh.h"
+#include "simulation.h"
 
-#ifndef VARIABLE
-#define VARIABLE
 enum Conserved { D, DU, DV, DW, DE, N_CONS };
 enum Primitive { U = N_CONS, V, W, P, N_VARS };
-#endif
-
-#ifndef SCALAR
-#define SCALAR
 enum Scalar { GAMMA, N_SCALARS };
-#endif
 
-/* Create Euler equation system on 'mesh' using a 'space_order' discretization. */
-Equations euler_create(const Mesh *mesh, long space_order);
+Equations *euler_create(const Mesh *mesh);
+
+void euler_riemann(double *d, double *u, double *p, double dl, double ul, double pl, double dr,
+                   double ur, double pr, double s, double gamma);
+
+void euler_polar(const Simulation *sim, const char *airfoil, const double *uref, double lref);

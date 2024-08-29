@@ -1,14 +1,26 @@
 #include "flux.h"
 
-#include "core/utils.h"
-#include "navierstokes.h"
+#include <stdlib.h>
+#include <string.h>
 
-void central(const Equations *eqns, const double *n, const double *um,
-             const double (*dudxm)[N_DIMS], double *f)
+#include "navierstokes.h"
+#include "teal/utils.h"
+
+static ViscFlux central;
+
+ViscFlux *navierstokes_visc_flux(const char *name)
 {
+    if (!strcmp(name, "central")) return central;
+    abort();
+}
+
+static void central(const Equations *eqns, const Matrix3d b, const double *um,
+                    const Vector3d *dudxm, double *f)
+{
+    const double *n = b[X];
     const double gamma = eqns->scalar.value[GAMMA];
-    const double prandtl = eqns->scalar.value[PRANDTL];
     const double mu = eqns->scalar.value[MU];
+    const double prandtl = eqns->scalar.value[PRANDTL];
 
     const double divU = dudxm[U][X] + dudxm[V][Y] + dudxm[W][Z];
     const double tauXX = 2 * mu * (dudxm[U][X] - divU / 3);
@@ -27,6 +39,7 @@ void central(const Equations *eqns, const double *n, const double *um,
     const double thetaY = um[U] * tauXY + um[V] * tauYY + um[W] * tauYZ - qY;
     const double thetaZ = um[U] * tauXZ + um[V] * tauYZ + um[W] * tauZZ - qZ;
 
+    f[D] = 0;
     f[DU] = n[X] * tauXX + n[Y] * tauXY + n[Z] * tauXZ;
     f[DV] = n[X] * tauXY + n[Y] * tauYY + n[Z] * tauYZ;
     f[DW] = n[X] * tauXZ + n[Y] * tauYZ + n[Z] * tauZZ;

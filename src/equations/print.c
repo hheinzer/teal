@@ -1,71 +1,42 @@
+#include "teal/print.h"
+
 #include <stdio.h>
 
-#include "core/sync.h"
-#include "core/utils.h"
 #include "equations.h"
-#include "teal.h"
-
-static double compute_size(const Equations *eqns);
+#include "teal/memory.h"
+#include "teal/option.h"
+#include "teal/sync.h"
+#include "teal/utils.h"
 
 void equations_print(const Equations *eqns)
 {
-    if (teal.quiet) return;
+    if (option.quiet) return;
 
     const long n_entities = eqns->mesh->n_entities;
-    const ALIAS(entity, eqns->mesh->entity.name);
-    const ALIAS(j_cell, eqns->mesh->entity.j_cell);
+    const alias(entity, eqns->mesh->entity.name);
+    const alias(j_cell, eqns->mesh->entity.j_cell);
     long n_entity_cells[n_entities];
     for (long e = 0; e < n_entities; ++e) n_entity_cells[e] = sync_sum(j_cell[e + 1] - j_cell[e]);
 
-    double size = sync_sum(compute_size(eqns));
-    const char mod = sizefmt(&size);
+    const double size = sync_sum(memory_sum_get());
 
-    if (teal.rank == 0) {
+    if (sync.rank == 0) {
         printf("%s equations summary:\n", eqns->name);
-        printf(" | " KEYFMT ": %ld\n", "space order", eqns->space_order);
+
         for (long s = 0; s < eqns->n_scalars; ++s)
-            printf(" | " KEYFMT ": %g\n", eqns->scalar.name[s], eqns->scalar.value[s]);
-        printf(" | " KEYFMT ": %s\n", "convective flux function", eqns->flux.name_conv);
-        if (*eqns->limiter.name)
-            printf(" | " KEYFMT ": %s (k = %g)\n", "limiter", eqns->limiter.name, eqns->limiter.k);
+            print_key(eqns->scalar.name[s], "%g", eqns->scalar.value[s]);
+
+        if (eqns->conv.flux) print_key("convective flux function", "%s", eqns->conv.name);
+        if (eqns->visc.flux) print_key("viscous flux function", "%s", eqns->visc.name);
+
+        print_key("space order", "%ld", eqns->space_order);
+        print_key("limiter", "%s (k = %g)", eqns->limiter.name, eqns->limiter.k);
+
         for (long e = 0; e < n_entities; ++e)
             if (*eqns->bc.name[e])
-                printf(" | " KEYFMT ": %s(%ld) -> %s\n", "boundary condition", entity[e],
-                       n_entity_cells[e], eqns->bc.name[e]);
-        printf(" | " KEYFMT ": %g %cB\n", "memory size", size, mod);
+                print_key("boundary condition", "%s(%ld) -> %s", entity[e], n_entity_cells[e],
+                          eqns->bc.name[e]);
+
+        print_size(size);
     }
-}
-
-static double compute_size(const Equations *eqns)
-{
-    double size = sizeof(*eqns);
-
-    const long n_cells = eqns->mesh->n_cells;
-    const long n_inner_cells = eqns->mesh->n_inner_cells;
-    size += eqns->n_vars * sizeof(*eqns->vars.name);
-    size += n_cells * eqns->n_vars * sizeof(*eqns->vars.u);
-    if (eqns->space_order == 2) size += n_cells * eqns->n_vars * N_DIMS * sizeof(*eqns->vars.dudx);
-    size += n_inner_cells * eqns->n_cons * sizeof(*eqns->vars.dudt);
-    size += eqns->n_vars * sizeof(*eqns->vars.dim);
-
-    size += eqns->n_scalars * sizeof(*eqns->scalar.name);
-    size += eqns->n_scalars * sizeof(*eqns->scalar.value);
-
-    if (eqns->limiter.func) size += n_inner_cells * sizeof(*eqns->limiter.eps2);
-
-    size += eqns->n_user * sizeof(*eqns->user.name);
-    size += eqns->n_user * sizeof(*eqns->user.dim);
-
-    const long n_entities = eqns->mesh->n_entities;
-    size += n_entities * sizeof(*eqns->bc.name);
-    size += n_entities * sizeof(*eqns->bc.state);
-    size += n_entities * sizeof(*eqns->bc.apply);
-    size += n_entities * sizeof(*eqns->bc.func);
-
-    const long n_send = eqns->mesh->sync.i_send[teal.size];
-    size += n_send * eqns->n_vars * N_DIMS * sizeof(*eqns->sync.buf);
-    size += teal.size * sizeof(*eqns->sync.recv);  // NOLINT
-    size += teal.size * sizeof(*eqns->sync.send);  // NOLINT
-
-    return size;
 }

@@ -1,82 +1,83 @@
 #include "partition.h"
 
+#include <assert.h>
 #include <metis.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/array.h"
-#include "core/dict.h"
-#include "core/memory.h"
-#include "core/utils.h"
 #include "reorder.h"
-#include "sendrecv.h"
-#include "teal.h"
+#include "sync.h"
+#include "teal/array.h"
+#include "teal/dict.h"
+#include "teal/memory.h"
+#include "teal/sync.h"
+#include "teal/utils.h"
 
 static void compute_cell_partition(Mesh *mesh, long *cell_part);
 
 static void compute_node_partition(const Mesh *mesh, const long *cell_part, long *node_part);
 
-static void compute_cell_map(const Mesh *mesh, const long *cell_part, long (*cell_map)[2],
-                             Mesh *part, long rank);
+static void compute_cell_map(const Mesh *mesh, const long *cell_part, Vector2l *cell_map,
+                             Mesh *part, int rank);
 
-static void compute_node_map(const Mesh *mesh, const long *node_part, const long (*cell_map)[2],
-                             long (*node_map)[2], Mesh *part, long rank);
+static void compute_node_map(const Mesh *mesh, const long *node_part, const Vector2l *cell_map,
+                             Vector2l *node_map, Mesh *part, int rank);
 
-static void compute_node_idx(const Mesh *mesh, const long *node_part, const long (*node_map)[2],
+static void compute_node_idx(const Mesh *mesh, const long *node_part, const Vector2l *node_map,
                              Mesh *part);
 
-static void partition_nodes(const Mesh *mesh, const long (*node_map)[2], Mesh *part);
+static void partition_nodes(const Mesh *mesh, const Vector2l *node_map, Mesh *part);
 
-static void partition_cells(const Mesh *mesh, const long (*node_map)[2], const long (*cell_map)[2],
+static void partition_cells(const Mesh *mesh, const Vector2l *node_map, const Vector2l *cell_map,
                             Mesh *part);
 
-static void partition_entities(const Mesh *mesh, const long *cell_part, Mesh *part, long rank);
+static void partition_entities(const Mesh *mesh, const long *cell_part, Mesh *part, int rank);
 
-static void compute_sync(Mesh *part, const long (*cell_map)[2]);
+static void compute_sync(Mesh *part, const Vector2l *cell_map);
 
 static int mapcmp(const void *a, const void *b);
 
-void partition(Mesh *mesh)
+void partition(Mesh **mesh)
 {
-    if (teal.rank == 0) {
-        if (teal.size > mesh->n_inner_cells)
-            error("number of ranks '%d' cannot be larger than number of inner cells '%ld'",
-                  teal.size, mesh->n_inner_cells);
+    if (sync.rank == 0) {
+        assert(sync.size <= (*mesh)->n_inner_cells);
 
-        smart long *cell_part = memory_calloc(mesh->n_cells, sizeof(*cell_part));
-        smart long *node_part = memory_calloc(mesh->n_nodes, sizeof(*node_part));
-        compute_cell_partition(mesh, cell_part);
-        compute_node_partition(mesh, cell_part, node_part);
+        smart long *cell_part = memory_calloc((*mesh)->n_cells, sizeof(*cell_part));
+        smart long *node_part = memory_calloc((*mesh)->n_nodes, sizeof(*node_part));
+        compute_cell_partition(*mesh, cell_part);
+        compute_node_partition(*mesh, cell_part, node_part);
 
-        Mesh part = {0};
-        for (long rank = teal.size - 1; rank >= 0; --rank) {
-            mesh_free(&part);
+        Mesh *part = memory_calloc(1, sizeof(*part));
+        for (int rank = sync.size - 1; rank >= 0; --rank) {
+            smart Vector2l *cell_map = memory_calloc((*mesh)->n_cells, sizeof(*cell_map));
+            smart Vector2l *node_map = memory_calloc((*mesh)->n_nodes, sizeof(*node_map));
+            compute_cell_map(*mesh, cell_part, cell_map, part, rank);
+            compute_node_map(*mesh, node_part, cell_map, node_map, part, rank);
+            compute_node_idx(*mesh, node_part, node_map, part);
 
-            smart long(*cell_map)[2] = memory_calloc(mesh->n_cells, sizeof(*cell_map));
-            smart long(*node_map)[2] = memory_calloc(mesh->n_nodes, sizeof(*node_map));
-            compute_cell_map(mesh, cell_part, cell_map, &part, rank);
-            compute_node_map(mesh, node_part, cell_map, node_map, &part, rank);
-            compute_node_idx(mesh, node_part, node_map, &part);
+            partition_nodes(*mesh, node_map, part);
+            partition_cells(*mesh, node_map, cell_map, part);
+            partition_entities(*mesh, cell_part, part, rank);
+            compute_sync(part, cell_map);
 
-            partition_nodes(mesh, node_map, &part);
-            partition_cells(mesh, node_map, cell_map, &part);
-            partition_entities(mesh, cell_part, &part, rank);
-            compute_sync(&part, cell_map);
-
-            if (rank > 0) send_mesh(&part, rank);
+            if (rank > 0) {
+                sync_mesh(part, rank);
+                mesh_free(&part);
+                part = memory_calloc(1, sizeof(*part));
+            }
         }
 
         mesh_free(mesh);
         *mesh = part;
     }
     else
-        recv_mesh(mesh, 0);
+        sync_mesh(*mesh, 0);
 }
 
 static void compute_cell_partition(Mesh *mesh, long *cell_part)
 {
-    const ALIAS(i_cell, mesh->cell.i_cell);
-    const ALIAS(cell, mesh->cell.cell);
+    const alias(i_cell, mesh->cell.i_cell);
+    const alias(cell, mesh->cell.cell);
     idx_t nvtxs = mesh->n_inner_cells;
     idx_t ncon = 1;
     smart idx_t *xadj = memory_calloc(nvtxs + 1, sizeof(*xadj));
@@ -88,7 +89,7 @@ static void compute_cell_partition(Mesh *mesh, long *cell_part)
             adjncy[xadj[j + 1]++] = cell[i];
         }
     }
-    idx_t nparts = teal.size;
+    idx_t nparts = sync.size;
     idx_t edgecut;
     if (nparts > 8)
         METIS_PartGraphKway(&nvtxs, &ncon, xadj, adjncy, 0, 0, 0, &nparts, 0, 0, 0, &edgecut,
@@ -97,9 +98,8 @@ static void compute_cell_partition(Mesh *mesh, long *cell_part)
         METIS_PartGraphRecursive(&nvtxs, &ncon, xadj, adjncy, 0, 0, 0, &nparts, 0, 0, 0, &edgecut,
                                  cell_part);
 
-    for (long rank = 0; rank < teal.size; ++rank)
-        if (!array_contains(cell_part, mesh->n_inner_cells, rank))
-            error("mesh contains no cells for rank '%ld'", rank);
+    for (int rank = 0; rank < sync.size; ++rank)
+        assert(array_contains(cell_part, mesh->n_inner_cells, rank));
 
     for (long j = mesh->n_inner_cells; j < mesh->n_cells; ++j)
         cell_part[j] = cell_part[cell[i_cell[j]]];  // assign ghost cells to partition of inner cell
@@ -118,16 +118,16 @@ static void compute_cell_partition(Mesh *mesh, long *cell_part)
 
 static void compute_node_partition(const Mesh *mesh, const long *cell_part, long *node_part)
 {
-    const ALIAS(i_node, mesh->cell.i_node);
-    const ALIAS(node, mesh->cell.node);
-    smart long(*count)[teal.size] = memory_calloc(mesh->n_nodes, sizeof(*count));
+    const alias(i_node, mesh->cell.i_node);
+    const alias(node, mesh->cell.node);
+    smart long(*count)[sync.size] = memory_calloc(mesh->n_nodes, sizeof(*count));
     for (long j = 0; j < mesh->n_inner_cells; ++j)
         for (long i = i_node[j]; i < i_node[j + 1]; ++i) count[node[i]][cell_part[j]] += 1;
-    for (long i = 0; i < mesh->n_nodes; ++i) node_part[i] = array_argmax(count[i], teal.size);
+    for (long i = 0; i < mesh->n_nodes; ++i) node_part[i] = array_argmax(count[i], sync.size);
 }
 
-static void compute_cell_map(const Mesh *mesh, const long *cell_part, long (*cell_map)[2],
-                             Mesh *part, long rank)
+static void compute_cell_map(const Mesh *mesh, const long *cell_part, Vector2l *cell_map,
+                             Mesh *part, int rank)
 {
     long n = 0;
     for (long j = 0; j < mesh->n_inner_cells; ++j) {
@@ -148,8 +148,8 @@ static void compute_cell_map(const Mesh *mesh, const long *cell_part, long (*cel
     }
     part->n_ghost_cells = n - part->n_inner_cells;
 
-    const ALIAS(i_cell, mesh->cell.i_cell);
-    const ALIAS(cell, mesh->cell.cell);
+    const alias(i_cell, mesh->cell.i_cell);
+    const alias(cell, mesh->cell.cell);
     smart long *seen = memory_calloc(mesh->n_inner_cells, sizeof(*seen));
     for (long jl = 0; jl < part->n_inner_cells; ++jl) {
         const long jg = cell_map[jl][0];
@@ -167,8 +167,8 @@ static void compute_cell_map(const Mesh *mesh, const long *cell_part, long (*cel
     qsort(cell_map[n - part->n_sync_cells], part->n_sync_cells, sizeof(*cell_map), mapcmp);
 }
 
-static void compute_node_map(const Mesh *mesh, const long *node_part, const long (*cell_map)[2],
-                             long (*node_map)[2], Mesh *part, long rank)
+static void compute_node_map(const Mesh *mesh, const long *node_part, const Vector2l *cell_map,
+                             Vector2l *node_map, Mesh *part, int rank)
 {
     long n = 0;
     smart long *seen = memory_calloc(mesh->n_nodes, sizeof(*seen));
@@ -182,8 +182,8 @@ static void compute_node_map(const Mesh *mesh, const long *node_part, const long
     }
     part->n_inner_nodes = n;
 
-    const ALIAS(i_node, mesh->cell.i_node);
-    const ALIAS(node, mesh->cell.node);
+    const alias(i_node, mesh->cell.i_node);
+    const alias(node, mesh->cell.node);
     for (long jl = 0; jl < mesh->n_inner_cells; ++jl) {
         const long jg = cell_map[jl][0];
         for (long i = i_node[jg]; i < i_node[jg + 1]; ++i) {
@@ -198,26 +198,26 @@ static void compute_node_map(const Mesh *mesh, const long *node_part, const long
     qsort(node_map[n - part->n_sync_nodes], part->n_sync_nodes, sizeof(*node_map), mapcmp);
 }
 
-static void compute_node_idx(const Mesh *mesh, const long *node_part, const long (*node_map)[2],
+static void compute_node_idx(const Mesh *mesh, const long *node_part, const Vector2l *node_map,
                              Mesh *part)
 {
-    long *idx = memory_calloc(part->n_nodes, sizeof(*idx));
-    smart long *count = memory_calloc(teal.size, sizeof(*count));
+    long *global = memory_calloc(part->n_nodes, sizeof(*global));
+    smart long *count = memory_calloc(sync.size, sizeof(*count));
     smart long *g2l = memory_calloc(mesh->n_nodes, sizeof(*g2l));
-    smart long *offset = memory_calloc(teal.size, sizeof(*offset));
+    smart long *offset = memory_calloc(sync.size, sizeof(*offset));
     for (long i = 0; i < mesh->n_nodes; ++i) g2l[i] = count[node_part[i]]++;
-    for (long i = 0; i < teal.size - 1; ++i) offset[i + 1] = offset[i] + count[i];
+    for (long i = 0; i < sync.size - 1; ++i) offset[i + 1] = offset[i] + count[i];
     for (long il = 0; il < part->n_nodes; ++il) {
         const long ig = node_map[il][0];
         const long rank = node_map[il][1];
-        idx[il] = g2l[ig] + offset[rank];
+        global[il] = g2l[ig] + offset[rank];
     }
-    part->node.idx = idx;
+    part->node.global = global;
 }
 
-static void partition_nodes(const Mesh *mesh, const long (*node_map)[2], Mesh *part)
+static void partition_nodes(const Mesh *mesh, const Vector2l *node_map, Mesh *part)
 {
-    double(*coord)[N_DIMS] = memory_calloc(part->n_nodes, sizeof(*coord));
+    Vector3d *coord = memory_calloc(part->n_nodes, sizeof(*coord));
     for (long jl = 0; jl < part->n_nodes; ++jl) {
         const long jg = node_map[jl][0];
         for (long d = 0; d < N_DIMS; ++d) coord[jl][d] = mesh->node.coord[jg][d];
@@ -225,7 +225,7 @@ static void partition_nodes(const Mesh *mesh, const long (*node_map)[2], Mesh *p
     part->node.coord = coord;
 }
 
-static void partition_cells(const Mesh *mesh, const long (*node_map)[2], const long (*cell_map)[2],
+static void partition_cells(const Mesh *mesh, const Vector2l *node_map, const Vector2l *cell_map,
                             Mesh *part)
 {
     smart long *node_idx = memory_calloc(mesh->n_nodes, sizeof(*node_idx));
@@ -263,11 +263,11 @@ static void partition_cells(const Mesh *mesh, const long (*node_map)[2], const l
     part->cell.cell = memory_realloc(cell, i_cell[part->n_cells], sizeof(*cell));
 }
 
-static void partition_entities(const Mesh *mesh, const long *cell_part, Mesh *part, long rank)
+static void partition_entities(const Mesh *mesh, const long *cell_part, Mesh *part, int rank)
 {
-    char(*name)[NAMELEN] = memory_calloc(mesh->n_entities, sizeof(*name));
+    String *name = memory_calloc(mesh->n_entities, sizeof(*name));
     long *j_cell = memory_calloc(mesh->n_entities + 1, sizeof(*j_cell));
-    double(*offset)[N_DIMS] = memory_calloc(mesh->n_entities, sizeof(*offset));
+    Vector3d *offset = memory_calloc(mesh->n_entities, sizeof(*offset));
     for (long e = 0; e < mesh->n_entities; ++e) {
         strcpy(name[e], mesh->entity.name[e]);
 
@@ -283,30 +283,30 @@ static void partition_entities(const Mesh *mesh, const long *cell_part, Mesh *pa
     part->entity.offset = offset;
 }
 
-static void compute_sync(Mesh *part, const long (*cell_map)[2])
+static void compute_sync(Mesh *part, const Vector2l *cell_map)
 {
-    long *j_recv = memory_calloc(teal.size + 1, sizeof(*j_recv));
-    defer(dict_free) Dict sync = dict_create(teal.size * part->n_sync_cells);
+    long *j_recv = memory_calloc(sync.size + 1, sizeof(*j_recv));
+    defer(dict_free) Dict *dict = dict_create(sync.size * part->n_sync_cells);
     for (long j = part->n_inner_cells + part->n_ghost_cells; j < part->n_cells; ++j) {
-        const long rank = cell_map[j][1];
+        const int rank = cell_map[j][1];
         j_recv[rank + 1] += 1;
         for (long i = part->cell.i_cell[j]; i < part->cell.i_cell[j + 1]; ++i)
-            dict_insert(&sync, (long[]){rank, part->cell.cell[i]}, 2, 0, 0);
+            dict_insert(dict, (Vector2l){rank, part->cell.cell[i]}, 0, 2, 0);
     }
     j_recv[0] = part->n_inner_cells + part->n_ghost_cells;
-    for (long i = 0; i < teal.size; ++i) j_recv[i + 1] += j_recv[i];
+    for (int rank = 0; rank < sync.size; ++rank) j_recv[rank + 1] += j_recv[rank];
     part->sync.j_recv = j_recv;
 
-    long *i_send = memory_calloc(teal.size + 1, sizeof(*i_send));
-    long *send = memory_calloc(sync.n_items, sizeof(*send));
-    smart DictItem *item = dict_serialize_by_key(&sync);
-    for (long i = 0; i < sync.n_items; ++i) {
-        const long rank = item[i].key[0];
+    long *i_send = memory_calloc(sync.size + 1, sizeof(*i_send));
+    long *send = memory_calloc(dict->n_items, sizeof(*send));
+    smart DictItem *item = dict_serialize_by_key(dict);
+    for (long i = 0; i < dict->n_items; ++i) {
+        const int rank = item[i].key[0];
         const long cell = item[i].key[1];
         i_send[rank + 1] += 1;
         send[i] = cell;
     }
-    for (long i = 0; i < teal.size; ++i) i_send[i + 1] += i_send[i];
+    for (int rank = 0; rank < sync.size; ++rank) i_send[rank + 1] += i_send[rank];
     part->sync.i_send = i_send;
     part->sync.send = send;
 }

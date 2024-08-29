@@ -1,9 +1,11 @@
-#include "riemann.h"
-
+#include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
-#include "core/utils.h"
+#include "euler.h"
+#include "teal/utils.h"
 
+#define TOLPRE 1e-6
 #define NRITER 20
 #define QUSER 2
 
@@ -20,8 +22,8 @@ static void sample(double *d, double *u, double *p, double dl, double ul, double
                    double ur, double pr, double cl, double cr, double pm, double um, double s,
                    const double *g);
 
-void riemann(double *d, double *u, double *p, double dl, double ul, double pl, double dr, double ur,
-             double pr, double s, double gamma)
+void euler_riemann(double *d, double *u, double *p, double dl, double ul, double pl, double dr,
+                   double ur, double pr, double s, double gamma)
 {
     // Toro 1999, sec. 4.9
     const double g[9] = {
@@ -37,7 +39,7 @@ void riemann(double *d, double *u, double *p, double dl, double ul, double pl, d
     };
     const double cl = sqrt(gamma * pl / dl);
     const double cr = sqrt(gamma * pr / dr);
-    ensure(g[4] * (cl + cr) > (ur - ul));
+    assert(g[4] * (cl + cr) > (ur - ul));
 
     double pm, um;
     starpu(&pm, &um, dl, ul, pl, dr, ur, pr, cl, cr, g);
@@ -50,16 +52,17 @@ static void starpu(double *pm, double *um, double dl, double ul, double pl, doub
     const double udiff = ur - ul;
     double pold = guessp(dl, ul, pl, dr, ur, pr, cl, cr, g);
     double fl, fld, fr, frd;
-    long iter = 0;
-    for (; iter < NRITER; ++iter) {
+    for (long iter = 0; iter < NRITER; ++iter) {
         prefun(&fl, &fld, pold, dl, pl, cl, g);
         prefun(&fr, &frd, pold, dr, pr, cr, g);
         *pm = pold - (fl + fr + udiff) / (fld + frd);
-        if (2 * fabs((*pm - pold) / (*pm + pold)) < EPS) break;
-        pold = *pm = max(EPS, *pm);
+        if (2 * fabs((*pm - pold) / (*pm + pold)) <= TOLPRE) {
+            *um = 0.5 * (ul + ur + fr - fl);
+            return;
+        }
+        pold = *pm = max(TOLPRE, *pm);
     }
-    ensure(iter < NRITER);
-    *um = 0.5 * (ul + ur + fr - fl);
+    abort();
 }
 
 static double guessp(double dl, double ul, double pl, double dr, double ur, double pr, double cl,

@@ -2,4 +2,4 @@
 
 #include "equations.h"
 
-ConvFlux godunov, roe, hll, hllc, hlle, lxf;
+SelectConvFlux euler_conv_flux;

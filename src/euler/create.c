@@ -1,81 +1,33 @@
-#include <string.h>
-
 #include "boundary.h"
-#include "core/memory.h"
-#include "core/utils.h"
 #include "euler.h"
 #include "flux.h"
 #include "timestep.h"
 #include "update.h"
 
-static void create_scalar(Equations *eqns, long scalar, const char *name, double value);
-
-static ConvFlux *select_conv_flux(const char *name);
-
-static ApplyBC *select_bc(const char *name);
-
-Equations euler_create(const Mesh *mesh, long space_order)
+Equations *euler_create(const Mesh *mesh)
 {
-    Equations eqns = {0};
+    Equations *eqns = equations_create(mesh, "Euler");
 
-    eqns.n_cons = N_CONS;
-    eqns.n_vars = N_VARS;
-    eqns.n_scalars = N_SCALARS;
-    strcpy(eqns.name, "Euler");
-    eqns.mesh = mesh;
+    equations_set_timestep(eqns, euler_timestep);
 
-    eqns.vars.name = memory_calloc(N_VARS, sizeof(*eqns.vars.name));
-    strcpy(eqns.vars.name[D], "density");
-    strcpy(eqns.vars.name[DU], "momentum-x");
-    strcpy(eqns.vars.name[DV], "momentum-y");
-    strcpy(eqns.vars.name[DW], "momentum-z");
-    strcpy(eqns.vars.name[DE], "energy");
-    strcpy(eqns.vars.name[U], "velocity-x");
-    strcpy(eqns.vars.name[V], "velocity-y");
-    strcpy(eqns.vars.name[W], "velocity-z");
-    strcpy(eqns.vars.name[P], "pressure");
+    equations_set_update(eqns, euler_prim_to_cons, euler_cons_to_prim);
 
-    eqns.scalar.name = memory_calloc(N_SCALARS, sizeof(*eqns.scalar.name));
-    eqns.scalar.value = memory_calloc(N_SCALARS, sizeof(*eqns.scalar.value));
-    create_scalar(&eqns, GAMMA, "heat capacity ratio", 1.4);
+    const String vars[] = {[D] = "density",     [DU] = "momentum-x", [DV] = "momentum-y",
+                           [DW] = "momentum-z", [DE] = "energy",     [U] = "velocity-x",
+                           [V] = "velocity-y",  [W] = "velocity-z",  [P] = "pressure"};
+    equations_create_vars(eqns, vars, N_CONS, N_VARS);
 
-    eqns.flux.select_conv = select_conv_flux;
-    eqns.bc.select = select_bc;
+    const String name[] = {[GAMMA] = "heat capacity ratio"};
+    equations_create_scalar(eqns, name, N_SCALARS);
+    equations_set_scalar(eqns, GAMMA, 1.4);
 
-    eqns.timestep = timestep_conv;
-    equations_set_convective_flux(&eqns, "hllc");
-    eqns.boundary = prim_to_cons;
-    eqns.advance = cons_to_prim;
+    equations_set_select_convective_flux(eqns, euler_conv_flux);
+    equations_set_convective_flux(eqns, "hllc");
 
-    equations_create(&eqns, space_order);
+    equations_set_space_order(eqns, 2);
+    equations_set_limiter(eqns, "minmod", 0);
+
+    equations_set_select_boundary_condition(eqns, euler_bc);
 
     return eqns;
-}
-
-static void create_scalar(Equations *eqns, long scalar, const char *name, double value)
-{
-    strcpy(eqns->scalar.name[scalar], name);
-    eqns->scalar.value[scalar] = value;
-}
-
-static ConvFlux *select_conv_flux(const char *name)
-{
-    if (!strcmp(name, "godunov")) return godunov;
-    if (!strcmp(name, "roe")) return roe;
-    if (!strcmp(name, "hll")) return hll;
-    if (!strcmp(name, "hllc")) return hllc;
-    if (!strcmp(name, "hlle")) return hlle;
-    if (!strcmp(name, "lxf")) return lxf;
-    error("unsupported flux function '%s'", name);
-}
-
-static ApplyBC *select_bc(const char *name)
-{
-    if (!strcmp(name, "symmetry") || !strcmp(name, "slipwall")) return symmetry;
-    if (!strcmp(name, "supersonic inflow")) return supersonic_inflow;
-    if (!strcmp(name, "supersonic outflow")) return supersonic_outflow;
-    if (!strcmp(name, "subsonic inflow")) return subsonic_inflow;
-    if (!strcmp(name, "subsonic outflow")) return subsonic_outflow;
-    if (!strcmp(name, "farfield")) return farfield;
-    error("unsupported boundary condition '%s'", name);
 }

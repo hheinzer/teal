@@ -1,28 +1,43 @@
 #include "flux.h"
 
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "core/utils.h"
 #include "euler.h"
-#include "riemann.h"
 #include "rotate.h"
+#include "teal/utils.h"
 #include "update.h"
+
+static ConvFlux godunov, roe, hll, hllc, hlle, lxf;
 
 static void physical_flux(const double *u, double *f);
 
-void godunov(const Equations *eqns, const double *n, const double *ul, const double *ur, double *f)
+ConvFlux *euler_conv_flux(const char *name)
+{
+    if (!strcmp(name, "godunov")) return godunov;
+    if (!strcmp(name, "roe")) return roe;
+    if (!strcmp(name, "hll")) return hll;
+    if (!strcmp(name, "hllc")) return hllc;
+    if (!strcmp(name, "hlle")) return hlle;
+    if (!strcmp(name, "lxf")) return lxf;
+    abort();
+}
+
+static void godunov(const Equations *eqns, const Matrix3d b, const double *ul, const double *ur,
+                    double *f)
 {
     // rotate global to local
     double lul[N_VARS], lur[N_VARS];
-    global_to_local(n, ul, lul);
-    global_to_local(n, ur, lur);
-    prim_to_cons(eqns, lul);
-    prim_to_cons(eqns, lur);
+    euler_global_to_local(b, ul, lul);
+    euler_global_to_local(b, ur, lur);
+    euler_prim_to_cons(eqns, lul);
+    euler_prim_to_cons(eqns, lur);
 
     // Toro 2009, sec. 6.3
     const double gamma = eqns->scalar.value[GAMMA];
     double u[N_VARS];
-    riemann(&u[D], &u[U], &u[P], lul[D], lul[U], lul[P], lur[D], lur[U], lur[P], 0, gamma);
+    euler_riemann(&u[D], &u[U], &u[P], lul[D], lul[U], lul[P], lur[D], lur[U], lur[P], 0, gamma);
     if (u[U] >= 0) {
         u[V] = lul[V];
         u[W] = lul[W];
@@ -31,22 +46,22 @@ void godunov(const Equations *eqns, const double *n, const double *ul, const dou
         u[V] = lur[V];
         u[W] = lur[W];
     }
-    prim_to_cons(eqns, u);
+    euler_prim_to_cons(eqns, u);
 
     // compute flux
     double lf[N_CONS];
     physical_flux(u, lf);
-    local_to_global(n, lf, f);
+    euler_local_to_global(b, lf, f);
 }
 
-void roe(const Equations *eqns, const double *n, const double *ul, const double *ur, double *f)
+void roe(const Equations *eqns, const Matrix3d b, const double *ul, const double *ur, double *f)
 {
     // rotate global to local
     double lul[N_VARS], lur[N_VARS];
-    global_to_local(n, ul, lul);
-    global_to_local(n, ur, lur);
-    prim_to_cons(eqns, lul);
-    prim_to_cons(eqns, lur);
+    euler_global_to_local(b, ul, lul);
+    euler_global_to_local(b, ur, lur);
+    euler_prim_to_cons(eqns, lul);
+    euler_prim_to_cons(eqns, lur);
 
     // Toro 2009, sec. 11.2.2
     const double gamma = eqns->scalar.value[GAMMA];
@@ -73,10 +88,10 @@ void roe(const Equations *eqns, const double *n, const double *ul, const double 
     const double el[3] = {lul[U] - al, lul[U], lul[U] + al};
     const double er[3] = {lur[U] - ar, lur[U], lur[U] + ar};
     for (long i = 0; i < 3; ++i) {
-        const double delta = max(EPS, max(es[i] - el[i], er[i] - es[i]));
+        const double delta = max(max(es[i] - el[i], er[i] - es[i]), 0);
         if (fabs(es[i]) < delta) {
             es[i] = delta;  // first
-            // es[i] = 0.5 * (SQ(es[i]) / delta + delta);  // second
+            // es[i] = 0.5 * (sq(es[i]) / delta + delta);  // second
         }
         else {
             es[i] = fabs(es[i]);
@@ -120,17 +135,17 @@ void roe(const Equations *eqns, const double *n, const double *ul, const double 
     lf[DV] = 0.5 * (fl[DV] + fr[DV] - df[2]);
     lf[DW] = 0.5 * (fl[DW] + fr[DW] - df[3]);
     lf[DE] = 0.5 * (fl[DE] + fr[DE] - df[4]);
-    local_to_global(n, lf, f);
+    euler_local_to_global(b, lf, f);
 }
 
-void hll(const Equations *eqns, const double *n, const double *ul, const double *ur, double *f)
+void hll(const Equations *eqns, const Matrix3d b, const double *ul, const double *ur, double *f)
 {
     // rotate global to local
     double lul[N_VARS], lur[N_VARS];
-    global_to_local(n, ul, lul);
-    global_to_local(n, ur, lur);
-    prim_to_cons(eqns, lul);
-    prim_to_cons(eqns, lur);
+    euler_global_to_local(b, ul, lul);
+    euler_global_to_local(b, ur, lur);
+    euler_prim_to_cons(eqns, lul);
+    euler_prim_to_cons(eqns, lur);
 
     // Toro 2009, sec. 10.3
     const double gamma = eqns->scalar.value[GAMMA];
@@ -169,17 +184,17 @@ void hll(const Equations *eqns, const double *n, const double *ul, const double 
         lf[DW] = (sr * fl[DW] - sl * fr[DW] + sl * sr * (lur[DW] - lul[DW])) / (sr - sl);
         lf[DE] = (sr * fl[DE] - sl * fr[DE] + sl * sr * (lur[DE] - lul[DE])) / (sr - sl);
     }
-    local_to_global(n, lf, f);
+    euler_local_to_global(b, lf, f);
 }
 
-void hllc(const Equations *eqns, const double *n, const double *ul, const double *ur, double *f)
+void hllc(const Equations *eqns, const Matrix3d b, const double *ul, const double *ur, double *f)
 {
     // rotate global to local
     double lul[N_VARS], lur[N_VARS];
-    global_to_local(n, ul, lul);
-    global_to_local(n, ur, lur);
-    prim_to_cons(eqns, lul);
-    prim_to_cons(eqns, lur);
+    euler_global_to_local(b, ul, lul);
+    euler_global_to_local(b, ur, lur);
+    euler_prim_to_cons(eqns, lul);
+    euler_prim_to_cons(eqns, lur);
 
     // Toro 2009, sec. 10.4.2
     const double gamma = eqns->scalar.value[GAMMA];
@@ -245,17 +260,17 @@ void hllc(const Equations *eqns, const double *n, const double *ul, const double
             lf[DE] += sr * (usr[4] - lur[DE]);
         }
     }
-    local_to_global(n, lf, f);
+    euler_local_to_global(b, lf, f);
 }
 
-void hlle(const Equations *eqns, const double *n, const double *ul, const double *ur, double *f)
+void hlle(const Equations *eqns, const Matrix3d b, const double *ul, const double *ur, double *f)
 {
     // rotate global to local
     double lul[N_VARS], lur[N_VARS];
-    global_to_local(n, ul, lul);
-    global_to_local(n, ur, lur);
-    prim_to_cons(eqns, lul);
-    prim_to_cons(eqns, lur);
+    euler_global_to_local(b, ul, lul);
+    euler_global_to_local(b, ur, lur);
+    euler_prim_to_cons(eqns, lul);
+    euler_prim_to_cons(eqns, lur);
 
     // Einfeldt 1988
     const double gamma = eqns->scalar.value[GAMMA];
@@ -290,17 +305,17 @@ void hlle(const Equations *eqns, const double *n, const double *ul, const double
         lf[DW] = (sr * fl[DW] - sl * fr[DW] + sl * sr * (lur[DW] - lul[DW])) / (sr - sl);
         lf[DE] = (sr * fl[DE] - sl * fr[DE] + sl * sr * (lur[DE] - lul[DE])) / (sr - sl);
     }
-    local_to_global(n, lf, f);
+    euler_local_to_global(b, lf, f);
 }
 
-void lxf(const Equations *eqns, const double *n, const double *ul, const double *ur, double *f)
+void lxf(const Equations *eqns, const Matrix3d b, const double *ul, const double *ur, double *f)
 {
     // rotate global to local
     double lul[N_VARS], lur[N_VARS];
-    global_to_local(n, ul, lul);
-    global_to_local(n, ur, lur);
-    prim_to_cons(eqns, lul);
-    prim_to_cons(eqns, lur);
+    euler_global_to_local(b, ul, lul);
+    euler_global_to_local(b, ur, lur);
+    euler_prim_to_cons(eqns, lul);
+    euler_prim_to_cons(eqns, lur);
 
     // Lax-Friedrichs flux
     const double gamma = eqns->scalar.value[GAMMA];
@@ -317,7 +332,7 @@ void lxf(const Equations *eqns, const double *n, const double *ul, const double 
     lf[DV] = 0.5 * (fl[DV] + fr[DV] - s * (lur[DV] - lul[DV]));
     lf[DW] = 0.5 * (fl[DW] + fr[DW] - s * (lur[DW] - lul[DW]));
     lf[DE] = 0.5 * (fl[DE] + fr[DE] - s * (lur[DE] - lul[DE]));
-    local_to_global(n, lf, f);
+    euler_local_to_global(b, lf, f);
 }
 
 static void physical_flux(const double *u, double *f)

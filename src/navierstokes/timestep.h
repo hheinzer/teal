@@ -2,4 +2,5 @@
 
 #include "equations.h"
 
-TimeStep timestep_visc;
+double navierstokes_timestep(const Equations *eqns, const double *u, const Vector3d projection,
+                             double volume);

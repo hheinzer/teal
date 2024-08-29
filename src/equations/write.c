@@ -1,25 +1,24 @@
-#include <stdio.h>
 #include <string.h>
 
-#include "core/h5io.h"
-#include "core/memory.h"
-#include "core/utils.h"
 #include "equations.h"
-#include "teal.h"
+#include "teal/h5io.h"
+#include "teal/memory.h"
+#include "teal/sync.h"
+#include "teal/utils.h"
 
-void equations_write(const Equations *eqns, const char *prefix, long count, double time, long iter)
+void equations_write(const Equations *eqns, const char *prefix, long count, double time)
 {
     // https://docs.vtk.org/en/latest/design_documents/VTKFileFormats.html#vtkhdf-file-format
-    char fname[128], lname[128];
+    String fname, lname;
     sprintf(fname, "%s_%05ld.hdf", prefix, count);
     const char *slash = strrchr(prefix, '/');
     sprintf(lname, "%s_mesh.hdf", (slash ? slash + 1 : prefix));
 
-    const int root = (teal.rank == 0);
+    const int root = (sync.rank == 0);
     hid_t file = h5_file_create(fname);
     hid_t vtkhdf = h5_group_create("VTKHDF", file);
 
-    const long version[] = {2, 2};
+    const Vector2l version = {2, 2};
     h5_attribute_write("Version", version, 2, vtkhdf);
     h5_attribute_write("Type", "UnstructuredGrid", 0, vtkhdf);
 
@@ -32,8 +31,7 @@ void equations_write(const Equations *eqns, const char *prefix, long count, doub
     h5_link_create("Types", lname, "/VTKHDF/Types", vtkhdf);
 
     hid_t field = h5_group_create("FieldData", vtkhdf);
-    h5_dataset_write("time", &time, H5DIMS(root), field);
-    h5_dataset_write("iter", &iter, H5DIMS(root), field);
+    h5_dataset_write("time", &time, h5_dims(root), field);
     h5_group_close(field);
 
     hid_t cell = h5_group_create("CellData", vtkhdf);
@@ -46,29 +44,31 @@ void equations_write(const Equations *eqns, const char *prefix, long count, doub
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     smart double *buf = memory_calloc(n_inner_cells * N_DIMS, sizeof(*buf));
 
+    h5_dataset_write("timestep", eqns->timestep.value, h5_dims(n_inner_cells), cell);
+
     const long n_vars = eqns->n_vars;
-    const ALIAS(vdim, eqns->vars.dim);
-    const ALIAS(vname, eqns->vars.name);
+    const alias(vdim, eqns->vars.dim);
+    const alias(vname, eqns->vars.name);
     const double(*vars)[n_vars] = (void *)eqns->vars.u;
     for (long n = 0, v = 0; v < n_vars; v += vdim[n], ++n) {
         for (long i = 0; i < n_inner_cells; ++i)
             for (long d = 0; d < vdim[n]; ++d) buf[i * vdim[n] + d] = vars[i][v + d];
-        h5_dataset_write(vname[v], buf, H5DIMS(n_inner_cells, vdim[n]), cell);
+        h5_dataset_write(vname[v], buf, h5_dims(n_inner_cells, vdim[n]), cell);
     }
 
     const long n_user = eqns->n_user;
-    const ALIAS(udim, eqns->user.dim);
-    const ALIAS(uname, eqns->user.name);
-    const ALIAS(x, eqns->mesh->cell.center);
-    ALIAS(func, eqns->user.func);
+    const alias(udim, eqns->user.dim);
+    const alias(uname, eqns->user.name);
+    const alias(x, eqns->mesh->cell.center);
+    alias(compute, eqns->user.compute);
     double user[n_user];
     memory_setzero(user, n_user, sizeof(*user));
     for (long n = 0, v = 0; v < n_user; v += udim[n], ++n) {
         for (long i = 0; i < n_inner_cells; ++i) {
-            func(user, vars[i], x[i], time);
+            compute(user, vars[i], x[i], time);
             for (long d = 0; d < udim[n]; ++d) buf[i * udim[n] + d] = user[v + d];
         }
-        h5_dataset_write(uname[v], buf, H5DIMS(n_inner_cells, udim[n]), cell);
+        h5_dataset_write(uname[v], buf, h5_dims(n_inner_cells, udim[n]), cell);
     }
 
     h5_group_close(cell);

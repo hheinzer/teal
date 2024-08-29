@@ -1,6 +1,6 @@
 SetFactory("OpenCASCADE");
-nx = 300;
-ny = 240;
+nx = 100;
+ny = 80;
 nz = 1;
 bump = 0.03;
 

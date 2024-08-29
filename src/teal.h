@@ -1,17 +1,18 @@
 #pragma once
 
-#include <mpi.h>
+#define PI 3.14159265358979323846
 
-extern struct Teal {
-    MPI_Comm comm;
-    int rank, size;
-    int quiet;
-    const char *restart;
-} teal;
+typedef long Vector2l[2];
+typedef long Vector3l[3];
 
-/* Initialize teal and print startup message. This must be called before any call to the other
- * functions of teal. */
+typedef double Vector3d[3];
+typedef double Vector4d[4];
+typedef double Matrix3d[3][3];
+
+typedef char String[128];
+
 void teal_initialize(int *argc, char ***argv);
 
-/* Finalize teal and print end message. This must be called when you are done using teal. */
+[[gnu::noreturn]] void teal_exit(const char *format, ...);
+
 void teal_finalize(void);

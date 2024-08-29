@@ -1,11 +1,11 @@
 #include "read_gmsh.h"
 
+#include <assert.h>
 #include <gmshc.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "core/memory.h"
-#include "core/utils.h"
+#include "teal/memory.h"
 
 static void create_nodes(Mesh *mesh, long **node_idx);
 
@@ -22,8 +22,7 @@ void read_gmsh(Mesh *mesh, const char *fname)
     gmshInitialize(0, 0, 0, 0, &ierr);
     gmshOpen(fname, &ierr);
 
-    const int n_dims = gmshModelGetDimension(&ierr);
-    if (n_dims != N_DIMS) error("unsupported mesh dimension '%d'", n_dims);
+    assert(gmshModelGetDimension(&ierr) == N_DIMS);
 
     const char *ext = strrchr(fname, '.');
     if (ext && !strcmp(ext, ".geo")) gmshModelMeshGenerate(N_DIMS, &ierr);
@@ -43,13 +42,14 @@ static void create_nodes(Mesh *mesh, long **node_idx)
     size_t *node_tag, n_node_tags;
     double *coord;
     gmshModelMeshGetNodes(&node_tag, &n_node_tags, &coord, 0, 0, 0, N_DIMS, -1, 1, 0, &ierr);
+    assert(n_node_tags > 0);
 
     *node_idx = tag_2_idx(node_tag, n_node_tags);
     gmshFree(node_tag);
 
-    if (n_node_tags == 0) error("mesh contains '%ld' nodes", n_node_tags);
     mesh->n_nodes = n_node_tags;
-    mesh->node.coord = (void *)coord;
+    mesh->node.coord = memory_duplicate(coord, n_node_tags * N_DIMS, sizeof(*coord));
+    gmshFree(coord);
 }
 
 static void create_cells(Mesh *mesh, const long *node_idx)
@@ -80,7 +80,7 @@ static void create_cells(Mesh *mesh, const long *node_idx)
                     gmshModelMeshGetElementProperties(element_type[t], &element_name, &element_dim,
                                                       &element_order, &n_element_nodes, 0, 0,
                                                       &n_element_primary_nodes, &ierr);
-                    if (element_order != 1) error("unsupported element order '%ld'", element_order);
+                    assert(element_order == 1);
                     gmshFree(element_name);
 
                     n_cells += n_element_tags[t];
@@ -109,8 +109,8 @@ static void create_cells(Mesh *mesh, const long *node_idx)
         if (dim == N_DIMS - 1) mesh->n_ghost_cells = n_cells - mesh->n_inner_cells;
         gmshFree(ptag);
     }
+    assert(n_cells > 0);
 
-    if (n_cells == 0) error("mesh contains '%ld' cell", n_cells);
     mesh->n_cells = n_cells;
     mesh->cell.i_node = i_node;
     mesh->cell.node = node;
@@ -121,7 +121,7 @@ static void create_entities(Mesh *mesh)
     int ierr;
 
     long n_entities = 0;
-    char(*name)[NAMELEN] = 0;
+    String *name = 0;
     long *j_cell = memory_calloc(n_entities + 1, sizeof(*j_cell));
 
     for (long dim = N_DIMS; dim >= N_DIMS - 1; --dim) {
@@ -158,8 +158,8 @@ static void create_entities(Mesh *mesh)
         }
         gmshFree(ptag);
     }
+    assert(n_entities > 0);
 
-    if (n_entities == 0) error("mesh contains '%ld' entities", n_entities);
     mesh->n_entities = n_entities;
     mesh->entity.name = name;
     mesh->entity.j_cell = j_cell;

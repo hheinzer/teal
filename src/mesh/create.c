@@ -1,54 +1,53 @@
+#include <assert.h>
 #include <string.h>
 
 #include "connectivity.h"
-#include "core/array.h"
-#include "core/memory.h"
-#include "core/utils.h"
 #include "mesh.h"
-#include "teal.h"
+#include "teal/array.h"
+#include "teal/memory.h"
+#include "teal/sync.h"
 
-static void create_nodes(Mesh *mesh, const double *x0, const double *x1, const long *n_cells,
-                         const long *n_nodes);
+static void create_nodes(Mesh *mesh, const Vector3d a, const Vector3d b, const Vector3l n_cells,
+                         const Vector3l n_nodes);
 
-static void create_cells(Mesh *mesh, const long *n_cells, const long *n_nodes);
+static void create_cells(Mesh *mesh, const Vector3l n_cells, const Vector3l n_nodes);
 
-static void create_entities(Mesh *mesh, const long *n_cells);
+static void create_entities(Mesh *mesh, const Vector3l n_cells);
 
-Mesh mesh_create(const double *x0, const double *x1, const long *n_cells)
+Mesh *mesh_create(const Vector3d a, const Vector3d b, const Vector3l n_cells)
 {
-    for (long d = 0; d < N_DIMS; ++d) {
-        if (x0[d] >= x1[d]) error("illegal domain extent '%g' to '%g'", x0[d], x1[d]);
-        if (n_cells[d] <= 0) error("illegal number of cells '%ld'", n_cells[d]);
-    }
+    for (long i = 0; i < N_DIMS; ++i) assert(a[i] < b[i] && n_cells[i] > 0);
 
-    Mesh mesh = {0};
-    if (teal.rank != 0) return mesh;
+    memory_sum_setzero();
 
-    long n_nodes[N_DIMS];
-    for (long d = 0; d < N_DIMS; ++d) n_nodes[d] = n_cells[d] + 1;
+    Mesh *mesh = memory_calloc(1, sizeof(*mesh));
+    if (sync.rank != 0) return mesh;
 
-    create_nodes(&mesh, x0, x1, n_cells, n_nodes);
-    create_cells(&mesh, n_cells, n_nodes);
-    create_entities(&mesh, n_cells);
+    Vector3l n_nodes;
+    for (long i = 0; i < N_DIMS; ++i) n_nodes[i] = n_cells[i] + 1;
 
-    connectivity_cells(&mesh);
+    create_nodes(mesh, a, b, n_cells, n_nodes);
+    create_cells(mesh, n_cells, n_nodes);
+    create_entities(mesh, n_cells);
+
+    connectivity_cells(mesh);
 
     return mesh;
 }
 
-static void create_nodes(Mesh *mesh, const double *x0, const double *x1, const long *n_cells,
-                         const long *n_nodes)
+static void create_nodes(Mesh *mesh, const Vector3d a, const Vector3d b, const Vector3l n_cells,
+                         const Vector3l n_nodes)
 {
     mesh->n_inner_nodes = array_product(n_nodes, N_DIMS);
     mesh->n_nodes = mesh->n_inner_nodes;
 
-    double(*coord)[N_DIMS] = memory_calloc(mesh->n_nodes, sizeof(*coord));
+    Vector3d *coord = memory_calloc(mesh->n_nodes, sizeof(*coord));
     for (long n = 0, k = 0; k < n_nodes[Z]; ++k) {
         for (long j = 0; j < n_nodes[Y]; ++j) {
             for (long i = 0; i < n_nodes[X]; ++i) {
-                coord[n][X] = x0[X] + (x1[X] - x0[X]) * i / n_cells[X];
-                coord[n][Y] = x0[Y] + (x1[Y] - x0[Y]) * j / n_cells[Y];
-                coord[n][Z] = x0[Z] + (x1[Z] - x0[Z]) * k / n_cells[Z];
+                coord[n][X] = a[X] + (b[X] - a[X]) * i / n_cells[X];
+                coord[n][Y] = a[Y] + (b[Y] - a[Y]) * j / n_cells[Y];
+                coord[n][Z] = a[Z] + (b[Z] - a[Z]) * k / n_cells[Z];
                 n += 1;
             }
         }
@@ -56,12 +55,12 @@ static void create_nodes(Mesh *mesh, const double *x0, const double *x1, const l
     mesh->node.coord = coord;
 }
 
-static void create_cells(Mesh *mesh, const long *n_cells, const long *n_nodes)
+static void create_cells(Mesh *mesh, const Vector3l n_cells, const Vector3l n_nodes)
 {
     mesh->n_inner_cells = array_product(n_cells, N_DIMS);
-    for (long d0 = 0; d0 < N_DIMS; ++d0)
-        for (long d1 = 0; d1 < N_DIMS; ++d1)
-            if (d1 != d0) mesh->n_ghost_cells += n_cells[d0] * n_cells[d1];
+    for (long i = 0; i < N_DIMS; ++i)
+        for (long j = 0; j < N_DIMS; ++j)
+            if (i != j) mesh->n_ghost_cells += n_cells[i] * n_cells[j];
     mesh->n_cells = mesh->n_inner_cells + mesh->n_ghost_cells;
 
     long *i_node = memory_calloc(mesh->n_cells + 1, sizeof(*i_node));
@@ -123,7 +122,7 @@ static void create_cells(Mesh *mesh, const long *n_cells, const long *n_nodes)
     mesh->cell.node = memory_realloc(node, i_node[mesh->n_cells], sizeof(*node));
 }
 
-static void create_entities(Mesh *mesh, const long *n_cells)
+static void create_entities(Mesh *mesh, const Vector3l n_cells)
 {
     mesh->n_entities = 7;
 

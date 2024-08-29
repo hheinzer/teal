@@ -2,22 +2,20 @@
 
 #include "euler.h"
 
-void global_to_local(const double *n, const double *g, double *l)
+void euler_global_to_local(const Matrix3d b, const double *g, double *l)
 {
-    const double(*r)[N_DIMS] = (const void *)n;
     l[D] = g[D];
-    l[U] = r[X][X] * g[U] + r[X][Y] * g[V] + r[X][Z] * g[W];
-    l[V] = r[Y][X] * g[U] + r[Y][Y] * g[V] + r[Y][Z] * g[W];
-    l[W] = r[Z][X] * g[U] + r[Z][Y] * g[V] + r[Z][Z] * g[W];
+    l[U] = b[X][X] * g[U] + b[X][Y] * g[V] + b[X][Z] * g[W];
+    l[V] = b[Y][X] * g[U] + b[Y][Y] * g[V] + b[Y][Z] * g[W];
+    l[W] = b[Z][X] * g[U] + b[Z][Y] * g[V] + b[Z][Z] * g[W];
     l[P] = g[P];
 }
 
-void local_to_global(const double *n, const double *l, double *g)
+void euler_local_to_global(const Matrix3d b, const double *l, double *g)
 {
-    const double(*r)[N_DIMS] = (const void *)n;
     g[D] = l[D];
-    g[DU] = r[X][X] * l[DU] + r[Y][X] * l[DV] + r[Z][X] * l[DW];
-    g[DV] = r[X][Y] * l[DU] + r[Y][Y] * l[DV] + r[Z][Y] * l[DW];
-    g[DW] = r[X][Z] * l[DU] + r[Y][Z] * l[DV] + r[Z][Z] * l[DW];
+    g[DU] = b[X][X] * l[DU] + b[Y][X] * l[DV] + b[Z][X] * l[DW];
+    g[DV] = b[X][Y] * l[DU] + b[Y][Y] * l[DV] + b[Z][Y] * l[DW];
+    g[DW] = b[X][Z] * l[DU] + b[Y][Z] * l[DV] + b[Z][Z] * l[DW];
     g[DE] = l[DE];
 }

@@ -1,0 +1,28 @@
+# Configuration file for the Sphinx documentation builder.
+#
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
+project = "Teal"
+copyright = "2024, Heinrich Heinzer"
+author = "Heinrich Heinzer"
+
+# -- General configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+
+extensions = ["breathe"]
+
+breathe_projects = {"Teal": "./doxygen/xml"}
+breathe_default_project = "Teal"
+
+templates_path = ["_templates"]
+exclude_patterns = []
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+
+html_theme = "alabaster"
+html_static_path = ["_static"]

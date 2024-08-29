@@ -1,29 +1,32 @@
 #include "limiter.h"
 
-#include "core/utils.h"
+#include "teal/isclose.h"
+#include "teal/utils.h"
 
-double barth_jespersen(const double (*dx)[N_DIMS], const double *dudx, double u, double umin,
-                       double umax, double, long n)
+double barth_jespersen(const Vector3d *dx, const Vector3d dudx, double u, double umin, double umax,
+                       double, long n)
 {
     // Blazek 2015, sec. 5.3.5
     double psi = 1;
     for (long i = 0; i < n; ++i) {
-        double delta2 = EPS;
+        double delta2 = 0;
         for (long d = 0; d < N_DIMS; ++d) delta2 += dudx[d] * dx[i][d];
+        if (is_close(delta2, 0)) continue;
         const double delta1 = (delta2 > 0 ? umax - u : umin - u);
         psi = min(psi, delta1 / delta2);
     }
     return psi;
 }
 
-double venkatakrishnan(const double (*dx)[N_DIMS], const double *dudx, double u, double umin,
-                       double umax, double eps2, long n)
+double venkatakrishnan(const Vector3d *dx, const Vector3d dudx, double u, double umin, double umax,
+                       double eps2, long n)
 {
     // Blazek 2015, sec. 5.3.5
     double psi = 1;
     for (long i = 0; i < n; ++i) {
-        double delta2 = EPS;
+        double delta2 = 0;
         for (long d = 0; d < N_DIMS; ++d) delta2 += dudx[d] * dx[i][d];
+        if (is_close(delta2, 0)) continue;
         const double delta1 = (delta2 > 0 ? umax - u : umin - u);
         psi = min(psi, ((sq(delta1) + eps2) * delta2 + 2 * sq(delta2) * delta1) /
                            (sq(delta1) + 2 * sq(delta2) + delta1 * delta2 + eps2) / delta2);
@@ -33,15 +36,15 @@ double venkatakrishnan(const double (*dx)[N_DIMS], const double *dudx, double u,
 
 void equations_limiter(Equations *eqns)
 {
-    const long n_vars = eqns->n_vars;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
-    const ALIAS(i_cell, eqns->mesh->cell.i_cell);
-    const ALIAS(cell, eqns->mesh->cell.cell);
-    const ALIAS(eps2, eqns->limiter.eps2);
-    const ALIAS(dx, eqns->mesh->cell.reconstruction);
-    ALIAS(limiter, eqns->limiter.func);
+    const long n_vars = eqns->n_vars;
+    const alias(i_cell, eqns->mesh->cell.i_cell);
+    const alias(cell, eqns->mesh->cell.cell);
+    const alias(dx, eqns->mesh->cell.to_cell);
+    const alias(eps2, eqns->limiter.eps2);
+    alias(limiter, eqns->limiter.limiter);
     const double(*u)[n_vars] = (void *)eqns->vars.u;
-    double(*dudx)[n_vars][N_DIMS] = (void *)eqns->vars.dudx;
+    Vector3d(*dudx)[n_vars] = (void *)eqns->vars.dudx;
 
     for (long i = 0; i < n_inner_cells; ++i) {
         for (long v = 0; v < n_vars; ++v) {

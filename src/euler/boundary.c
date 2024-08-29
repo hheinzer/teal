@@ -1,15 +1,33 @@
 #include "boundary.h"
 
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "core/utils.h"
 #include "euler.h"
 #include "rotate.h"
+#include "teal/utils.h"
 #include "update.h"
 
-void symmetry(const Equations *, const double *n, const double *, const double *ui, double *ug)
+static ApplyBC symmetry, supersonic_inflow, supersonic_outflow, subsonic_inflow, subsonic_outflow,
+    farfield;
+
+ApplyBC *euler_bc(const char *name)
+{
+    if (!strcmp(name, "symmetry") || !strcmp(name, "slipwall")) return symmetry;
+    if (!strcmp(name, "supersonic inflow")) return supersonic_inflow;
+    if (!strcmp(name, "supersonic outflow")) return supersonic_outflow;
+    if (!strcmp(name, "subsonic inflow")) return subsonic_inflow;
+    if (!strcmp(name, "subsonic outflow")) return subsonic_outflow;
+    if (!strcmp(name, "farfield")) return farfield;
+    abort();
+}
+
+static void symmetry(const Equations *, const Matrix3d b, const double *, const double *ui,
+                     double *ug)
 {
     // Blazek 2015, sec. 8.6
+    const double *n = b[X];
     const double vn = ui[U] * n[X] + ui[V] * n[Y] + ui[W] * n[Z];
     ug[D] = ui[D];
     ug[U] = ui[U] - 2 * vn * n[X];
@@ -18,8 +36,8 @@ void symmetry(const Equations *, const double *n, const double *, const double *
     ug[P] = ui[P];
 }
 
-void supersonic_inflow(const Equations *, const double *, const double *state, const double *,
-                       double *ug)
+static void supersonic_inflow(const Equations *, const Matrix3d, const double *state,
+                              const double *, double *ug)
 {
     // Blazek 2015, sec. 8.3.1
     ug[D] = state[D];
@@ -29,8 +47,8 @@ void supersonic_inflow(const Equations *, const double *, const double *state, c
     ug[P] = state[P];
 }
 
-void supersonic_outflow(const Equations *, const double *, const double *, const double *ui,
-                        double *ug)
+static void supersonic_outflow(const Equations *, const Matrix3d, const double *, const double *ui,
+                               double *ug)
 {
     // Blazek 2015, sec. 8.3.1
     ug[D] = ui[D];
@@ -40,10 +58,11 @@ void supersonic_outflow(const Equations *, const double *, const double *, const
     ug[P] = ui[P];
 }
 
-void subsonic_inflow(const Equations *eqns, const double *n, const double *state, const double *ui,
-                     double *ug)
+static void subsonic_inflow(const Equations *eqns, const Matrix3d b, const double *state,
+                            const double *ui, double *ug)
 {
     // Blazek 2015, sec. 8.3.1
+    const double *n = b[X];
     const double gamma = eqns->scalar.value[GAMMA];
     const double d0 = ui[D];
     const double c0 = sqrt(gamma * ui[P] / ui[D]);
@@ -58,10 +77,11 @@ void subsonic_inflow(const Equations *eqns, const double *n, const double *state
     ug[W] = state[W] - n[Z] * (state[P] - ug[P]) / (d0 * c0);
 }
 
-void subsonic_outflow(const Equations *eqns, const double *n, const double *state, const double *ui,
-                      double *ug)
+static void subsonic_outflow(const Equations *eqns, const Matrix3d b, const double *state,
+                             const double *ui, double *ug)
 {
     // Blazek 2015, sec. 8.3.1
+    const double *n = b[X];
     const double gamma = eqns->scalar.value[GAMMA];
     const double d0 = ui[D];
     const double c0 = sqrt(gamma * ui[P] / ui[D]);
@@ -72,8 +92,8 @@ void subsonic_outflow(const Equations *eqns, const double *n, const double *stat
     ug[W] = ui[W] + n[Z] * (ui[P] - ug[P]) / (d0 * c0);
 }
 
-void farfield(const Equations *eqns, const double *n, const double *state, const double *ui,
-              double *ug)
+static void farfield(const Equations *eqns, const Matrix3d b, const double *state, const double *ui,
+                     double *ug)
 {
     // compute initial ghost cell state
     ug[D] = state[D];
@@ -83,19 +103,19 @@ void farfield(const Equations *eqns, const double *n, const double *state, const
     ug[P] = state[P];
 
     // rotate variables
-    double l_ui[N_VARS], l_ug[N_VARS];
-    global_to_local(n, ui, l_ui);
-    global_to_local(n, ug, l_ug);
-    prim_to_cons(eqns, l_ui);
-    prim_to_cons(eqns, l_ug);
+    double lui[N_VARS], lug[N_VARS];
+    euler_global_to_local(b, ui, lui);
+    euler_global_to_local(b, ug, lug);
+    euler_prim_to_cons(eqns, lui);
+    euler_prim_to_cons(eqns, lug);
 
     // compute characteristic variables
     const double gamma = eqns->scalar.value[GAMMA];
     const double g = gamma - 1;
-    const double a = sqrt(gamma * l_ui[P] / l_ui[D]);
-    const double u = l_ui[U];
-    const double v = l_ui[V];
-    const double w = l_ui[W];
+    const double a = sqrt(gamma * lui[P] / lui[D]);
+    const double u = lui[U];
+    const double v = lui[V];
+    const double w = lui[W];
     const double V2 = sq(u) + sq(v) + sq(w);
     const double H = 0.5 * V2 + sq(a) / g;
     const double fac = g / (2 * sq(a));
@@ -110,16 +130,16 @@ void farfield(const Equations *eqns, const double *n, const double *state, const
     double ei[5] = {0}, eg[5] = {0};
     for (long i = 0; i < 5; ++i) {
         for (long j = 0; j < 5; ++j) {
-            ei[i] += invK[i][j] * l_ui[cons[j]];
-            eg[i] += invK[i][j] * l_ug[cons[j]];
+            ei[i] += invK[i][j] * lui[cons[j]];
+            eg[i] += invK[i][j] * lug[cons[j]];
         }
         ei[i] *= fac;
         eg[i] *= fac;
     }
 
     // compute characteristic variables of ghost cell
-    const double ag = sqrt(gamma * l_ug[P] / l_ug[D]);
-    const double vg = l_ug[U];
+    const double ag = sqrt(gamma * lug[P] / lug[D]);
+    const double vg = lug[U];
     if (vg - ag > 0) eg[0] = ei[0];
     if (vg > 0) {
         eg[1] = ei[1];
@@ -137,9 +157,9 @@ void farfield(const Equations *eqns, const double *n, const double *state, const
         {H - u * a, 0.5 * V2, v, w, H + u * a},
     };
     for (long i = 0; i < 5; ++i) {
-        l_ug[cons[i]] = 0;
-        for (long j = 0; j < 5; ++j) l_ug[cons[i]] += K[i][j] * eg[j];
+        lug[cons[i]] = 0;
+        for (long j = 0; j < 5; ++j) lug[cons[i]] += K[i][j] * eg[j];
     }
-    local_to_global(n, l_ug, ug);
-    cons_to_prim(eqns, ug);
+    euler_local_to_global(b, lug, ug);
+    euler_cons_to_prim(eqns, ug);
 }

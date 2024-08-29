@@ -2,4 +2,4 @@
 
 #include "equations.h"
 
-Update prim_to_cons, cons_to_prim;
+Update euler_prim_to_cons, euler_cons_to_prim;

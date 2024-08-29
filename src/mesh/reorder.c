@@ -1,8 +1,6 @@
 #include "reorder.h"
 
-#include <stdlib.h>
-
-#include "core/memory.h"
+#include "teal/memory.h"
 
 void reorder_cells(Mesh *mesh, const long *old2new, const long *new2old)
 {
@@ -21,10 +19,10 @@ void reorder_cells(Mesh *mesh, const long *old2new, const long *new2old)
         for (long i = mesh->cell.i_cell[jold]; i < mesh->cell.i_cell[jold + 1]; ++i)
             cell[i_cell[jnew + 1]++] = old2new[mesh->cell.cell[i]];
     }
-    free(mesh->cell.i_node);
-    free(mesh->cell.i_cell);
-    free(mesh->cell.node);
-    free(mesh->cell.cell);
+    memory_free(&mesh->cell.i_node);
+    memory_free(&mesh->cell.i_cell);
+    memory_free(&mesh->cell.node);
+    memory_free(&mesh->cell.cell);
     mesh->cell.i_node = i_node;
     mesh->cell.i_cell = i_cell;
     mesh->cell.node = node;

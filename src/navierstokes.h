@@ -2,20 +2,10 @@
 
 #include "equations.h"
 #include "mesh.h"
+#include "simulation.h"
 
-#ifndef VARIABLE
-#define VARIABLE
 enum Conserved { D, DU, DV, DW, DE, N_CONS };
 enum Primitive { U = N_CONS, V, W, P, N_VARS };
-#endif
+enum Scalar { GAMMA, MU, PRANDTL, N_SCALARS };
 
-#ifndef SCALAR
-#define SCALAR
-enum Scalar { GAMMA, PRANDTL, MU, N_SCALARS };
-#endif
-
-/* Create Navier-Stokes equation system on 'mesh' using a 'space_order' discretization. */
-Equations navierstokes_create(const Mesh *mesh, long space_order);
-
-/* Compute the body 'force' of 'eqns'. */
-void navierstokes_body_force(const Equations *eqns, double *force);
+Equations *navierstokes_create(const Mesh *mesh);

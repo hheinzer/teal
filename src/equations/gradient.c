@@ -1,19 +1,19 @@
-#include "core/memory.h"
-#include "core/sync.h"
-#include "core/utils.h"
 #include "equations.h"
+#include "sync.h"
+#include "teal/memory.h"
+#include "teal/utils.h"
 
 void equations_gradient(Equations *eqns)
 {
-    const long n_vars = eqns->n_vars;
     const long n_inner_cells = eqns->mesh->n_inner_cells;
     const long n_inner_faces = eqns->mesh->n_inner_faces;
-    const long n_bound_faces = eqns->mesh->n_bound_faces;
+    const long n_ghost_faces = eqns->mesh->n_ghost_faces;
     const long n_faces = eqns->mesh->n_faces;
-    const ALIAS(cell, eqns->mesh->face.cell);
-    const ALIAS(weight, eqns->mesh->face.gradient_weight);
+    const long n_vars = eqns->n_vars;
+    const alias(cell, eqns->mesh->face.cell);
+    const alias(weight, eqns->mesh->face.weight);
     double(*u)[n_vars] = (void *)eqns->vars.u;
-    double(*dudx)[n_vars][N_DIMS] = (void *)eqns->vars.dudx;
+    Vector3d(*dudx)[n_vars] = (void *)eqns->vars.dudx;
 
     sync_begin(eqns, *u, n_vars);
 
@@ -28,7 +28,7 @@ void equations_gradient(Equations *eqns)
             }
         }
     }
-    for (long i = n_inner_faces; i < n_inner_faces + n_bound_faces; ++i) {
+    for (long i = n_inner_faces; i < n_inner_faces + n_ghost_faces; ++i) {
         for (long v = 0; v < n_vars; ++v) {
             const double du = u[cell[i][R]][v] - u[cell[i][L]][v];
             for (long d = 0; d < N_DIMS; ++d) {
@@ -39,7 +39,7 @@ void equations_gradient(Equations *eqns)
 
     sync_wait(eqns);
 
-    for (long i = n_inner_faces + n_bound_faces; i < n_faces; ++i) {
+    for (long i = n_inner_faces + n_ghost_faces; i < n_faces; ++i) {
         for (long v = 0; v < n_vars; ++v) {
             const double du = u[cell[i][R]][v] - u[cell[i][L]][v];
             for (long d = 0; d < N_DIMS; ++d) {

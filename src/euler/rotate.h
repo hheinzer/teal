@@ -1,7 +1,7 @@
 #pragma once
 
-/* Rotate the global state 'g' into the local state 'l', using the normal vector 'n'. */
-void global_to_local(const double *n, const double *g, double *l);
+#include "teal.h"
 
-/* Rotate the local state 'l' into the global state 'g', using the normal vector 'n'. */
-void local_to_global(const double *n, const double *l, double *g);
+void euler_global_to_local(const Matrix3d b, const double *g, double *l);
+
+void euler_local_to_global(const Matrix3d b, const double *l, double *g);

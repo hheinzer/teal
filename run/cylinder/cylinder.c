@@ -1,36 +1,32 @@
 #include <math.h>
 
-#include "mesh.h"
 #include "navierstokes.h"
-#include "simulation.h"
-#include "teal.h"
 
-#define PI 3.14159265358979323846
 const double Reyn = 250, Vr = 0;
-Function rotating_wall;
+Compute rotating_wall;
 
 int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    Mesh mesh = mesh_read("run/cylinder/cylinder.geo");
+    Mesh *mesh = mesh_read("run/cylinder/cylinder.geo");
     mesh_generate(&mesh);
-    mesh_print(&mesh);
+    mesh_print(mesh);
 
     const double state[N_VARS] = {[D] = 1.4, [U] = 0.1, [P] = 1};
-    Equations eqns = navierstokes_create(&mesh, 2);
-    equations_set_scalar(&eqns, MU, state[D] * state[U] / Reyn);
-    equations_set_limiter(&eqns, "venk", 1);
-    equations_set_initial_state(&eqns, state);
-    equations_set_boundary_condition(&eqns, "wall", "custom", 0, rotating_wall);
-    equations_set_boundary_condition(&eqns, "farfield", "farfield", state, 0);
-    equations_print(&eqns);
+    Equations *eqns = navierstokes_create(mesh);
+    equations_set_scalar(eqns, MU, state[D] * state[U] / Reyn);
+    equations_set_limiter(eqns, "venk", 1);
+    equations_set_boundary_condition(eqns, "wall", "custom", 0, rotating_wall);
+    equations_set_boundary_condition(eqns, "farfield", "farfield", state, 0);
+    equations_set_initial_state(eqns, state);
+    equations_print(eqns);
 
-    Simulation sim = simulation_create(&eqns, argv[0]);
-    simulation_set_max_time(&sim, 1000);
-    simulation_set_output_time(&sim, 1);
-    simulation_print(&sim);
-    simulation_run(&sim);
+    Simulation *sim = simulation_create(eqns, argv[0]);
+    simulation_set_max_time(sim, 1000);
+    simulation_set_output_time(sim, 10);
+    simulation_print(sim);
+    simulation_run(sim);
 
     simulation_free(&sim);
     equations_free(&eqns);
@@ -39,7 +35,7 @@ int main(int argc, char **argv)
     teal_finalize();
 }
 
-void rotating_wall(double *ug, const double *ui, const double *x, double)
+void rotating_wall(double *ug, const double *ui, const Vector3d x, double)
 {
     const double theta = atan2(x[Y], x[X]) - PI / 2;
     const double uw = Vr * cos(theta);

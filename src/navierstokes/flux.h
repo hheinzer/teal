@@ -2,4 +2,4 @@
 
 #include "equations.h"
 
-ViscFlux central;
+ViscFlux *navierstokes_visc_flux(const char *name);
