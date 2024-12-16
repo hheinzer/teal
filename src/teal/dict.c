@@ -10,6 +10,8 @@
 
 #define LOAD_FACTOR 0.5
 
+static int keycmp(const DictItem *item, const long *key, long nkey);
+
 static int itemcmp(const void *a, const void *b);
 
 Dict *dict_create(long max_items)
@@ -39,7 +41,7 @@ void dict_insert(Dict *dict, const long *key, const long *val, long nkey, long n
             if (dist > dict->max_dist) dict->max_dist = dist;
             return;
         }
-        if (dict->item[i].hash == hash) {
+        if (dict->item[i].hash == hash && !keycmp(&dict->item[i], key, nkey)) {
             memory_free(&dict->item[i].val);
             dict->item[i].nval = nval;
             dict->item[i].val = memory_duplicate(val, nval, sizeof(*val));
@@ -68,7 +70,7 @@ void dict_append(Dict *dict, const long *key, const long *val, long nkey, long n
             if (dist > dict->max_dist) dict->max_dist = dist;
             return;
         }
-        if (dict->item[i].hash == hash) {
+        if (dict->item[i].hash == hash && !keycmp(&dict->item[i], key, nkey)) {
             dict->item[i].val =
                 memory_realloc(dict->item[i].val, (dict->item[i].nval + nval), sizeof(*val));
             for (long j = 0; j < nval; ++j) dict->item[i].val[dict->item[i].nval + j] = val[j];
@@ -87,7 +89,7 @@ DictItem *dict_lookup(const Dict *dict, const long *key, long nkey)
     long i = hash % dict->max_items;
     for (long n = 0; n < dict->max_dist; ++n) {
         if (!dict->item[i].nkey) return 0;  // WARNING: only works if items are never removed
-        if (dict->item[i].hash == hash) return &dict->item[i];
+        if (dict->item[i].hash == hash && !keycmp(&dict->item[i], key, nkey)) return &dict->item[i];
         i = (i + 1) % dict->max_items;
     }
     return 0;
@@ -131,15 +133,19 @@ void dict_free(Dict **dict)
     memory_free(dict);
 }
 
-static int itemcmp(const void *a, const void *b)
+static int keycmp(const DictItem *item, const long *key, long nkey)
 {
-    const DictItem *aa = a;
-    const DictItem *bb = b;
-    if (aa->nkey < bb->nkey) return -1;
-    if (aa->nkey > bb->nkey) return 1;
-    for (long i = 0; i < aa->nkey; ++i) {
-        if (aa->key[i] < bb->key[i]) return -1;
-        if (aa->key[i] > bb->key[i]) return 1;
+    if (item->nkey < nkey) return -1;
+    if (item->nkey > nkey) return 1;
+    for (long i = 0; i < nkey; ++i) {
+        if (item->key[i] < key[i]) return -1;
+        if (item->key[i] > key[i]) return 1;
     }
     return 0;
+}
+
+static int itemcmp(const void *a, const void *b)
+{
+    const DictItem *bb = b;
+    return keycmp(a, bb->key, bb->nkey);
 }
