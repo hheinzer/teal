@@ -1,40 +1,73 @@
-# Teal
+# Teal: a colorful fluid dynamics solver
 
-An open source finite volume framework for hyperbolic–parabolic conservation laws.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+Teal is a general-purpose computational fluid dynamics library designed to solve
+hyperbolic-parabolic conservation laws on 3D unstructured meshes using the finite-volume method. It
+includes a simple mesh generator and can integrate with GMSH for complex geometries. Built-in
+solvers handle the compressible Euler and Navier-Stokes equations, with support for user-defined
+source terms. The flexible teal API also makes it easy to implement solvers for other equation
+systems.
 
 ## Features
 
-- 3D unstructured meshes
-- 2nd order accuracy in space and time
+- 3D unstructured mixed meshes
+  - Built-in Cartesian mesh generator
+  - Mesh reader for GMSH and internal formats
+  - Extensible to other mesh formats
+- 2nd order spatial accuracy
+  - Least-squares gradient reconstruction
+- Up to 3rd order temporal accuracy
+  - Low storage explicit Runge-Kutta schemes
+  - Implicit Euler with Newton–GMRES solver
 - Modular equation system design
-- Parallelized with MPI
+  - Compressible Euler and Navier-Stokes
+  - Extensible to other conservation laws
+- MPI parallelization for distributed-memory clusters
+  - Designed for scalability without hidden serial bottlenecks
 
-## Installation
+## Getting started
 
-You will require the following dependencies:
+Clone the repository and build:
 
-- [Make](https://www.gnu.org/software/make/)
-- [C compiler](https://clang.llvm.org/)
-- [MPI](https://www.open-mpi.org/)
-- [GMSH](https://gmsh.info/)
-- [METIS](https://github.com/KarypisLab/METIS)
-- [HDF5](https://www.hdfgroup.org/solutions/hdf5/)
-- [Python](https://www.python.org/) (optional)
-- [ParaView](https://www.paraview.org/) (optional)
+```bash
+git clone https://github.com/hheinzer/teal.git
+cd teal
+make
+```
 
-Once everything is installed, compile teal with `make` and run simulations with `mpirun`.
+The `make` build places executables into the `bin/` directory.
 
-## Usage
+The best way to get started with teal is to check out the test cases in [run](run/). For example,
+you can try running the [Sod shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube) case with
+MPI:
 
-Since teal is written as a library, simulations are defined in C, not through input files.
-Typically, you write a small `main` function to set up and run the simulation. Check the [run](run/)
-folder for examples of how to use teal. You can also use command-line arguments or create an input
-file parser to parametrize your simulations if needed.
+```bash
+mpirun -n 4 bin/riemann/sod
+```
+
+The test cases showcase all capabilities of the solver framework. If your editor or IDE supports
+"jump to definition", you can follow the program flow directly in the source.
+
+If you run into compilation problems, check the [installation](INSTALL.md) instructions.
+
+## Documentation
+
+For now, there is no dedicated documentation. In my opinion, the function and variable names
+together with the comments I provided should be enough to understand what's going on. I know that
+this is probably a hot take; I would spend some extra time and effort into putting together
+something better, if there is enough interest in the project.
+
+If you want to explore the code, the [src](src/) directory contains the main modules of teal. Each
+module’s header file provides a brief overview and lists its public functions. The folder with the
+name of the module contains all the implementations. One exception is the `teal` module which
+contains the core tools used throughout all the modules.
 
 ## Contributing
 
-Contributions are welcome! If you find a bug or have a feature request, please open an issue. To
-contribute code:
+Contributions are welcome!
+
+If you find a bug or have a feature request, please open an issue. To contribute code:
 
 1. Fork the repository.
 2. Create a new branch for your feature or bug fix.
@@ -44,13 +77,40 @@ contribute code:
 ## Acknowledgments
 
 Teal is a successor to [ccfd](https://github.com/hheinzer/ccfd), which itself is a C rewrite of
-[cfdfv](https://github.com/flexi-framework/cfdfv). While teal builds on the concepts from these
+[cfdfv](https://github.com/flexi-framework/cfdfv). While teal builds on the concepts of these
 projects, it does not share any code with them.
 
 The development of teal has been guided by foundational literature in computational fluid dynamics.
-Key resources include *Computational Fluid Dynamics: Principles and Applications* by Jiri Blazek and
+Key resources include *Computational Fluid Dynamics: Principles and Applications* by J. Blazek and
 *Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction* by E. F. Toro.
 
 ## License
 
 Teal is licensed under the GPL-3.0 [license](LICENSE).
+
+## Things you might find odd
+
+- I do not use unsigned integers. Whenever I use an integer, I always use `long`. I only deviate
+  from these rules if I have to match some external API. This has never caused a problem for me, and
+  it removes the need to think about integer types.
+- I use `const` only for function arguments, but not for local variables. In my experience, `const`
+  for a local variable has never caught a bug, but adds a lot of visual noise. One exception is when
+  I want to create a typed constant, then I use `static const`.
+- I use an arena allocator for most of the memory management. The implementation is loosely based on
+  an [article](https://nullprogram.com/blog/2023/09/27/) by [@skeeto](https://github.com/skeeto).
+- There are no config files, the simulations are defined directly in C. In my opinion, parsing
+  config files is annoying and results in inefficient or unnecessary complex codes. I might be
+  heavily biased here from many years of using Nek5000 for work. If you really want to, you are free
+  to write a config module that can parse input files.
+
+## On the use of AI
+
+Nowadays, a lot of what you see and read on the internet is produced by AI. Personally, I get
+annoyed reading the smooth texts generated by ChatGPT *et al*. However, it is probably unwise to
+completely ignore LLMs, because who knows where this technology might be going in the future. In the
+interest of transparency, I will say that I do use ChatGPT to get a second opinion on things like
+texts/comments/documentation, as well as function implementations. At the moment, I am still unsure
+how useful the generated output is; Very often I find myself arguing with the LLM. Should you be
+unconvinced that the code in this repo was written by an actual human, take a look at the
+implementation of `mesh_read()`. Maybe you can let your favorite LLM take a crack at implementing
+that function *correctly*.

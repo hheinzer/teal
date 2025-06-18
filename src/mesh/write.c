@@ -1,75 +1,140 @@
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "mesh.h"
+#include "teal/arena.h"
 #include "teal/h5io.h"
-#include "teal/memory.h"
 #include "teal/sync.h"
+#include "teal/utils.h"  // IWYU pragma: keep
 
-void mesh_write(const Mesh *mesh, const char *prefix)
+static void write_nodes(const MeshNodes *nodes, hid_t loc)
 {
-    // https://docs.vtk.org/en/latest/design_documents/VTKFileFormats.html#vtkhdf-file-format
-    String fname;
-    sprintf(fname, "%s_mesh.hdf", prefix);
+    hid_t group = h5io_group_create("nodes", loc);
 
-    const int root = (sync.rank == 0);
-    hid_t file = h5_file_create(fname);
-    hid_t vtkhdf = h5_group_create("VTKHDF", file);
+    long num_inner = nodes->num_inner;
+    long tot_inner = sync_lsum(num_inner);
+    h5io_attribute_write(0, "num", &tot_inner, 1, H5IO_LONG, group);
 
-    const Vector2l version = {2, 2};
-    h5_attribute_write("Version", version, 2, vtkhdf);
-    h5_attribute_write("Type", "UnstructuredGrid", 0, vtkhdf);
+    h5io_dataset_write("coord", nodes->coord, (hsize_t[]){num_inner, 3}, 2, H5IO_DOUBLE, group);
 
-    const long n_inner_nodes = mesh->n_inner_nodes;
-    const long n_inner_cells = mesh->n_inner_cells;
-    const long n_global_points = sync_sum(n_inner_nodes);
-    const long n_conns = mesh->cell.i_node[n_inner_cells];
-    const long o_conns = sync_exsum(n_conns);
-    const long n_global_conns = sync_sum(n_conns);
-    const long n_offsets = n_inner_cells + root;
-    const long n_global_cells = sync_sum(n_inner_cells);
+    h5io_group_close(group);
+}
 
-    h5_dataset_write("NumberOfPoints", &n_global_points, h5_dims(root), vtkhdf);
-    h5_dataset_write("NumberOfConnectivityIds", &n_global_conns, h5_dims(root), vtkhdf);
-    h5_dataset_write("NumberOfCells", &n_global_cells, h5_dims(root), vtkhdf);
+/* Write CSR graph `node` with globalized offsets and indices remapped. */
+static void write_node_graph(const MeshGraph *node, const long *global, long num_cells, hid_t loc)
+{
+    Arena save = arena_save();
 
-    h5_dataset_write("Points", *mesh->node.coord, h5_dims(n_inner_nodes, N_DIMS), vtkhdf);
+    hid_t group = h5io_group_create("node", loc);
 
-    smart long *conn = memory_calloc(n_conns, sizeof(*conn));
-    for (long i = 0; i < n_conns; ++i) conn[i] = mesh->node.global[mesh->cell.node[i]];
-    h5_dataset_write("Connectivity", conn, h5_dims(n_conns), vtkhdf);
+    long num = num_cells + (sync.rank == 0);
+    long *off = arena_calloc(num, sizeof(*off));
+    long offset = sync_lexsum(node->off[num_cells]);
+    for (long i = 0; i < num; i++) {
+        off[i] = offset + node->off[i + (sync.rank != 0)];
+    }
+    h5io_dataset_write("off", off, (hsize_t[]){num}, 1, H5IO_LONG, group);
 
-    smart long *offsets = memory_calloc(n_offsets, sizeof(*offsets));
-    for (long i = 0; i < n_offsets; ++i) offsets[i] = mesh->cell.i_node[!root + i] + o_conns;
-    h5_dataset_write("Offsets", offsets, h5_dims(n_offsets), vtkhdf);
+    long *idx = arena_calloc(node->off[num_cells], sizeof(*idx));
+    for (long i = 0; i < node->off[num_cells]; i++) {
+        idx[i] = global[node->idx[i]];
+    }
+    h5io_dataset_write("idx", idx, (hsize_t[]){node->off[num_cells]}, 1, H5IO_LONG, group);
 
-    smart unsigned char *types = memory_calloc(n_inner_cells, sizeof(*types));
-    for (long i = 0; i < n_inner_cells; ++i) {
-        const long n_nodes = mesh->cell.i_node[i + 1] - mesh->cell.i_node[i];
-        switch (n_nodes) {
-            case 4: types[i] = 10; break;  // VTK_TETRA
-            case 5: types[i] = 14; break;  // VTK_PYRAMID
-            case 6: types[i] = 13; break;  // VTK_WEDGE
-            case 8: types[i] = 12; break;  // VTK_HEXAHEDRON
-            default: abort();
+    h5io_group_close(group);
+
+    arena_load(save);
+}
+
+static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
+                        const MeshEntities *entities, hid_t loc)
+{
+    Arena save = arena_save();
+
+    hid_t group = h5io_group_create("cells", loc);
+
+    long num_inner = cells->num_inner;
+    long num_outer = cells->num_ghost + cells->num_periodic;
+    long num_cells = num_inner + num_outer;
+    long tot_cells = sync_lsum(num_cells);
+    h5io_attribute_write(0, "num", &tot_cells, 1, H5IO_LONG, group);
+
+    write_node_graph(&cells->node, nodes->global, num_cells, group);
+
+    unsigned char *type = arena_calloc(num_cells, sizeof(*type));
+    int *rank = arena_calloc(num_cells, sizeof(*rank));
+    long *local = arena_calloc(num_cells, sizeof(*local));
+    long *global = arena_calloc(num_cells, sizeof(*global));
+    long *entity = arena_calloc(num_cells, sizeof(*entity));
+
+    long off_cells = sync_lexsum(num_cells);
+    long num = 0;
+    for (long i = 0; i < entities->num; i++) {
+        for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
+            long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
+            if (i < entities->num_inner) {
+                switch (num_nodes) {
+                    enum { VTK_TETRA = 10, VTK_PYRAMID = 14, VTK_WEDGE = 13, VTK_HEXAHEDRON = 12 };
+                    case 4: type[num] = VTK_TETRA; break;
+                    case 5: type[num] = VTK_PYRAMID; break;
+                    case 6: type[num] = VTK_WEDGE; break;
+                    case 8: type[num] = VTK_HEXAHEDRON; break;
+                    default: abort();
+                }
+            }
+            else {
+                switch (num_nodes) {
+                    enum { VTK_TRIANGLE = 5, VTK_QUAD = 9 };
+                    case 3: type[num] = VTK_TRIANGLE; break;
+                    case 4: type[num] = VTK_QUAD; break;
+                    default: abort();
+                }
+            }
+            rank[num] = sync.rank;
+            local[num] = j;
+            global[num] = j + off_cells;
+            entity[num] = i;
+            num += 1;
         }
     }
-    h5_dataset_write("Types", types, h5_dims(n_inner_cells), vtkhdf);
+    assert(num == num_cells);
 
-    hid_t cell = h5_group_create("CellData", vtkhdf);
-    smart long *buf = memory_calloc(n_inner_cells, sizeof(*buf));
+    h5io_dataset_write("type", type, (hsize_t[]){num_cells}, 1, H5IO_UCHAR, group);
+    h5io_dataset_write("rank", rank, (hsize_t[]){num_cells}, 1, H5IO_INT, group);
+    h5io_dataset_write("local", local, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
+    h5io_dataset_write("global", global, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
+    h5io_dataset_write("entity", entity, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
 
-    for (long i = 0; i < n_inner_cells; ++i) buf[i] = sync.rank;
-    h5_dataset_write("rank", buf, h5_dims(n_inner_cells), cell);
+    h5io_dataset_write("volume", cells->volume, (hsize_t[]){num_cells}, 1, H5IO_DOUBLE, group);
+    h5io_dataset_write("center", cells->center, (hsize_t[]){num_cells, 3}, 2, H5IO_DOUBLE, group);
+    h5io_dataset_write("projection", cells->projection, (hsize_t[]){num_cells, 3}, 2, H5IO_DOUBLE,
+                       group);
 
-    for (long i = 0; i < n_inner_cells; ++i) buf[i] = i;
-    h5_dataset_write("index", buf, h5_dims(n_inner_cells), cell);
+    h5io_group_close(group);
 
-    h5_dataset_write("volume", mesh->cell.volume, h5_dims(n_inner_cells), cell);
-    h5_dataset_write("center", *mesh->cell.center, h5_dims(n_inner_cells, N_DIMS), cell);
-    h5_dataset_write("projection", *mesh->cell.projection, h5_dims(n_inner_cells, N_DIMS), cell);
+    arena_load(save);
+}
 
-    h5_group_close(cell);
-    h5_group_close(vtkhdf);
-    h5_file_close(file);
+static void write_entities(const MeshEntities *entities, hid_t loc)
+{
+    hid_t group = h5io_group_create("entities", loc);
+
+    h5io_attribute_write(0, "num", &entities->num, 1, H5IO_LONG, group);
+    h5io_attribute_write(0, "num_inner", &entities->num_inner, 1, H5IO_LONG, group);
+    h5io_attribute_write(0, "num_ghost", &entities->num_ghost, 1, H5IO_LONG, group);
+
+    long num_entities = (sync.rank == 0) ? entities->num : 0;
+    h5io_dataset_write("name", entities->name, (hsize_t[]){num_entities}, 1, H5IO_STRING, group);
+
+    h5io_group_close(group);
+}
+
+void mesh_write(const Mesh *mesh, const char *fname)
+{
+    hid_t file = h5io_file_create(fname);
+
+    write_nodes(&mesh->nodes, file);
+    write_cells(&mesh->nodes, &mesh->cells, &mesh->entities, file);
+    write_entities(&mesh->entities, file);
+
+    h5io_file_close(file);
 }

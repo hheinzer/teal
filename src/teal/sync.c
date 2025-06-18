@@ -1,151 +1,126 @@
 #include "sync.h"
 
-#include <math.h>
+#include <assert.h>
 
-#include "array.h"
-#include "memory.h"
+Sync sync = {0};
 
-struct Sync sync = {0};
+MPI_Datatype vector_type;
+
+static int tag_ub;
 
 void sync_init(int *argc, char ***argv)
 {
     MPI_Init(argc, argv);
-    sync.comm = MPI_COMM_WORLD;
+
+    MPI_Comm_dup(MPI_COMM_WORLD, &sync.comm);
+    MPI_Comm_rank(sync.comm, &sync.rank);
+    MPI_Comm_size(sync.comm, &sync.size);
+
+    MPI_Type_contiguous(3, MPI_DOUBLE, &vector_type);
+    MPI_Type_commit(&vector_type);
+
+    int *attr = 0;
+    int flag = 0;
+    MPI_Comm_get_attr(sync.comm, MPI_TAG_UB, &attr, &flag);
+    assert(flag && attr);
+    tag_ub = *attr;
+    assert(tag_ub > 0);
+}
+
+void sync_reinit(MPI_Comm comm)
+{
+    MPI_Comm_free(&sync.comm);
+    sync.comm = comm;
     MPI_Comm_rank(sync.comm, &sync.rank);
     MPI_Comm_size(sync.comm, &sync.size);
 }
 
-long x__sync_min_long(long v)
+int sync_tag(void)
 {
-    long min = 0;
-    MPI_Allreduce(&v, &min, 1, MPI_LONG, MPI_MIN, sync.comm);
-    return min;
+    static int tag = 0;
+    return tag = (tag % tag_ub) + 1;
 }
-double x__sync_min_double(double v)
+
+long sync_lmin(long val)
 {
-    double min = 0;
-    MPI_Allreduce(&v, &min, 1, MPI_DOUBLE, MPI_MIN, sync.comm);
+    long min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_LONG, MPI_MIN, sync.comm);
     return min;
 }
 
-long x__sync_max_long(long v)
+long sync_lmax(long val)
 {
-    long max = 0;
-    MPI_Allreduce(&v, &max, 1, MPI_LONG, MPI_MAX, sync.comm);
-    return max;
-}
-double x__sync_max_double(double v)
-{
-    double max = 0;
-    MPI_Allreduce(&v, &max, 1, MPI_DOUBLE, MPI_MAX, sync.comm);
+    long max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_LONG, MPI_MAX, sync.comm);
     return max;
 }
 
-long x__sync_sum_long(long v)
+long sync_lsum(long val)
 {
     long sum = 0;
-    MPI_Allreduce(&v, &sum, 1, MPI_LONG, MPI_SUM, sync.comm);
+    MPI_Allreduce(&val, &sum, 1, MPI_LONG, MPI_SUM, sync.comm);
     return sum;
 }
-double x__sync_sum_double(double v)
+
+double sync_fmin(double val)
+{
+    double min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_DOUBLE, MPI_MIN, sync.comm);
+    return min;
+}
+
+double sync_fmax(double val)
+{
+    double max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_DOUBLE, MPI_MAX, sync.comm);
+    return max;
+}
+
+double sync_fsum(double val)
 {
     double sum = 0;
-    MPI_Allreduce(&v, &sum, 1, MPI_DOUBLE, MPI_SUM, sync.comm);
+    MPI_Allreduce(&val, &sum, 1, MPI_DOUBLE, MPI_SUM, sync.comm);
     return sum;
 }
 
-long x__sync_exsum_long(long v)
+vector sync_vmin(vector val)
+{
+    vector min = val;
+    MPI_Allreduce(&val, &min, 3, MPI_DOUBLE, MPI_MIN, sync.comm);
+    return min;
+}
+
+vector sync_vmax(vector val)
+{
+    vector max = val;
+    MPI_Allreduce(&val, &max, 3, MPI_DOUBLE, MPI_MAX, sync.comm);
+    return max;
+}
+
+vector sync_vsum(vector val)
+{
+    vector sum = {0};
+    MPI_Allreduce(&val, &sum, 3, MPI_DOUBLE, MPI_SUM, sync.comm);
+    return sum;
+}
+
+long sync_lexsum(long val)
 {
     long exsum = 0;
-    MPI_Exscan(&v, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
+    MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
     return exsum;
 }
-double x__sync_exsum_double(double v)
+
+double sync_fexsum(double val)
 {
     double exsum = 0;
-    MPI_Exscan(&v, &exsum, 1, MPI_DOUBLE, MPI_SUM, sync.comm);
+    MPI_Exscan(&val, &exsum, 1, MPI_DOUBLE, MPI_SUM, sync.comm);
     return exsum;
-}
-
-double sync_dot(const double *a, const double *b, long n)
-{
-    return x__sync_sum_double(array_dot(a, b, n));
-}
-
-double sync_norm(const double *a, long n)
-{
-    return sqrt(sync_dot(a, a, n));
-}
-
-void x__sync_gatherv_long(long *a, const long *b, long n, int root)
-{
-    smart int *counts = (sync.rank == root ? memory_calloc(sync.size, sizeof(*counts)) : 0);
-    smart int *displs = (sync.rank == root ? memory_calloc(sync.size, sizeof(*displs)) : 0);
-    MPI_Gather(&(int[]){n}, 1, MPI_INT, counts, 1, MPI_INT, root, sync.comm);
-    if (sync.rank == root)
-        for (int rank = 1; rank < sync.size; ++rank)
-            displs[rank] = displs[rank - 1] + counts[rank - 1];
-    MPI_Gatherv(b, n, MPI_LONG, a, counts, displs, MPI_LONG, root, sync.comm);
-}
-void x__sync_gatherv_double(double *a, const double *b, long n, int root)
-{
-    smart int *counts = (sync.rank == root ? memory_calloc(sync.size, sizeof(*counts)) : 0);
-    smart int *displs = (sync.rank == root ? memory_calloc(sync.size, sizeof(*displs)) : 0);
-    MPI_Gather(&(int[]){n}, 1, MPI_INT, counts, 1, MPI_INT, root, sync.comm);
-    if (sync.rank == root)
-        for (int rank = 1; rank < sync.size; ++rank)
-            displs[rank] = displs[rank - 1] + counts[rank - 1];
-    MPI_Gatherv(b, n, MPI_DOUBLE, a, counts, displs, MPI_DOUBLE, root, sync.comm);
-}
-
-void x__sync_scatterv_long(long *a, const long *b, long n, int root)
-{
-    smart int *counts = (sync.rank == root ? memory_calloc(sync.size, sizeof(*counts)) : 0);
-    smart int *displs = (sync.rank == root ? memory_calloc(sync.size, sizeof(*displs)) : 0);
-    MPI_Gather(&(int[]){n}, 1, MPI_INT, counts, 1, MPI_INT, root, sync.comm);
-    if (sync.rank == root)
-        for (int rank = 1; rank < sync.size; ++rank)
-            displs[rank] = displs[rank - 1] + counts[rank - 1];
-    MPI_Scatterv(b, counts, displs, MPI_LONG, a, n, MPI_LONG, root, sync.comm);
-}
-void x__sync_scatterv_double(double *a, const double *b, long n, int root)
-{
-    smart int *counts = (sync.rank == root ? memory_calloc(sync.size, sizeof(*counts)) : 0);
-    smart int *displs = (sync.rank == root ? memory_calloc(sync.size, sizeof(*displs)) : 0);
-    MPI_Gather(&(int[]){n}, 1, MPI_INT, counts, 1, MPI_INT, root, sync.comm);
-    if (sync.rank == root)
-        for (int rank = 1; rank < sync.size; ++rank)
-            displs[rank] = displs[rank - 1] + counts[rank - 1];
-    MPI_Scatterv(b, counts, displs, MPI_DOUBLE, a, n, MPI_DOUBLE, root, sync.comm);
-}
-
-void sync_irecv(const long *j_recv, MPI_Request *req, double *u, long ldu)
-{
-    for (int rank = 0; rank < sync.size; ++rank) {
-        const int count = (j_recv[rank + 1] - j_recv[rank]) * ldu;
-        MPI_Irecv(&u[j_recv[rank] * ldu], count, MPI_DOUBLE, rank, 0, sync.comm, &req[rank]);
-    }
-}
-
-void sync_isend(const long *i_send, const long *send, const double *u, MPI_Request *req,
-                double *buf, long ldu)
-{
-    for (int rank = 0; rank < sync.size; ++rank)
-        for (long i = i_send[rank]; i < i_send[rank + 1]; ++i)
-            for (long j = 0; j < ldu; ++j) buf[i * ldu + j] = u[send[i] * ldu + j];
-
-    for (int rank = 0; rank < sync.size; ++rank) {
-        const int count = (i_send[rank + 1] - i_send[rank]) * ldu;
-        MPI_Isend(&buf[i_send[rank] * ldu], count, MPI_DOUBLE, rank, 0, sync.comm, &req[rank]);
-    }
-}
-
-void sync_waitall(MPI_Request *req)
-{
-    MPI_Waitall(sync.size, req, MPI_STATUSES_IGNORE);
 }
 
 void sync_finalize(void)
 {
+    MPI_Type_free(&vector_type);
+    MPI_Comm_free(&sync.comm);
     MPI_Finalize();
 }

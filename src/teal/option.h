@@ -1,8 +1,13 @@
 #pragma once
 
-extern struct Option {
-    int quiet, verbose;
-    const char *restart;
-} option;
+#include "teal.h"
+
+typedef struct {
+    bool quiet;
+    long capacity;
+    string restart;
+} Option;
+
+extern Option option;
 
 void option_init(int *argc, char ***argv);

@@ -1,11 +1,19 @@
 #!/bin/bash
 
-ncores=$1 # number of cores
-prog=$2 # program
-args=${@:3} # program arguments
+ncores=1 # number of cores
+while getopts "n:" opt; do
+    case $opt in
+        n) ncores=$OPTARG ;;
+        *) exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
 
-out=${2}_gprof.out
-pdf=${2}_gprof.pdf
+prog=$1 # program
+args=${@:2} # program arguments
+
+out=${prog}_gprof.out
+pdf=${prog}_gprof.pdf
 
 GMON_OUT_PREFIX=gmon.out- mpirun -x GMON_OUT_PREFIX -n $ncores $prog $args
 gprof -s $prog gmon.out-*

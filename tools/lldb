@@ -1,0 +1,19 @@
+#!/bin/bash
+
+ncores=1 # number of cores
+while getopts "n:" opt; do
+    case $opt in
+        n) ncores=$OPTARG ;;
+        *) exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+prog=$1 # program
+args=${@:2} # program arguments
+
+if [ $ncores -gt 1 ]; then
+    mpirun -n 1 lldb -o 'b main' -o 'run' -- $prog $args : -n $((ncores - 1)) $prog $args
+else
+    lldb -o 'b main' -o 'run' -- $prog $args
+fi

@@ -1,18 +1,27 @@
 #pragma once
 
-#define PI 3.14159265358979323846
+#include <stdbool.h>
 
-typedef long Vector2l[2];
-typedef long Vector3l[3];
+typedef char string[128];
 
-typedef double Vector3d[3];
-typedef double Vector4d[4];
-typedef double Matrix3d[3][3];
+typedef struct {
+    double x, y, z;
+} vector;
 
-typedef char String[128];
+typedef struct {
+    vector x, y, z;
+} matrix;
 
-void teal_initialize(int *argc, char ***argv);
+typedef struct {
+    long x, y, z;
+} tuple;
 
-[[gnu::noreturn]] void teal_exit(const char *format, ...);
+typedef struct {
+    bool x, y, z;
+} flags;
 
+/* Call exactly once at program start, before any teal API. */
+void teal_init(int *argc, char ***argv);
+
+/* Call exactly once at program end, after teal usage. */
 void teal_finalize(void);

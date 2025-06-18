@@ -1,29 +1,35 @@
 #include "option.h"
 
 #include <getopt.h>
+#include <mpi.h>
 #include <stdlib.h>
+#include <string.h>
 
-struct Option option = {0};
+#include "utils.h"
 
-static void remove_read_arguments(int *argc, char ***argv);
+Option option = {0};
 
 void option_init(int *argc, char ***argv)
 {
+    opterr = 0;
     int opt = 0;
-    while ((opt = getopt(*argc, *argv, "qvr:")) != -1) {
+    while ((opt = getopt(*argc, *argv, "hqc:r:")) != -1) {
         switch (opt) {
-            case 'q': option.quiet = 1; break;
-            case 'v': option.verbose = 1; break;
-            case 'r': option.restart = optarg; break;
+            case '?':
+            case 'h':
+                print("usage: %s [-h] [-q] [-c capacity] [-r restart] ...\n", (*argv)[0]);
+                MPI_Finalize();
+                exit(EXIT_SUCCESS);
+            case 'q': option.quiet = true; break;
+            case 'c': option.capacity = str2size(optarg); break;
+            case 'r': strcpy(option.restart, optarg); break;
             default: abort();
         }
     }
-    remove_read_arguments(argc, argv);
-}
 
-static void remove_read_arguments(int *argc, char ***argv)
-{
-    int n = 1;
-    for (int i = optind; i < *argc; ++i) (*argv)[n++] = (*argv)[i];
-    *argc = n;
+    long num = 1;
+    for (long i = optind; i < *argc; i++) {
+        (*argv)[num++] = (*argv)[i];
+    }
+    *argc = num;
 }

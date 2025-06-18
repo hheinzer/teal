@@ -1,76 +1,125 @@
+/*
+ * - The mesh is composed of nodes, cells, faces, entities, and neighbor communication meta data.
+ *
+ * - Mesh component are ordered as follows:
+ *   - Nodes: inner nodes first, then neighbor nodes
+ *   - Cells: inner cells, then ghost cells (for boundary conditions), then periodic cells, then
+ *     neighbor cells (used for communication only)
+ *   - Faces: inner faces, then ghost faces, then neighbor faces
+ *   - Entities: inner entities (subsets of the interior mesh), then ghost entities, then periodic
+ *     entities
+ *   - Neighbors: periodic neighbors first, then MPI neighbors
+ *   This ordering guarantees deterministic global indices and enables slicing by category.
+ *
+ * - Connectivity is stored in compressed sparse row (CSR) form.
+ *
+ * - Entities represent groups of cells/faces. Each entity has a name, a contiguous range of
+ *   cells/faces, and (for periodic boundaries) a geometric offset. Face ranges are only defined for
+ *   non-inner entities, while inner entities always refer to subsets of interior mesh (useful for
+ *   specifying initial conditions).
+ *
+ * - Neighbor meta data describes MPI ranks adjacent to the own rank and contains send/recv graphs
+ *   that define which cells are exchanged during communication.
+ *
+ * - All geometry information is computed lazily by `mesh_build()` after mesh creation or reading.
+ *   The mesh may be modified before, but not after, as derived data could be invalidated.
+ *
+ * - Supported cell types are:
+ *   - 2D: triangle (3 nodes), quadrangle (4 nodes)
+ *   - 3D: tetrahedron (4 nodes), pyramid (5 nodes), wedge (6 nodes), hexahedron (8 nodes)
+ *
+ * - Periodic boundaries must be representable though translation, a rotation is not supported.
+ */
 #pragma once
 
 #include "teal.h"
 
-#define MAX_CELL_NODES 8
-#define MAX_CELL_FACES 6
-#define MAX_FACE_NODES 4
+enum { MAX_CELL_NODES = 8 };
+enum { MAX_CELL_FACES = 6 };
+enum { MAX_FACE_NODES = 4 };
 
-enum Dimension { X, Y, Z, N_DIMS };
+typedef struct {
+    long num;
+    long num_inner;
+    long *global;
+    vector *coord;
+} MeshNodes;
 
-enum Side { L, R, N_SIDES };
+typedef struct {
+    long *off, *idx;  // CSR graph
+} MeshGraph;
 
-typedef struct Mesh Mesh;
+typedef struct {
+    long num;
+    long num_inner;
+    long num_ghost;
+    long num_periodic;
+    MeshGraph node;  // cell-to-node connectivity
+    MeshGraph cell;  // cell-to-cell connectivity
+    double *volume;
+    vector *center;
+    vector *projection;  // axis-aligned projection of cell volume
+} MeshCells;
 
-typedef void Modify(Vector3d x);
+typedef struct {
+    long left, right;  // adjacent face cells (left: always inner; right: inner or outer)
+} MeshFaceCell;
 
-struct Mesh {
-    long n_inner_nodes, n_sync_nodes, n_nodes;
-    long n_inner_cells, n_ghost_cells, n_sync_cells, n_cells;
-    long n_inner_faces, n_ghost_faces, n_sync_faces, n_faces;
-    long n_entities;
-    double volume;
+typedef struct {
+    long num;
+    long num_inner;
+    long num_ghost;
+    MeshGraph node;      // face-to-node connectivity
+    MeshFaceCell *cell;  // face-to-cell connectivity
+    double *area;
+    vector *center;
+    matrix *basis;   // local orthonormal basis (x: normal; y,z: tangents)
+    vector *weight;  // least-squares weights for gradient reconstruction
+} MeshFaces;
 
-    struct {
-        long *global;
-        Vector3d *coord;
-    } node;
+typedef struct {
+    long num;
+    long num_inner;
+    long num_ghost;
+    string *name;
+    long *cell_off;  // entity-to-cell offsets
+    long *face_off;  // entity-to-face offsets
+    vector *offset;  // entity translation (zero for non-periodic)
+} MeshEntities;
 
-    struct {
-        long *i_node, *node;
-        long *i_cell, *cell;
-        double *volume;
-        Vector3d *center;
-        Vector3d *projection;
-        Vector3d *to_cell;
-    } cell;
+typedef struct {
+    long num;
+    long *rank;      // neighbor ranks
+    long *recv_off;  // neighbor-to-cell offsets for receiving
+    MeshGraph send;  // neighbor-to-cell graph for sending
+} MeshNeighbors;
 
-    struct {
-        long *i_node, *node;
-        Vector2l *cell;
-        double *area;
-        Vector3d *center;
-        Matrix3d *basis;
-        Vector3d (*to_cell)[N_SIDES];
-        Vector3d *weight;
-        Vector4d *correction;
-    } face;
+typedef struct {
+    MeshNodes nodes;
+    MeshCells cells;
+    MeshFaces faces;
+    MeshEntities entities;
+    MeshNeighbors neighbors;
+} Mesh;
 
-    struct {
-        String *name;
-        long *j_cell, *j_face;
-        Vector3d *offset;
-    } entity;
+/* Create a distributed Cartesian mesh with optional per-axis periodicity. */
+Mesh mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags periodic);
 
-    struct {
-        long *j_recv, *i_send, *send;
-    } sync;
-};
+Mesh mesh_read(const char *fname);
 
-Mesh *mesh_create(const Vector3d a, const Vector3d b, const Vector3l n_cells);
+/* Split an entity's cells by a plane through `root` with unit-normal `normal`. */
+void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 
-Mesh *mesh_read(const char *fname);
+/* Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights. */
+void mesh_build(Mesh *mesh);
 
-void mesh_modify(Mesh *mesh, Modify *modify);
-
-void mesh_split(Mesh *mesh, const char *entity, const Vector3d root, const Vector3d normal);
-
-void mesh_periodic(Mesh *mesh, const char *entity_a, const char *entity_b);
-
-void mesh_generate(Mesh **mesh);
-
+/* Print a per-rank, human-readable mesh dump. */
 void mesh_print(const Mesh *mesh);
 
-void mesh_write(const Mesh *mesh, const char *prefix);
+void mesh_test(const Mesh *mesh);
 
-void mesh_free(Mesh **mesh);
+/* Print a global mesh summary. */
+void mesh_summary(const Mesh *mesh);
+
+/* Create HDF5 file `fname` and write nodes, cells, and entities groups. */
+void mesh_write(const Mesh *mesh, const char *fname);

@@ -1,9 +1,0 @@
-#!/bin/bash
-
-ncores=$1 # number of cores
-prog=$2 # program
-args=${@:3} # program arguments
-
-mpirun -n $ncores valgrind -q --tool=massif \
-    --alloc-fn=memory_calloc --alloc-fn=memory_realloc --alloc-fn=memory_duplicate \
-    $prog $args

@@ -1,13 +1,4 @@
 obj
 bin
-
-docs/build
-docs/doxygen
-
+*.h5
 *.msh
-*.hdf
-
-*.out
-*.png
-*.pdf
-*.mp4

@@ -1,92 +1,127 @@
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "find.h"
 #include "mesh.h"
-#include "reorder.h"
-#include "teal/array.h"
-#include "teal/memory.h"
-#include "teal/sync.h"
+#include "teal/arena.h"
 #include "teal/utils.h"
+#include "teal/vector.h"
 
-static void compute_split(const Mesh *mesh, const Vector3d root, const Vector3d normal, long *split,
-                          long E);
-
-static void compute_reorder(const Mesh *mesh, const long *split, long *new2old, long *old2new,
-                            long E);
-
-static void split_entities(Mesh *mesh, const long *split, long E, long n_cells);
-
-void mesh_split(Mesh *mesh, const char *entity, const Vector3d root, const Vector3d normal)
+static long find_entity(const MeshEntities *entities, const char *entity)
 {
-    if (sync.rank != 0) return;
-
-    const long E = mesh_find_entity(mesh, entity);
-    const long n_cells = mesh->entity.j_cell[E + 1] - mesh->entity.j_cell[E];
-
-    smart long *split = memory_calloc(n_cells, sizeof(*split));
-    compute_split(mesh, root, normal, split, E);
-
-    smart long *new2old = memory_calloc(mesh->n_cells, sizeof(*new2old));
-    smart long *old2new = memory_calloc(mesh->n_cells, sizeof(*old2new));
-    compute_reorder(mesh, split, new2old, old2new, E);
-    reorder_cells(mesh, old2new, new2old);
-
-    split_entities(mesh, split, E, n_cells);
+    for (long i = 0; i < entities->num; i++) {
+        if (!strcmp(entities->name[i], entity)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-static void compute_split(const Mesh *mesh, const Vector3d root, const Vector3d normal, long *split,
-                          long E)
+static void grow_entities(MeshEntities *entities, long idx)
 {
-    const alias(coord, mesh->node.coord);
-    const alias(i_node, mesh->cell.i_node);
-    const alias(node, mesh->cell.node);
-    const alias(j_cell, mesh->entity.j_cell);
-    for (long s = 0, j = j_cell[E]; j < j_cell[E + 1]; ++j) {
-        const long n_nodes = i_node[j + 1] - i_node[j];
-
-        Vector3d center = {0};
-        for (long i = i_node[j]; i < i_node[j + 1]; ++i)
-            for (long d = 0; d < N_DIMS; ++d) center[d] += coord[node[i]][d] / n_nodes;
-
-        Vector3d rc;
-        for (long d = 0; d < N_DIMS; ++d) rc[d] = center[d] - root[d];
-
-        split[s++] = (array_dot(rc, normal, N_DIMS) > 0 ? 0 : 1);
+    if (idx < entities->num_inner) {
+        entities->num_inner += 1;
     }
+    else if (idx < entities->num_inner + entities->num_ghost) {
+        entities->num_ghost += 1;
+    }
+    entities->num += 1;
+
+    string *name = arena_malloc(entities->num, sizeof(*name));
+    entities->name = memcpy(name, entities->name, (entities->num - 1) * sizeof(*name));
+
+    long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
+    entities->cell_off = memcpy(cell_off, entities->cell_off, entities->num * sizeof(*cell_off));
+
+    vector *offset = arena_malloc(entities->num, sizeof(*offset));
+    entities->offset = memcpy(offset, entities->offset, (entities->num - 1) * sizeof(*offset));
 }
 
-static void compute_reorder(const Mesh *mesh, const long *split, long *new2old, long *old2new,
-                            long E)
+/* Build a map for cells [beg,end) that encodes which side of the plane a cell center lies on. */
+static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, vector root,
+                              vector normal, long beg, long end)
 {
-    const alias(j_cell, mesh->entity.j_cell);
-    for (long n = 0, e = 0; e < mesh->n_entities; ++e) {
-        if (e != E)
-            for (long j = j_cell[e]; j < j_cell[e + 1]; ++j) new2old[n++] = j;
-        else
-            for (long k = 0; k < 2; ++k)
-                for (long s = 0, j = j_cell[e]; j < j_cell[e + 1]; ++j)
-                    if (split[s++] == k) new2old[n++] = j;
+    long *map = arena_calloc(end - beg, sizeof(*map));
+    long num = 0;
+    for (long i = beg; i < end; i++) {
+        vector center = {0};
+        long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+        for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
+            vector coord = nodes->coord[cells->node.idx[j]];
+            center = vector_add(center, vector_div(coord, num_nodes));
+        }
+        map[num] = (vector_dot(vector_sub(center, root), normal) <= 0) ? i : end + i;
+        num += 1;
     }
-    for (long i = 0; i < mesh->n_cells; ++i) old2new[new2old[i]] = i;
+    assert(num == end - beg);
+    return map;
 }
 
-static void split_entities(Mesh *mesh, const long *split, long E, long n_cells)
+/* Reorder cell-to-node connectivity for [beg,end). */
+static void reorder_cells(MeshCells *cells, long beg, long end, const long *map)
 {
-    mesh->n_entities += 1;
-    String *name = memory_realloc(mesh->entity.name, mesh->n_entities, sizeof(*name));
-    long *j_cell = memory_realloc(mesh->entity.j_cell, mesh->n_entities + 1, sizeof(*j_cell));
-    Vector3d *offset = memory_realloc(mesh->entity.offset, mesh->n_entities, sizeof(*offset));
-    for (long e = mesh->n_entities - 1; e > E; --e) {
-        strcpy(name[e], name[e - 1]);
-        j_cell[e + 1] = j_cell[e];
-        for (long d = 0; d < N_DIMS; ++d) offset[e][d] = offset[e - 1][d];
+    Arena save = arena_save();
+
+    typedef struct {
+        long map;
+        long num;
+        long node[MAX_CELL_NODES];
+    } Cell;
+
+    Cell *cell = arena_calloc(end - beg, sizeof(*cell));
+
+    for (long num = 0, i = beg; i < end; i++, num++) {
+        cell[num].map = map[num];
+        cell[num].num = cells->node.off[i + 1] - cells->node.off[i];
+        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
+            cell[num].node[k] = cells->node.idx[j];
+        }
     }
-    strcpy(name[E + 1], name[E]);
-    for (long d = 0; d < N_DIMS; ++d) offset[E + 1][d] = offset[E][d];
-    strcat(name[E + 0], "-a");
-    strcat(name[E + 1], "-b");
-    for (long s = 0; s < n_cells; ++s) j_cell[E + 1] -= split[s];
-    mesh->entity.name = name;
-    mesh->entity.j_cell = j_cell;
-    mesh->entity.offset = offset;
+    qsort(cell, end - beg, sizeof(*cell), lcmp);
+
+    for (long num = 0, i = beg; i < end; i++, num++) {
+        cells->node.off[i + 1] = cells->node.off[i] + cell[num].num;
+        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
+            cells->node.idx[j] = cell[num].node[k];
+        }
+    }
+
+    arena_load(save);
+}
+
+static void split_entities(MeshEntities *entities, long idx, long beg, long end, const long *map)
+{
+    for (long i = entities->num - 1; i > idx; i--) {
+        strcpy(entities->name[i], entities->name[i - 1]);
+        entities->cell_off[i + 1] = entities->cell_off[i];
+        entities->offset[i] = entities->offset[i - 1];
+    }
+
+    strcat(entities->name[idx], "-a");
+    strcat(entities->name[idx + 1], "-b");
+
+    for (long num = 0, i = beg; i < end; i++, num++) {
+        entities->cell_off[idx + 1] -= map[num] >= end;
+    }
+
+    entities->offset[idx + 1] = entities->offset[idx];
+}
+
+void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
+{
+    long idx = find_entity(&mesh->entities, entity);
+    assert(idx != -1);
+
+    grow_entities(&mesh->entities, idx);
+
+    Arena save = arena_save();
+
+    long beg = mesh->entities.cell_off[idx];
+    long end = mesh->entities.cell_off[idx + 1];
+    long *map = compute_cell_map(&mesh->nodes, &mesh->cells, root, normal, beg, end);
+
+    reorder_cells(&mesh->cells, beg, end, map);
+    split_entities(&mesh->entities, idx, beg, end, map);
+
+    arena_load(save);
 }

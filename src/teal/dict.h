@@ -1,31 +1,28 @@
 #pragma once
 
-#include <stdint.h>
+typedef struct Dict Dict;
+typedef struct DictItem DictItem;
 
-typedef struct DictItem {
-    long nkey, *key;
-    long nval, *val;
-    uint64_t hash;
-    long index;
-} DictItem;
+struct Dict {
+    long num;
+    DictItem *beg;
+    DictItem *end;
+    long size_key;
+    long size_val;
+};
 
-typedef struct Dict {
-    long n_items, max_items, max_dist;
-    DictItem *item;
-} Dict;
+struct DictItem {
+    void *key;
+    void *val;
+    DictItem *child[4];
+    DictItem *next;
+};
 
-Dict *dict_create(long max_items);
+/* Returns empty dictionary; if `size_val == 0` it behaves as a set (values ignored). */
+Dict dict_create(long size_key, long size_val);
 
-void dict_insert(Dict *dict, const long *key, const long *val, long nkey, long nval);
+/* Returns pointer to stored value if `key` is already present; else inserts and returns `0`. */
+void *dict_insert(Dict *self, const void *key, const void *val);
 
-void dict_append(Dict *dict, const long *key, const long *val, long nkey, long nval);
-
-DictItem *dict_lookup(const Dict *dict, const long *key, long nkey);
-
-DictItem *dict_serialize_by_key(const Dict *dict);
-
-DictItem *dict_serialize_by_index(const Dict *dict);
-
-void dict_print(const Dict *dict);
-
-void dict_free(Dict **dict);
+/* Returns pointer to stored value if `key` is present or `0` if absent. */
+void *dict_lookup(const Dict *self, const void *key);

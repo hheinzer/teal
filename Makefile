@@ -1,19 +1,17 @@
-# compiler and default flags
+# compiler, default flags, and libraries
 CC = clang
-MPICC = OMPI_MPICC=$(CC) mpicc
-CFLAGS = -std=c23 -g -Isrc -Wall -Wextra -Wpedantic -Wshadow
+CFLAGS = -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Isrc
+LDLIBS = -lm -lhdf5 -lmetis -lparmetis
+MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 
 # debug flags
-CFLAGS += -Og -fno-omit-frame-pointer
+CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
 
 # release flags
-#CFLAGS += -DNDEBUG -march=native -Ofast -flto=auto
+#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
 
 # profiling flags
-#CFLAGS += -pg
-
-# libraries
-LDLIBS = -lm -lgmsh -lmetis -lhdf5
+#CFLAGS += -Og -pg
 
 # sources, objects, and programs
 SRC = $(shell find src -type f -name '*.c')
@@ -22,22 +20,22 @@ OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 BIN = $(patsubst run/%.c, bin/%, $(RUN))
 
 # make functions
-.PHONY: all clean check format tidy
-all: $(OBJ) $(BIN)
+.PHONY: all clean check tidy format
+all: $(BIN)
 
 clean:
 	@rm -rf obj bin
 
 check:
-	@cppcheck --quiet --project=compile_commands.json \
-		--enable=all --inconclusive --check-level=exhaustive \
-		--suppress=checkersReport --suppress=missingIncludeSystem --suppress=unusedFunction
+	@cppcheck --project=compile_commands.json --enable=all --inconclusive --check-level=exhaustive \
+		--suppress=checkersReport --suppress=missingIncludeSystem \
+		--suppress=constVariable --suppress=constVariablePointer --suppress=unusedFunction
+
+tidy: $(OBJ)
+	@clang-tidy --quiet $(shell find . -type f -name '*.[ch]')
 
 format:
 	@clang-format -i $(shell find . -type f -name '*.[ch]')
-
-tidy:
-	@clang-tidy --quiet $(shell find . -type f -name '*.[ch]')
 
 # dependencies
 CFLAGS += -MMD -MP
@@ -52,4 +50,4 @@ obj/%.o: src/%.c Makefile
 
 bin/%: run/%.c $(OBJ)
 	@mkdir -p $(@D)
-	-@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
+	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@

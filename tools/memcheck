@@ -1,9 +1,0 @@
-#!/bin/bash
-
-ncores=$1 # number of cores
-prog=$2 # program
-args=${@:3} # program arguments
-
-mpirun -n $ncores valgrind -q --tool=memcheck --gen-suppressions=no \
-    --suppressions=tools/valgrind.supp --leak-check=full --track-origins=yes \
-    $prog $args
