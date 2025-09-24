@@ -17,7 +17,7 @@ Windows, I recommend that you use WSL.
 
 The compiler is selected in the Makefile; change it there if needed. The project compiles under both
 Clang and GCC, although GCC throws some `stringop` warnings, which appear bogus to me. It is also
-possible to use TCC, albeit with a considerable performance hit.
+possible to use TCC, albeit with a performance hit.
 
 ## Notes
 

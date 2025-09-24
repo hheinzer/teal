@@ -9,9 +9,9 @@
 #include "option.h"
 #include "sync.h"
 
-void assert_fail(const char *file, unsigned int line, const char *func, const char *expr)
+void assert_fail(const char *file, long line, const char *func, const char *expr)
 {
-    fprintf(stderr, "[%d] %s:%u: %s: Assertion `%s` failed.\n", sync.rank, file, line, func, expr);
+    fprintf(stderr, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank, file, line, func, expr);
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     abort();
 }

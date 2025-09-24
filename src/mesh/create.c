@@ -39,7 +39,7 @@ static void compute_dims(tuple num_cells, int ndims, int *dims)
         for (long i = 0; i < ndims; i++) {
             long axis = perm[i];
             if (dims[axis] > cells[axis] / factor) {
-                continue;
+                continue;  // would over-subdivide this axis
             }
             double score = (double)cells[axis] / dims[axis];
             if (score > best_score) {
@@ -82,7 +82,7 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
 {
     nodes->num = num_nodes.x * num_nodes.y * num_nodes.z;
 
-    vector *coord = arena_calloc(nodes->num, sizeof(*coord));
+    vector *coord = arena_malloc(nodes->num, sizeof(*coord));
     long num = 0;
     long num_inner = 0;
     for (long k = 0; k < num_nodes.z; k++) {
@@ -108,8 +108,8 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
 static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, const int *coords,
                             const int *neighbor)
 {
-    long *global = arena_calloc(nodes->num, sizeof(*global));
-    long off_inner = sync_lexsum(nodes->num_inner);
+    long *global = arena_malloc(nodes->num, sizeof(*global));
+    long off_inner = sync_exsum(nodes->num_inner);
     int tag_x = sync_tag();
     int tag_y = sync_tag();
     int tag_z = sync_tag();
@@ -182,8 +182,10 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
         cells->num += num_cells_side(num_cells, i);
     }
 
-    long *off = arena_calloc(cells->num + 1, sizeof(*off));
-    long *idx = arena_calloc(cells->num * MAX_CELL_NODES, sizeof(*idx));
+    long *off = arena_malloc(cells->num + 1, sizeof(*off));
+    long *idx = arena_malloc(cells->num * MAX_CELL_NODES, sizeof(*idx));
+
+    off[0] = 0;
 
     long num = 0;
     for (long k = 0; k < num_cells.z; k++) {
@@ -253,7 +255,7 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
 
 static long *compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int *coords)
 {
-    long *map = arena_calloc(nodes->num, sizeof(*map));
+    long *map = arena_malloc(nodes->num, sizeof(*map));
     long num = 0;
     long num_inner = 0;
     long num_neighbors = 0;
@@ -287,7 +289,7 @@ static void reorder_nodes(MeshNodes *nodes, MeshCells *cells, tuple num_nodes, c
         vector coord;
     } Node;
 
-    Node *node = arena_calloc(nodes->num, sizeof(*node));
+    Node *node = arena_malloc(nodes->num, sizeof(*node));
 
     long *map = compute_node_map(nodes, num_nodes, coords);
     for (long i = 0; i < nodes->num; i++) {
@@ -314,7 +316,7 @@ static void reorder_nodes(MeshNodes *nodes, MeshCells *cells, tuple num_nodes, c
 static long *compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims, const int *dims,
                               const int *coords, const int *neighbor)
 {
-    long *map = arena_calloc(cells->num, sizeof(*map));
+    long *map = arena_malloc(cells->num, sizeof(*map));
     long num = 0;
     long num_inner = 0;
     long num_ghost = 0;
@@ -358,7 +360,7 @@ static void reorder_cells(MeshCells *cells, tuple num_cells, int ndims, const in
         long node[MAX_CELL_NODES];
     } Cell;
 
-    Cell *cell = arena_calloc(cells->num, sizeof(*cell));
+    Cell *cell = arena_malloc(cells->num, sizeof(*cell));
 
     long *map = compute_cell_map(cells, num_cells, ndims, dims, coords, neighbor);
     for (long i = 0; i < cells->num; i++) {
@@ -400,16 +402,17 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     entities->num = entities->num_inner + 2 * ndims;
 
     string *name = arena_calloc(entities->num, sizeof(*name));
-    long *cell_off = arena_calloc(entities->num + 1, sizeof(*cell_off));
+    long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
     vector *offset = arena_calloc(entities->num, sizeof(*offset));
 
-    strcpy(name[0], "domain");  // all inner cells
+    strcpy(name[0], "domain");
+    cell_off[0] = 0;
     cell_off[1] = num_cells.x * num_cells.y * num_cells.z;
 
-    string side[6] = {"left", "right", "bottom", "top", "back", "front"};
+    static const string side[6] = {"left", "right", "bottom", "top", "back", "front"};
     long num = 1;
     long num_ghost = 0;
-    for (long i = 0; i < 2 * ndims; i++) {  // all ghost cells
+    for (long i = 0; i < 2 * ndims; i++) {
         if (!periods[i / 2]) {
             strcpy(name[num], side[i]);
             cell_off[num + 1] = cell_off[num];
@@ -420,7 +423,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
             num += 1;
         }
     }
-    for (long i = 0; i < 2 * ndims; i++) {  // all periodic cells
+    for (long i = 0; i < 2 * ndims; i++) {
         if (periods[i / 2]) {
             sprintf(name[num], "%s:%s", side[i], side[(i % 2 == 0) ? i + 1 : i - 1]);
             cell_off[num + 1] = cell_off[num];
@@ -450,20 +453,20 @@ static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, t
         }
     }
 
-    long *rank = arena_calloc(neighbors->num, sizeof(*rank));
-    long *recv_off = arena_calloc(neighbors->num + 1, sizeof(*recv_off));
+    long *rank = arena_malloc(neighbors->num, sizeof(*rank));
+    long *recv_off = arena_malloc(neighbors->num + 1, sizeof(*recv_off));
 
     recv_off[0] = cells->num_inner + cells->num_ghost;
 
     long num = 0;
-    for (long i = 0; i < 2 * ndims; i++) {  // all periodic cells
+    for (long i = 0; i < 2 * ndims; i++) {
         if (neighbor[i] != MPI_PROC_NULL && is_edge_side(dims, coords, i)) {
             rank[num] = neighbor[i];
             recv_off[num + 1] = recv_off[num] + num_cells_side(num_cells, i);
             num += 1;
         }
     }
-    for (long i = 0; i < 2 * ndims; i++) {  // all neighbor cells
+    for (long i = 0; i < 2 * ndims; i++) {
         if (neighbor[i] != MPI_PROC_NULL && !is_edge_side(dims, coords, i)) {
             rank[num] = neighbor[i];
             recv_off[num + 1] = recv_off[num] + num_cells_side(num_cells, i);
@@ -491,7 +494,7 @@ Mesh mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags peri
     MPI_Cart_create(sync.comm, ndims, dims, periods, reorder, &comm);
     sync_reinit(comm);
 
-    int coords[3];
+    int coords[3] = {0};
     MPI_Cart_coords(sync.comm, sync.rank, ndims, coords);
 
     int neighbor[6];

@@ -16,7 +16,7 @@ hid_t h5io_group_create(const char *name, hid_t loc);
 hid_t h5io_group_open(const char *name, hid_t loc);
 void h5io_group_close(hid_t group);
 
-/* If `!object`, the attribute is attached to `loc`; otherwise it is attached to `loc/object`. */
+/* If `object == 0`, attribute is attached to `loc`; otherwise it is attached to `loc/object`. */
 void h5io_attribute_write(const char *object, const char *name, const void *buf, hsize_t dims,
                           hid_t type, hid_t loc);
 void h5io_attribute_read(const char *object, const char *name, void *buf, hsize_t dims, hid_t type,

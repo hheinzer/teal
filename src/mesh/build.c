@@ -53,7 +53,7 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
                 idx[off[i + 1]++] = adjncy[j];
             }
         }
-        assert(off[i + 1] - off[i] > 0);  // this triggers
+        assert(off[i + 1] - off[i] > 0);  // FIXME: rank has cells that do not belong here
     }
     free(xadj);
     free(adjncy);
@@ -69,28 +69,29 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     Arena save = arena_save();
 
     typedef struct {
+        long left;
+        long right;
+    } Pair;
+
+    typedef struct {
         long num;
         long node[MAX_FACE_NODES];
     } Face;
 
-    Dict pair2face = dict_create(sizeof(long[2]), sizeof(Face));
+    Dict pair2face = dict_create(sizeof(Pair), sizeof(Face));
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
             long min = lmin(i, cells->cell.idx[j]);
             long max = lmax(i, cells->cell.idx[j]);
-            if (dict_lookup(&pair2face, (long[2]){min, max})) {
-                continue;
-            }
             Face face = {0};
             for (long ii = cells->node.off[min]; ii < cells->node.off[min + 1]; ii++) {
                 for (long jj = cells->node.off[max]; jj < cells->node.off[max + 1]; jj++) {
                     if (cells->node.idx[ii] == cells->node.idx[jj]) {
-                        face.node[face.num++] = cells->node.idx[ii];
+                        face.node[face.num++] = cells->node.idx[ii];  // intersection of cell nodes
                     }
                 }
             }
-            assert(face.num <= MAX_FACE_NODES);
-            dict_insert(&pair2face, (long[2]){min, max}, &face);
+            dict_insert(&pair2face, &(Pair){min, max}, &face);
         }
     }
 
@@ -105,21 +106,21 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     long num_inner = 0;
     long num_ghost = 0;
     for (DictItem *item = pair2face.beg; item; item = item->next) {
-        long *pair = item->key;
+        Pair *pair = item->key;
         Face *face = item->val;
-        assert(pair[0] < cells->num_inner);
-        if (pair[1] < cells->num_inner) {
+        assert(pair->left < cells->num_inner);
+        if (pair->right < cells->num_inner) {
             num_inner += 1;
         }
-        else if (pair[1] < cells->num_inner + cells->num_ghost) {
+        else if (pair->right < cells->num_inner + cells->num_ghost) {
             num_ghost += 1;
         }
         off[num + 1] = off[num] + face->num;
         for (long j = 0, i = off[num]; i < off[num + 1]; i++, j++) {
             idx[i] = face->node[j];
         }
-        cell[num].left = pair[0];
-        cell[num].right = pair[1];
+        cell[num].left = pair->left;
+        cell[num].right = pair->right;
         num += 1;
     }
     assert(num == num_faces);
@@ -137,18 +138,15 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
 
 static long *compute_face_map(const MeshCells *cells, const MeshFaces *faces)
 {
-    long *map = arena_calloc(faces->num, sizeof(*map));
-    long num = 0;
+    long *map = arena_malloc(faces->num, sizeof(*map));
     for (long i = 0; i < faces->num; i++) {
         if (faces->cell[i].right < cells->num_inner) {
-            map[num] = faces->cell[i].left;
+            map[i] = faces->cell[i].left;
         }
         else {
-            map[num] = faces->cell[i].right;
+            map[i] = faces->cell[i].right;
         }
-        num += 1;
     }
-    assert(num == faces->num);
     return map;
 }
 
@@ -164,7 +162,7 @@ static void reorder_faces(const MeshCells *cells, MeshFaces *faces)
         MeshFaceCell cell;
     } Face;
 
-    Face *face = arena_calloc(faces->num, sizeof(*face));
+    Face *face = arena_malloc(faces->num, sizeof(*face));
 
     long *map = compute_face_map(cells, faces);
     for (long i = 0; i < faces->num; i++) {
@@ -190,14 +188,13 @@ static void reorder_faces(const MeshCells *cells, MeshFaces *faces)
 
 static void compute_face_entities(const MeshFaces *faces, MeshEntities *entities)
 {
-    long *face_off = arena_calloc(entities->num + 1, sizeof(*face_off));
+    long *face_off = arena_malloc(entities->num + 1, sizeof(*face_off));
     face_off[0] = faces->num_inner;
     for (long i = 0; i < entities->num; i++) {
         face_off[i + 1] = face_off[i];
-        if (i < entities->num_inner) {
-            continue;
+        if (i >= entities->num_inner) {
+            face_off[i + 1] += entities->cell_off[i + 1] - entities->cell_off[i];
         }
-        face_off[i + 1] += entities->cell_off[i + 1] - entities->cell_off[i];
     }
     entities->face_off = face_off;
 }
@@ -224,7 +221,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     }
 
     long tot_recv = cells->num - cells->num_inner - cells->num_ghost;
-    vector *recv = arena_calloc(tot_recv, sizeof(*recv));
+    vector *recv = arena_malloc(tot_recv, sizeof(*recv));
     long num = 0;
     for (long i = cells->num_inner + cells->num_ghost; i < cells->num; i++) {
         vector center = {0};
@@ -233,13 +230,14 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
             vector coord = nodes->coord[cells->node.idx[j]];
             center = vector_add(center, vector_div(coord, num_nodes));
         }
-        long entity = array_ldigitize(&entities->cell_off[1], i, entities->num);
+        long entity = array_digitize(&entities->cell_off[1], i, entities->num);
         if (entity < entities->num) {
-            recv[num++] = vector_add(center, entities->offset[entity]);
+            recv[num] = vector_add(center, entities->offset[entity]);
         }
         else {
-            recv[num++] = center;
+            recv[num] = center;
         }
+        num += 1;
     }
     assert(num == tot_recv);
 
@@ -272,7 +270,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
     assert(off_recv == tot_recv);
 
-    long *idx = arena_calloc(tot_send, sizeof(*idx));
+    long *idx = arena_malloc(tot_send, sizeof(*idx));
     for (long i = 0; i < tot_send; i++) {
         long *local = kdtree_lookup(&center2local, send[i]);
         assert(local);
@@ -324,6 +322,15 @@ static double compute_face_area(const vector *coord, long num_nodes)
     }
 }
 
+static vector weighted_average(const vector *arr, const double *wgt, long num)
+{
+    vector wsum = {0};
+    for (long i = 0; i < num; i++) {
+        wsum = vector_add(wsum, vector_mul(arr[i], wgt[i]));
+    }
+    return vector_div(wsum, array_fsum(wgt, num));
+}
+
 static vector compute_face_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -333,7 +340,7 @@ static vector compute_face_center(const vector *coord, long num_nodes)
             vector rhs[3] = {coord[0], coord[2], coord[3]};
             vector cen[2] = {compute_face_center(lhs, 3), compute_face_center(rhs, 3)};
             double area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
-            return vector_div(array_vwsum(cen, area, 2), area[0] + area[1]);
+            return weighted_average(cen, area, 2);
         }
         default: abort();
     }
@@ -393,9 +400,9 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, l
 
 static void compute_face_geometry(const MeshNodes *nodes, const MeshCells *cells, MeshFaces *faces)
 {
-    double *area = arena_calloc(faces->num, sizeof(*area));
-    vector *center = arena_calloc(faces->num, sizeof(*center));
-    matrix *basis = arena_calloc(faces->num, sizeof(*basis));
+    double *area = arena_malloc(faces->num, sizeof(*area));
+    vector *center = arena_malloc(faces->num, sizeof(*center));
+    matrix *basis = arena_malloc(faces->num, sizeof(*basis));
 
     for (long i = 0; i < faces->num; i++) {
         vector coord[MAX_FACE_NODES] = {0};
@@ -452,26 +459,27 @@ static vector compute_cell_center(const vector *coord, long num_nodes)
             vector rhs[4] = {coord[0], coord[2], coord[3], coord[4]};
             vector cen[2] = {compute_cell_center(lhs, 4), compute_cell_center(rhs, 4)};
             double vol[2] = {compute_cell_volume(lhs, 4), compute_cell_volume(rhs, 4)};
-            return vector_div(array_vwsum(cen, vol, 2), vol[0] + vol[1]);
+            return weighted_average(cen, vol, 2);
         }
         case 6: {
             vector lhs[5] = {coord[0], coord[1], coord[4], coord[3], coord[5]};
             vector rhs[4] = {coord[0], coord[1], coord[2], coord[5]};
             vector cen[2] = {compute_cell_center(lhs, 5), compute_cell_center(rhs, 4)};
             double vol[2] = {compute_cell_volume(lhs, 5), compute_cell_volume(rhs, 4)};
-            return vector_div(array_vwsum(cen, vol, 2), vol[0] + vol[1]);
+            return weighted_average(cen, vol, 2);
         }
         case 8: {
             vector lhs[6] = {coord[0], coord[1], coord[2], coord[4], coord[5], coord[6]};
             vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
             vector cen[2] = {compute_cell_center(lhs, 6), compute_cell_center(rhs, 6)};
             double vol[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
-            return vector_div(array_vwsum(cen, vol, 2), vol[0] + vol[1]);
+            return weighted_average(cen, vol, 2);
         }
         default: abort();
     }
 }
 
+/* Exchange centers for outer cells so neighbor/periodic copies receive an interior center. */
 static void collect_centers(const MeshNeighbors *neighbors, vector *center)
 {
     Arena save = arena_save();
@@ -498,7 +506,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
                                   const MeshEntities *entities, const MeshNeighbors *neighbors)
 {
     double *volume = arena_calloc(cells->num, sizeof(*volume));
-    vector *center = arena_calloc(cells->num, sizeof(*center));
+    vector *center = arena_malloc(cells->num, sizeof(*center));
     vector *projection = arena_calloc(cells->num, sizeof(*projection));
 
     for (long i = 0; i < cells->num_inner; i++) {
@@ -520,7 +528,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
         if (right < cells->num_inner) {
             projection[right] = vector_add(projection[right], inc);
         }
-        else if (i < faces->num_inner + faces->num_ghost) {  // mirror centers across faces
+        else if (i < faces->num_inner + faces->num_ghost) {  // mirror left center across the faces
             vector c2f = vector_sub(faces->center[i], center[left]);
             center[right] = vector_add(center[left], vector_mul(nrm, 2 * vector_dot(c2f, nrm)));
         }
@@ -541,8 +549,6 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
 
 static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 {
-    vector *weight = arena_calloc(faces->num, sizeof(*weight));
-
     Arena save = arena_save();
 
     double *r11 = arena_calloc(cells->num_inner, sizeof(*r11));
@@ -580,6 +586,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i])));
     }
 
+    vector *weight = arena_calloc(faces->num, sizeof(*weight));
     for (long i = 0; i < faces->num; i++) {
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
@@ -610,7 +617,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 
     arena_load(save);
 
-    faces->weight = weight;
+    faces->weight = arena_smuggle(weight, faces->num, sizeof(*weight));
 }
 
 void mesh_build(Mesh *mesh)

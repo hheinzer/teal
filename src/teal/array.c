@@ -96,43 +96,7 @@ vector array_vsum(const vector *arr, long num)
     return sum;
 }
 
-vector array_vwsum(const vector *arr, const double *wgt, long num)
-{
-    assert((arr || wgt) ? (arr && wgt && num >= 0) : num == 0);
-    vector sum = {0};
-    for (long i = 0; i < num; i++) {
-        sum = vector_add(sum, vector_mul(arr[i], wgt[i]));
-    }
-    return sum;
-}
-
-long array_ldigitize(const long *arr, long val, long num)
-{
-    assert(arr ? num >= 0 : num == 0);
-    if (num == 0) {
-        return 0;
-    }
-    long left = 0;
-    long right = num - 1;
-    if (val < arr[left]) {
-        return 0;
-    }
-    if (arr[right] <= val) {
-        return num;
-    }
-    while (left < right) {
-        long mid = left + ((right - left) / 2);
-        if (arr[mid] <= val) {
-            left = mid + 1;
-        }
-        else {
-            right = mid;
-        }
-    }
-    return left;
-}
-
-long array_fdigitize(const double *arr, double val, long num)
+long array_digitize(const long *arr, long val, long num)
 {
     assert(arr ? num >= 0 : num == 0);
     if (num == 0) {

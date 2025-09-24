@@ -1,0 +1,17 @@
+#!/bin/bash
+
+ncores=1 # number of cores
+while getopts "n:" opt; do
+    case $opt in
+        n) ncores=$OPTARG ;;
+        *) exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+prog=$1 # program
+args=${@:2} # program arguments
+
+mpirun -n $ncores valgrind -q --tool=memcheck --gen-suppressions=no \
+    --suppressions=tools/valgrind.supp --leak-check=full --track-origins=yes \
+    $prog $args

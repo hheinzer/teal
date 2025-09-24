@@ -1,17 +1,19 @@
 # compiler, default flags, and libraries
 CC = clang
-CFLAGS = -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Isrc
+CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Isrc
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 
 # debug flags
-CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
+CFLAGS += -Og -fno-omit-frame-pointer -fsanitize-trap -fsanitize=undefined
+CFLAGS += -fsanitize=address
+#CFLAGS += -D ENABLE_VALGRIND
 
 # release flags
-#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
+#CFLAGS += -O3 -march=native -flto=auto -D NDEBUG
 
 # profiling flags
-#CFLAGS += -Og -pg
+#CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
 
 # sources, objects, and programs
 SRC = $(shell find src -type f -name '*.c')

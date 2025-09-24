@@ -13,7 +13,6 @@ double array_fsum(const double *arr, long num);
 vector array_vmin(const vector *arr, long num);
 vector array_vmax(const vector *arr, long num);
 vector array_vsum(const vector *arr, long num);
-vector array_vwsum(const vector *arr, const double *wgt, long num);
 
-long array_ldigitize(const long *arr, long val, long num);
-long array_fdigitize(const double *arr, double val, long num);
+/* Return index of first `arr[i] > val` in sorted array; if beyond bounds return `0` or `num`. */
+long array_digitize(const long *arr, long val, long num);

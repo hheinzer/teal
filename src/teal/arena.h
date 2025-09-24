@@ -18,9 +18,6 @@ void *arena_resize(const void *ptr, long num, long size);
 /* Move memory from a frame invalidated by `arena_load()` back into the arena. */
 void *arena_smuggle(const void *ptr, long num, long size) __attribute((malloc));
 
-/* Move heap memory into the arena and free the source. */
-void *arena_consume(void *ptr, long num, long size) __attribute((malloc));
-
 Arena arena_save(void);
 void arena_load(Arena save);
 

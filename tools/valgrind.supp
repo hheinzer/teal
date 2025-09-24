@@ -1,0 +1,48 @@
+# openmpi
+{
+    openmpi_param
+    Memcheck:Param
+    process_vm_readv(lvec[...])
+    ...
+    fun:*ompi*
+    ...
+}
+{
+   openmpi_param
+   Memcheck:Param
+   pwrite64(buf)
+   ...
+   fun:*ompi*
+   ...
+}
+{
+   openmpi_cond
+   Memcheck:Cond
+   ...
+   fun:*ompi*
+   ...
+}
+{
+    openmpi_leak
+    Memcheck:Leak
+    ...
+    fun:*ompi*
+    ...
+}
+
+# thread
+{
+    thread_param
+    Memcheck:Param
+    writev(vector[1])
+    ...
+    fun:*thread*
+    ...
+}
+{
+    thread_leak
+    Memcheck:Leak
+    ...
+    fun:*thread*
+    ...
+}

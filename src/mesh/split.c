@@ -17,6 +17,7 @@ static long find_entity(const MeshEntities *entities, const char *entity)
     return -1;
 }
 
+/* Grow entities arrays by one slot. */
 static void grow_entities(MeshEntities *entities, long idx)
 {
     if (idx < entities->num_inner) {
@@ -27,7 +28,7 @@ static void grow_entities(MeshEntities *entities, long idx)
     }
     entities->num += 1;
 
-    string *name = arena_malloc(entities->num, sizeof(*name));
+    string *name = arena_calloc(entities->num, sizeof(*name));
     entities->name = memcpy(name, entities->name, (entities->num - 1) * sizeof(*name));
 
     long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
@@ -41,9 +42,8 @@ static void grow_entities(MeshEntities *entities, long idx)
 static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, vector root,
                               vector normal, long beg, long end)
 {
-    long *map = arena_calloc(end - beg, sizeof(*map));
-    long num = 0;
-    for (long i = beg; i < end; i++) {
+    long *map = arena_malloc(end - beg, sizeof(*map));
+    for (long num = 0, i = beg; i < end; i++, num++) {
         vector center = {0};
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
@@ -51,13 +51,11 @@ static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, ve
             center = vector_add(center, vector_div(coord, num_nodes));
         }
         map[num] = (vector_dot(vector_sub(center, root), normal) <= 0) ? i : end + i;
-        num += 1;
     }
-    assert(num == end - beg);
     return map;
 }
 
-/* Reorder cell-to-node connectivity for [beg,end). */
+/* Reorder cell-to-node connectivity for [beg,end) according to `map`. */
 static void reorder_cells(MeshCells *cells, long beg, long end, const long *map)
 {
     Arena save = arena_save();
@@ -68,7 +66,7 @@ static void reorder_cells(MeshCells *cells, long beg, long end, const long *map)
         long node[MAX_CELL_NODES];
     } Cell;
 
-    Cell *cell = arena_calloc(end - beg, sizeof(*cell));
+    Cell *cell = arena_malloc(end - beg, sizeof(*cell));
 
     for (long num = 0, i = beg; i < end; i++, num++) {
         cell[num].map = map[num];
@@ -89,6 +87,7 @@ static void reorder_cells(MeshCells *cells, long beg, long end, const long *map)
     arena_load(save);
 }
 
+/* Split entity metadata at `idx` into two consecutive entities. */
 static void split_entities(MeshEntities *entities, long idx, long beg, long end, const long *map)
 {
     for (long i = entities->num - 1; i > idx; i--) {

@@ -25,7 +25,7 @@ void mesh_summary(const Mesh *mesh)
     long periodic_cells = sync_lsum(mesh->cells.num_periodic);
     long neighbor_cells = sync_lsum(mesh->cells.num - mesh->cells.num_inner -
                                     mesh->cells.num_ghost - mesh->cells.num_periodic);
-    long exchange_cells = count_exchange_cells(&mesh->neighbors);
+    long exchange_cells = sync_lsum(count_exchange_cells(&mesh->neighbors));
 
     vector min_coord = sync_vmin(array_vmin(mesh->nodes.coord, mesh->nodes.num_inner));
     vector max_coord = sync_vmax(array_vmax(mesh->nodes.coord, mesh->nodes.num_inner));

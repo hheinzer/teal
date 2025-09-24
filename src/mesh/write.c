@@ -27,14 +27,14 @@ static void write_node_graph(const MeshGraph *node, const long *global, long num
     hid_t group = h5io_group_create("node", loc);
 
     long num = num_cells + (sync.rank == 0);
-    long *off = arena_calloc(num, sizeof(*off));
-    long offset = sync_lexsum(node->off[num_cells]);
+    long *off = arena_malloc(num, sizeof(*off));
+    long offset = sync_exsum(node->off[num_cells]);
     for (long i = 0; i < num; i++) {
         off[i] = offset + node->off[i + (sync.rank != 0)];
     }
     h5io_dataset_write("off", off, (hsize_t[]){num}, 1, H5IO_LONG, group);
 
-    long *idx = arena_calloc(node->off[num_cells], sizeof(*idx));
+    long *idx = arena_malloc(node->off[num_cells], sizeof(*idx));
     for (long i = 0; i < node->off[num_cells]; i++) {
         idx[i] = global[node->idx[i]];
     }
@@ -60,13 +60,14 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     write_node_graph(&cells->node, nodes->global, num_cells, group);
 
-    unsigned char *type = arena_calloc(num_cells, sizeof(*type));
-    int *rank = arena_calloc(num_cells, sizeof(*rank));
-    long *local = arena_calloc(num_cells, sizeof(*local));
-    long *global = arena_calloc(num_cells, sizeof(*global));
-    long *entity = arena_calloc(num_cells, sizeof(*entity));
+    unsigned char *type = arena_malloc(num_cells, sizeof(*type));
+    long *entity = arena_malloc(num_cells, sizeof(*entity));
 
-    long off_cells = sync_lexsum(num_cells);
+    long *local = arena_malloc(num_cells, sizeof(*local));
+    long *global = arena_malloc(num_cells, sizeof(*global));
+    int *rank = arena_malloc(num_cells, sizeof(*rank));
+
+    long off_cells = sync_exsum(num_cells);
     long num = 0;
     for (long i = 0; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
@@ -89,20 +90,21 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                     default: abort();
                 }
             }
-            rank[num] = sync.rank;
+            entity[num] = i;
             local[num] = j;
             global[num] = j + off_cells;
-            entity[num] = i;
+            rank[num] = sync.rank;
             num += 1;
         }
     }
     assert(num == num_cells);
 
     h5io_dataset_write("type", type, (hsize_t[]){num_cells}, 1, H5IO_UCHAR, group);
-    h5io_dataset_write("rank", rank, (hsize_t[]){num_cells}, 1, H5IO_INT, group);
+    h5io_dataset_write("entity", entity, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
+
     h5io_dataset_write("local", local, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
     h5io_dataset_write("global", global, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
-    h5io_dataset_write("entity", entity, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
+    h5io_dataset_write("rank", rank, (hsize_t[]){num_cells}, 1, H5IO_INT, group);
 
     h5io_dataset_write("volume", cells->volume, (hsize_t[]){num_cells}, 1, H5IO_DOUBLE, group);
     h5io_dataset_write("center", cells->center, (hsize_t[]){num_cells, 3}, 2, H5IO_DOUBLE, group);

@@ -101,7 +101,7 @@ void mesh_print(const Mesh *mesh)
             printf("rank %d:\n", sync.rank);
 
             if (mesh->nodes.num) {
-                printf("\t mesh->nodes.{num|inner} = [ %ld | %ld ]\n", mesh->nodes.num,
+                printf("\t mesh->nodes.{num|inner} = %ld | %ld\n", mesh->nodes.num,
                        mesh->nodes.num_inner);
                 printf("\t mesh->nodes.{global|coord} = [\n");
                 for (long i = 0; i < mesh->nodes.num; i++) {
@@ -114,7 +114,7 @@ void mesh_print(const Mesh *mesh)
             }
 
             if (mesh->cells.num) {
-                printf("\t mesh->cells.{num|inner|ghost|periodic} = [ %ld | %ld | %ld | %ld ]\n",
+                printf("\t mesh->cells.{num|inner|ghost|periodic} = %ld | %ld | %ld | %ld\n",
                        mesh->cells.num, mesh->cells.num_inner, mesh->cells.num_ghost,
                        mesh->cells.num_periodic);
                 printf("\t mesh->cells.{node|cell|volume|center|projection} = [\n");
@@ -131,7 +131,7 @@ void mesh_print(const Mesh *mesh)
             }
 
             if (mesh->faces.num) {
-                printf("\t mesh->faces.{num|inner|ghost} = [ %ld | %ld | %ld ]\n", mesh->faces.num,
+                printf("\t mesh->faces.{num|inner|ghost} = %ld | %ld | %ld\n", mesh->faces.num,
                        mesh->faces.num_inner, mesh->faces.num_ghost);
                 printf("\t mesh->faces.{node|cell|area|center|basis|weight} = [\n");
                 for (long i = 0; i < mesh->faces.num; i++) {
@@ -148,7 +148,7 @@ void mesh_print(const Mesh *mesh)
             }
 
             if (mesh->entities.num) {
-                printf("\t mesh->entities.{num|inner|ghost} = [ %ld | %ld | %ld ]\n",
+                printf("\t mesh->entities.{num|inner|ghost} = %ld | %ld | %ld\n",
                        mesh->entities.num, mesh->entities.num_inner, mesh->entities.num_ghost);
                 printf("\t mesh->entities.{name|cell|face|offset} = [\n");
                 for (long i = 0; i < mesh->entities.num; i++) {
@@ -163,7 +163,7 @@ void mesh_print(const Mesh *mesh)
             }
 
             if (mesh->neighbors.num) {
-                printf("\t mesh->neighbors.num = [ %ld ]\n", mesh->neighbors.num);
+                printf("\t mesh->neighbors.num = %ld\n", mesh->neighbors.num);
                 printf("\t mesh->neighbors.{rank|recv|send} = [\n");
                 for (long i = 0; i < mesh->neighbors.num; i++) {
                     printf("\t\t [%ld]", i);

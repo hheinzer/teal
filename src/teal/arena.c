@@ -10,12 +10,20 @@ enum { ALIGN = 64 };  // getconf LEVEL1_DCACHE_LINESIZE
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 #include <sanitizer/asan_interface.h>
-#define ASAN_POISON_MEMORY_REGION(addr, size) __asan_poison_memory_region((addr), (size))
-#define ASAN_UNPOISON_MEMORY_REGION(addr, size) __asan_unpoison_memory_region((addr), (size))
+#define MAKE_REGION_NOACCESS(addr, size) __asan_poison_memory_region(addr, size)
+#define MAKE_REGION_ADDRESSABLE(addr, size) __asan_unpoison_memory_region(addr, size)
+#define MAKE_REGION_DEFINED(addr, size) MAKE_REGION_ADDRESSABLE(addr, size)
+enum { REDZONE = ALIGN };
+#elif defined(ENABLE_VALGRIND)
+#include <valgrind/memcheck.h>
+#define MAKE_REGION_NOACCESS(addr, size) VALGRIND_MAKE_MEM_NOACCESS(addr, size)
+#define MAKE_REGION_ADDRESSABLE(addr, size) VALGRIND_MAKE_MEM_UNDEFINED(addr, size)
+#define MAKE_REGION_DEFINED(addr, size) VALGRIND_MAKE_MEM_DEFINED(addr, size)
 enum { REDZONE = ALIGN };
 #else
-#define ASAN_POISON_MEMORY_REGION(addr, size) ((void)(addr), (void)(size))
-#define ASAN_UNPOISON_MEMORY_REGION(addr, size) ((void)(addr), (void)(size))
+#define MAKE_REGION_NOACCESS(addr, size) ((void)(addr), (void)(size))
+#define MAKE_REGION_ADDRESSABLE(addr, size) ((void)(addr), (void)(size))
+#define MAKE_REGION_DEFINED(addr, size) ((void)(addr), (void)(size))
 enum { REDZONE = 0 };
 #endif
 
@@ -33,8 +41,7 @@ void arena_init(long capacity)
 
     arena.beg = arena_base;
     arena_end = arena_base + capacity;
-
-    ASAN_POISON_MEMORY_REGION(arena_base, capacity);
+    MAKE_REGION_NOACCESS(arena_base, capacity);
 }
 
 void *arena_malloc(long num, long size)
@@ -47,8 +54,7 @@ void *arena_malloc(long num, long size)
 
     arena.last = arena.beg + padding + REDZONE;
     arena.beg = arena.last + num * size;
-
-    ASAN_UNPOISON_MEMORY_REGION(arena.last, num * size);
+    MAKE_REGION_ADDRESSABLE(arena.last, num * size);
 
     size_max = lmax(size_max, arena_size());
     return arena.last;
@@ -80,10 +86,10 @@ void *arena_resize(const void *ptr, long num, long size)
         arena.beg = arena.last + new_size;
 
         if (old_size < new_size) {
-            ASAN_UNPOISON_MEMORY_REGION(arena.last + old_size, new_size - old_size);
+            MAKE_REGION_ADDRESSABLE(arena.last + old_size, new_size - old_size);
         }
         else {
-            ASAN_POISON_MEMORY_REGION(arena.last + new_size, old_size - new_size);
+            MAKE_REGION_NOACCESS(arena.last + new_size, old_size - new_size);
         }
 
         size_max = lmax(size_max, arena_size());
@@ -92,21 +98,21 @@ void *arena_resize(const void *ptr, long num, long size)
     return 0;
 }
 
+static void *(*const volatile force_memmove)(void *, const void *, size_t) = memmove;
+
 void *arena_smuggle(const void *ptr, long num, long size)
 {
-    assert(arena.beg <= (char *)ptr && (char *)ptr < arena_end);
     void *new = arena_malloc(num, size);
-    ASAN_UNPOISON_MEMORY_REGION(ptr, num * size);
-    memmove(new, ptr, num * size);
-    ASAN_POISON_MEMORY_REGION(ptr, num * size);
-    return new;
-}
-
-void *arena_consume(void *ptr, long num, long size)
-{
-    assert((char *)ptr < arena_base || arena_end <= (char *)ptr);
-    void *new = arena_memdup(ptr, num, size);
-    free(ptr);
+    assert((char *)new <= (char *)ptr && (char *)ptr < arena_end);
+    MAKE_REGION_DEFINED(ptr, num * size);
+    if ((char *)ptr - (char *)new < num * size) {
+        force_memmove(new, ptr, num * size);  // avoid compiler folding into memcpy
+        MAKE_REGION_NOACCESS((char *)new + (num * size), (char *)ptr - (char *)new);
+    }
+    else {
+        memcpy(new, ptr, num * size);
+        MAKE_REGION_NOACCESS(ptr, num * size);
+    }
     return new;
 }
 
@@ -118,7 +124,7 @@ Arena arena_save(void)
 void arena_load(Arena save)
 {
     assert(save.beg <= arena.beg);
-    ASAN_POISON_MEMORY_REGION(save.beg, arena.beg - save.beg);
+    MAKE_REGION_NOACCESS(save.beg, arena.beg - save.beg);
     arena = save;
 }
 

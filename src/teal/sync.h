@@ -31,7 +31,7 @@ vector sync_vmin(vector val);
 vector sync_vmax(vector val);
 vector sync_vsum(vector val);
 
-long sync_lexsum(long val);
-double sync_fexsum(double val);
+/* Return exclusive prefix sum of `val`. */
+long sync_exsum(long val);
 
 void sync_finalize(void);

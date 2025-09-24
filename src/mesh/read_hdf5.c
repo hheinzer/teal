@@ -16,7 +16,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     nodes->num = (tot_nodes / sync.size) + (sync.rank < tot_nodes % sync.size);
     assert(tot_nodes == sync_lsum(nodes->num));
 
-    nodes->coord = calloc(nodes->num, sizeof(*nodes->coord));
+    nodes->coord = malloc(nodes->num * sizeof(*nodes->coord));
     assert(nodes->coord);
 
     h5io_dataset_read("coord", nodes->coord, (hsize_t[]){nodes->num, 3}, 2, H5IO_DOUBLE, group);
@@ -29,8 +29,10 @@ static void read_node_graph(MeshGraph *node, long num_cells, hid_t loc)
 {
     hid_t group = h5io_group_open("node", loc);
 
-    node->off = calloc(num_cells + 1, sizeof(*node->off));
+    node->off = malloc((num_cells + 1) * sizeof(*node->off));
     assert(node->off);
+
+    node->off[0] = 0;
 
     long num = num_cells + (sync.rank == 0);
     h5io_dataset_read("off", &node->off[sync.rank != 0], (hsize_t[]){num}, 1, H5IO_LONG, group);
@@ -45,7 +47,7 @@ static void read_node_graph(MeshGraph *node, long num_cells, hid_t loc)
         node->off[i + 1] -= offset;
     }
 
-    node->idx = calloc(node->off[num_cells], sizeof(*node->idx));
+    node->idx = malloc(node->off[num_cells] * sizeof(*node->idx));
     assert(node->idx);
 
     h5io_dataset_read("idx", node->idx, (hsize_t[]){node->off[num_cells]}, 1, H5IO_LONG, group);
@@ -76,14 +78,12 @@ static void read_entities(MeshEntities *entities, hid_t loc)
     h5io_attribute_read(0, "num_inner", &entities->num_inner, 1, H5IO_LONG, group);
     h5io_attribute_read(0, "num_ghost", &entities->num_ghost, 1, H5IO_LONG, group);
 
-    entities->name = arena_calloc(entities->num, sizeof(*entities->name));
+    entities->name = arena_malloc(entities->num, sizeof(*entities->name));
 
     long num_entities = (sync.rank == 0) ? entities->num : 0;
     h5io_dataset_read("name", entities->name, (hsize_t[]){num_entities}, 1, H5IO_STRING, group);
 
     MPI_Bcast(entities->name, entities->num * sizeof(*entities->name), MPI_CHAR, 0, sync.comm);
-
-    entities->cell_off = arena_calloc(entities->num + 1, sizeof(*entities->cell_off));
 
     h5io_group_close(group);
 }
@@ -93,7 +93,7 @@ static void reorder_cells(MeshCells *cells, MeshEntities *entities, hid_t loc)
 {
     Arena save = arena_save();
 
-    long *entity = arena_calloc(cells->num, sizeof(*entity));
+    long *entity = arena_malloc(cells->num, sizeof(*entity));
     h5io_dataset_read("cells/entity", entity, (hsize_t[]){cells->num}, 1, H5IO_LONG, loc);
 
     typedef struct {
@@ -111,20 +111,23 @@ static void reorder_cells(MeshCells *cells, MeshEntities *entities, hid_t loc)
             cell[i].node[k] = cells->node.idx[j];
         }
     }
-    qsort(cell, cells->num, sizeof(*cell), lcmp);  // sort by entity
+    qsort(cell, cells->num, sizeof(*cell), lcmp);
 
+    long *cell_off = arena_calloc(entities->num + 1, sizeof(*cell_off));
     for (long i = 0; i < cells->num; i++) {
         cells->node.off[i + 1] = cells->node.off[i] + cell[i].num;
         for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
             cells->node.idx[j] = cell[i].node[k];
         }
-        entities->cell_off[1 + cell[i].entity] += 1;
+        cell_off[cell[i].entity + 1] += 1;
     }
     for (long i = 0; i < entities->num; i++) {
-        entities->cell_off[i + 1] += entities->cell_off[i];
+        cell_off[i + 1] += cell_off[i];
     }
 
     arena_load(save);
+
+    entities->cell_off = arena_smuggle(cell_off, entities->num + 1, sizeof(*cell_off));
 }
 
 void read_hdf5(Mesh *mesh, const char *fname)

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "arena.h"
+#include "teal/vector.h"
 #include "utils.h"
 
 Kdtree kdtree_create(long size_val)
@@ -62,6 +63,7 @@ void *kdtree_insert(Kdtree *self, vector key, const void *val)
         self->end->next = *item;
     }
     self->end = *item;
+
     return 0;
 }
 
@@ -103,14 +105,14 @@ static Stack *pop(Stack **self)
     return curr;
 }
 
-static double sqdist(vector lhs, vector rhs)
+static double squared_distance(vector lhs, vector rhs)
 {
-    vector sub = {lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
-    return (sub.x * sub.x) + (sub.y * sub.y) + (sub.z * sub.z);
+    vector sub = vector_sub(lhs, rhs);
+    return vector_dot(sub, sub);
 }
 
-static void heapreplace(const void *item_val, double item_metric, void *val, double *metric,
-                        long num, long size)
+static void heap_replace(const void *item_val, double item_metric, void *val, double *metric,
+                         long num, long size)
 {
     char (*_val)[size] = val;
 
@@ -174,9 +176,9 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
             continue;
         }
 
-        double item_metric = sqdist(key, item->key);
+        double item_metric = squared_distance(key, item->key);
         if (item_metric < metric[0]) {
-            heapreplace(item->val, item_metric, val, metric, num, self->size_val);
+            heap_replace(item->val, item_metric, val, metric, num, self->size_val);
         }
 
         double del = delta(key, item->key, depth);
@@ -212,7 +214,7 @@ long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, double r
             continue;
         }
 
-        double item_metric = sqdist(key, item->key);
+        double item_metric = squared_distance(key, item->key);
         if (item_metric <= metric) {
             memcpy(_val[num++], item->val, self->size_val);
         }

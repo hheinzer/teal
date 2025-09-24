@@ -15,7 +15,7 @@ static const int NON_NULL;
 #define assert(expr) ((expr) ? (void)0 : assert_fail(__FILE__, __LINE__, __func__, #expr))
 #endif
 
-void assert_fail(const char *file, unsigned int line, const char *func, const char *expr)
+void assert_fail(const char *file, long line, const char *func, const char *expr)
     __attribute((noreturn));
 
 void print(const char *format, ...) __attribute((format(printf, 1, 2)));

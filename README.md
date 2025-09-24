@@ -1,13 +1,10 @@
-# Teal: a colorful fluid dynamics solver
-
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+# Teal
 
 Teal is a general-purpose computational fluid dynamics library designed to solve
 hyperbolic-parabolic conservation laws on 3D unstructured meshes using the finite-volume method. It
 includes a simple mesh generator and can integrate with GMSH for complex geometries. Built-in
 solvers handle the compressible Euler and Navier-Stokes equations, with support for user-defined
-source terms. The flexible teal API also makes it easy to implement solvers for other equation
-systems.
+source terms. The flexible teal API makes it easy to implement solvers for other equation systems.
 
 ## Features
 
@@ -19,12 +16,10 @@ systems.
   - Least-squares gradient reconstruction
 - Up to 3rd order temporal accuracy
   - Low storage explicit Runge-Kutta schemes
-  - Implicit Euler with Newton–GMRES solver
+  - Implicit Euler with Newton-GMRES solver
 - Modular equation system design
-  - Compressible Euler and Navier-Stokes
+  - Compressible Euler and Navier-Stokes equations
   - Extensible to other conservation laws
-- MPI parallelization for distributed-memory clusters
-  - Designed for scalability without hidden serial bottlenecks
 
 ## Getting started
 
@@ -36,11 +31,10 @@ cd teal
 make
 ```
 
-The `make` build places executables into the `bin/` directory.
+The `make` build places executables into the `bin` directory.
 
 The best way to get started with teal is to check out the test cases in [run](run/). For example,
-you can try running the [Sod shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube) case with
-MPI:
+you can try running the [Sod shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube) case:
 
 ```bash
 mpirun -n 4 bin/riemann/sod
@@ -54,14 +48,14 @@ If you run into compilation problems, check the [installation](INSTALL.md) instr
 ## Documentation
 
 For now, there is no dedicated documentation. In my opinion, the function and variable names
-together with the comments I provided should be enough to understand what's going on. I know that
-this is probably a hot take; I would spend some extra time and effort into putting together
-something better, if there is enough interest in the project.
+together with the inline comments should be enough to understand what's going on. I know that this
+is probably a hot take; I will spend some extra time and effort to put together something better, if
+there is enough interest in the project.
 
 If you want to explore the code, the [src](src/) directory contains the main modules of teal. Each
 module’s header file provides a brief overview and lists its public functions. The folder with the
-name of the module contains all the implementations. One exception is the `teal` module which
-contains the core tools used throughout all the modules.
+name of the module contains its implementation. One exception is the `teal` module which contains
+the core tools used throughout all modules.
 
 ## Contributing
 
@@ -69,10 +63,10 @@ Contributions are welcome!
 
 If you find a bug or have a feature request, please open an issue. To contribute code:
 
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Commit your changes and push to your fork.
-4. Open a pull request to the main branch.
+1. Fork the repository
+2. Create a new branch for your feature or bug fix
+3. Commit your changes and push to your fork
+4. Open a pull request to the main branch
 
 ## Acknowledgments
 
@@ -90,12 +84,12 @@ Teal is licensed under the GPL-3.0 [license](LICENSE).
 
 ## Things you might find odd
 
-- I do not use unsigned integers. Whenever I use an integer, I always use `long`. I only deviate
-  from these rules if I have to match some external API. This has never caused a problem for me, and
-  it removes the need to think about integer types.
-- I use `const` only for function arguments, but not for local variables. In my experience, `const`
-  for a local variable has never caught a bug, but adds a lot of visual noise. One exception is when
-  I want to create a typed constant, then I use `static const`.
+- I do not use unsigned integers. Whenever I need an integer, I always use `long` unless I have to
+  match an external API. This has never caused a problem for me, and it removes the need to think
+  about integer types.
+- I use `const` only for function arguments, not for local variables. In my experience, `const` for
+  a local variable has never caught a bug, but adds a lot of visual noise. One exception is when I
+  want to create a typed constant, then I use `static const`.
 - I use an arena allocator for most of the memory management. The implementation is loosely based on
   an [article](https://nullprogram.com/blog/2023/09/27/) by [@skeeto](https://github.com/skeeto).
 - There are no config files, the simulations are defined directly in C. In my opinion, parsing
