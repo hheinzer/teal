@@ -91,7 +91,7 @@ typedef struct {
 
 static void push(Stack **self, KdtreeItem *item, long depth)
 {
-    Stack *next = arena_calloc(1, sizeof(*next));
+    Stack *next = arena_malloc(1, sizeof(*next));
     next->item = item;
     next->depth = depth;
     next->prev = *self;
@@ -161,7 +161,7 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
 
     Arena save = arena_save();
 
-    double *metric = arena_calloc(num, sizeof(*metric));
+    double *metric = arena_malloc(num, sizeof(*metric));
     for (long i = 0; i < num; i++) {
         metric[i] = INFINITY;
     }

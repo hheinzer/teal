@@ -105,6 +105,9 @@ void *arena_smuggle(const void *ptr, long num, long size)
     void *new = arena_malloc(num, size);
     assert((char *)new <= (char *)ptr && (char *)ptr < arena_end);
     MAKE_REGION_DEFINED(ptr, num * size);
+    if (new == ptr) {
+        return new;
+    }
     if ((char *)ptr - (char *)new < num * size) {
         force_memmove(new, ptr, num * size);  // avoid compiler folding into memcpy
         MAKE_REGION_NOACCESS((char *)new + (num * size), (char *)ptr - (char *)new);

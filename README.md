@@ -106,5 +106,5 @@ interest of transparency, I will say that I do use ChatGPT to get a second opini
 texts/comments/documentation, as well as function implementations. At the moment, I am still unsure
 how useful the generated output is; Very often I find myself arguing with the LLM. Should you be
 unconvinced that the code in this repo was written by an actual human, take a look at the
-implementation of `mesh_read()`. Maybe you can let your favorite LLM take a crack at implementing
-that function *correctly*.
+implementation of [`mesh_read()`](src/mesh/read.c). Maybe you can let your favorite LLM take a crack
+at implementing that function.

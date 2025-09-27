@@ -53,7 +53,7 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
                 idx[off[i + 1]++] = adjncy[j];
             }
         }
-        assert(off[i + 1] - off[i] > 0);  // FIXME: rank has cells that do not belong here
+        assert(off[i + 1] - off[i] > 0);
     }
     free(xadj);
     free(adjncy);
@@ -61,6 +61,111 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     cells->cell.off = off;
     cells->cell.idx = arena_resize(idx, off[cells->num], sizeof(*idx));
     assert(cells->cell.idx);
+}
+
+typedef struct {
+    long index;
+    void *next;
+} Queue;
+
+static void push(Queue **beg, Queue **end, long index)
+{
+    Queue *next = arena_malloc(1, sizeof(*next));
+    next->index = index;
+    next->next = 0;
+    if (*end) {
+        (*end)->next = next;
+    }
+    else {
+        *beg = next;
+    }
+    *end = next;
+}
+
+static long pop(Queue **beg, Queue **end)
+{
+    Queue *curr = *beg;
+    *beg = curr->next;
+    if (!*beg) {
+        *end = 0;
+    }
+    return curr->index;
+}
+
+static long *compute_cell_map(const MeshCells *cells)
+{
+    Arena save = arena_save();
+
+    long *map = arena_malloc(cells->num, sizeof(*map));
+    for (long i = 0; i < cells->num_inner; i++) {
+        map[i] = -1;
+    }
+
+    Queue *beg = 0;
+    Queue *end = 0;
+
+    long num = 0;
+    push(&beg, &end, 0);
+    map[0] = num++;
+    while (beg) {
+        long curr = pop(&beg, &end);
+        for (long i = cells->cell.off[curr]; i < cells->cell.off[curr + 1]; i++) {
+            long next = cells->cell.idx[i];
+            if (next < cells->num_inner && map[next] == -1) {
+                push(&beg, &end, next);
+                map[next] = num++;
+            }
+        }
+    }
+    for (long i = cells->num_inner; i < cells->num; i++) {
+        map[i] = num++;
+    }
+    assert(num == cells->num);
+
+    arena_load(save);
+    return arena_smuggle(map, cells->num, sizeof(*map));
+}
+
+static void reorder_cells(MeshCells *cells)
+{
+    Arena save = arena_save();
+
+    typedef struct {
+        long map;
+        long num_nodes;
+        long node[MAX_CELL_NODES];
+        long num_cells;
+        long cell[MAX_CELL_FACES];
+    } Cell;
+
+    Cell *cell = arena_malloc(cells->num, sizeof(*cell));
+
+    long *map = compute_cell_map(cells);
+    for (long i = 0; i < cells->num; i++) {
+        cell[i].map = map[i];
+        cell[i].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
+            cell[i].node[k] = cells->node.idx[j];
+        }
+        cell[i].num_cells = cells->cell.off[i + 1] - cells->cell.off[i];
+        for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
+            cell[i].cell[k] = cells->cell.idx[j];
+        }
+    }
+    qsort(cell, cells->num, sizeof(*cell), lcmp);
+
+    for (long i = 0; i < cells->num; i++) {
+        cells->node.off[i + 1] = cells->node.off[i] + cell[i].num_nodes;
+        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
+            cells->node.idx[j] = cell[i].node[k];
+        }
+        cells->cell.off[i + 1] = cells->cell.off[i] + cell[i].num_cells;
+        for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
+            cells->cell.idx[j] = map[cell[i].cell[k]];
+        }
+    }
+
+    arena_load(save);
 }
 
 /* Build face-to-node and face-to-cell connectivity. Each unique adjacent cell pair is one face. */
@@ -623,6 +728,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 void mesh_build(Mesh *mesh)
 {
     connect_cells(&mesh->nodes, &mesh->cells);
+    reorder_cells(&mesh->cells);
 
     create_faces(&mesh->cells, &mesh->faces);
     reorder_faces(&mesh->cells, &mesh->faces);
