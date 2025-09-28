@@ -52,17 +52,33 @@ bool isclose(double lhs, double rhs)
 int lcmp(const void *lhs, const void *rhs)
 {
     assert(lhs && rhs);
-    long _lhs = *(long *)lhs;
-    long _rhs = *(long *)rhs;
-    return (_lhs > _rhs) - (_lhs < _rhs);
+    const long *_lhs = lhs;
+    const long *_rhs = rhs;
+    return (*_lhs > *_rhs) - (*_lhs < *_rhs);
 }
 
 int fcmp(const void *lhs, const void *rhs)
 {
     assert(lhs && rhs);
-    double _lhs = *(double *)lhs;
-    double _rhs = *(double *)rhs;
-    return isclose(_lhs, _rhs) ? 0 : (_lhs > _rhs) - (_lhs < _rhs);
+    const double *_lhs = lhs;
+    const double *_rhs = rhs;
+    return isclose(*_lhs, *_rhs) ? 0 : (*_lhs > *_rhs) - (*_lhs < *_rhs);
+}
+
+int vcmp(const void *lhs, const void *rhs)
+{
+    assert(lhs && rhs);
+    const vector *_lhs = lhs;
+    const vector *_rhs = rhs;
+    int cmp = fcmp(&_lhs->x, &_rhs->x);
+    if (cmp) {
+        return cmp;
+    }
+    cmp = fcmp(&_lhs->y, &_rhs->y);
+    if (cmp) {
+        return cmp;
+    }
+    return fcmp(&_lhs->z, &_rhs->z);
 }
 
 void lswap(long *lhs, long *rhs)

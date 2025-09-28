@@ -83,26 +83,27 @@ void *kdtree_lookup(const Kdtree *self, vector key)
     return 0;
 }
 
-typedef struct {
+typedef struct Stack Stack;
+struct Stack {
     KdtreeItem *item;
     long depth;
-    void *prev;
-} Stack;
+    Stack *prev;
+};
 
-static void push(Stack **self, KdtreeItem *item, long depth)
+static void push(Stack **top, KdtreeItem *item, long depth)
 {
-    Stack *next = arena_malloc(1, sizeof(*next));
-    next->item = item;
-    next->depth = depth;
-    next->prev = *self;
-    *self = next;
+    Stack *new = arena_malloc(1, sizeof(*new));
+    new->item = item;
+    new->depth = depth;
+    new->prev = *top;
+    *top = new;
 }
 
-static Stack *pop(Stack **self)
+static Stack *pop(Stack **top)
 {
-    Stack *curr = *self;
-    *self = curr->prev;
-    return curr;
+    Stack *cur = *top;
+    *top = cur->prev;
+    return cur;
 }
 
 static double squared_distance(vector lhs, vector rhs)
@@ -166,12 +167,12 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
         metric[i] = INFINITY;
     }
 
-    Stack *stack = 0;
-    push(&stack, self->beg, 0);
-    while (stack) {
-        Stack *curr = pop(&stack);
-        KdtreeItem *item = curr->item;
-        long depth = curr->depth;
+    Stack *top = 0;
+    push(&top, self->beg, 0);
+    while (top) {
+        Stack *cur = pop(&top);
+        KdtreeItem *item = cur->item;
+        long depth = cur->depth;
         if (!item) {
             continue;
         }
@@ -182,9 +183,9 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
         }
 
         double del = delta(key, item->key, depth);
-        push(&stack, (del < 0) ? item->left : item->right, depth + 1);
+        push(&top, (del < 0) ? item->left : item->right, depth + 1);
         if (sq(del) <= metric[0]) {
-            push(&stack, (del < 0) ? item->right : item->left, depth + 1);
+            push(&top, (del < 0) ? item->right : item->left, depth + 1);
         }
     }
 
@@ -204,12 +205,12 @@ long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, double r
     double metric = sq(radius);
     long num = 0;
 
-    Stack *stack = 0;
-    push(&stack, self->beg, 0);
-    while (stack && num < cap) {
-        Stack *curr = pop(&stack);
-        KdtreeItem *item = curr->item;
-        long depth = curr->depth;
+    Stack *top = 0;
+    push(&top, self->beg, 0);
+    while (top && num < cap) {
+        Stack *cur = pop(&top);
+        KdtreeItem *item = cur->item;
+        long depth = cur->depth;
         if (!item) {
             continue;
         }
@@ -220,9 +221,9 @@ long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, double r
         }
 
         double del = delta(key, item->key, depth);
-        push(&stack, (del < 0) ? item->left : item->right, depth + 1);
+        push(&top, (del < 0) ? item->left : item->right, depth + 1);
         if (sq(del) <= metric) {
-            push(&stack, (del < 0) ? item->right : item->left, depth + 1);
+            push(&top, (del < 0) ? item->right : item->left, depth + 1);
         }
     }
 

@@ -1,7 +1,5 @@
 #include "sync.h"
 
-#include <assert.h>
-
 Sync sync = {0};
 
 MPI_Datatype vector_type;
@@ -19,12 +17,11 @@ void sync_init(int *argc, char ***argv)
     MPI_Type_contiguous(3, MPI_DOUBLE, &vector_type);
     MPI_Type_commit(&vector_type);
 
+    enum { MPI_TAG_UB_MIN = 32767 };
     int *attr = 0;
     int flag = 0;
     MPI_Comm_get_attr(sync.comm, MPI_TAG_UB, &attr, &flag);
-    assert(flag && attr);
-    tag_ub = *attr;
-    assert(tag_ub > 0);
+    tag_ub = (flag && attr) ? *attr : MPI_TAG_UB_MIN;
 }
 
 void sync_reinit(MPI_Comm comm)

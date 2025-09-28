@@ -63,36 +63,51 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     assert(cells->cell.idx);
 }
 
-typedef struct {
+typedef struct Queue Queue;
+struct Queue {
     long index;
-    void *next;
-} Queue;
+    Queue *next;
+};
 
-static void push(Queue **beg, Queue **end, long index)
+static void push(Queue ***end, long index)
 {
-    Queue *next = arena_malloc(1, sizeof(*next));
-    next->index = index;
-    next->next = 0;
-    if (*end) {
-        (*end)->next = next;
-    }
-    else {
-        *beg = next;
-    }
-    *end = next;
+    Queue *new = arena_malloc(1, sizeof(*new));
+    new->index = index;
+    new->next = 0;
+    **end = new;
+    *end = &new->next;
 }
 
-static long pop(Queue **beg, Queue **end)
+static long pop(Queue **beg, Queue ***end)
 {
-    Queue *curr = *beg;
-    *beg = curr->next;
+    Queue *cur = *beg;
+    *beg = cur->next;
     if (!*beg) {
-        *end = 0;
+        *end = beg;
     }
-    return curr->index;
+    return cur->index;
 }
 
-static long *compute_cell_map(const MeshCells *cells)
+static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells)
+{
+    long seed = 0;
+    vector min_center = {INFINITY, INFINITY, INFINITY};
+    for (long i = 0; i < cells->num_inner; i++) {
+        vector center = {0};
+        long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+        for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
+            vector coord = nodes->coord[cells->node.idx[j]];
+            center = vector_add(center, vector_div(coord, num_nodes));
+        }
+        if (vcmp(&center, &min_center) < 0) {
+            seed = i;
+            min_center = center;
+        }
+    }
+    return seed;
+}
+
+static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells)
 {
     Arena save = arena_save();
 
@@ -102,17 +117,18 @@ static long *compute_cell_map(const MeshCells *cells)
     }
 
     Queue *beg = 0;
-    Queue *end = 0;
+    Queue **end = &beg;
 
+    long seed = find_seed_cell(nodes, cells);
     long num = 0;
-    push(&beg, &end, 0);
-    map[0] = num++;
+    push(&end, seed);
+    map[seed] = num++;
     while (beg) {
-        long curr = pop(&beg, &end);
-        for (long i = cells->cell.off[curr]; i < cells->cell.off[curr + 1]; i++) {
+        long index = pop(&beg, &end);
+        for (long i = cells->cell.off[index]; i < cells->cell.off[index + 1]; i++) {
             long next = cells->cell.idx[i];
             if (next < cells->num_inner && map[next] == -1) {
-                push(&beg, &end, next);
+                push(&end, next);
                 map[next] = num++;
             }
         }
@@ -126,7 +142,7 @@ static long *compute_cell_map(const MeshCells *cells)
     return arena_smuggle(map, cells->num, sizeof(*map));
 }
 
-static void reorder_cells(MeshCells *cells)
+static void reorder_cells(const MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
 
@@ -140,7 +156,7 @@ static void reorder_cells(MeshCells *cells)
 
     Cell *cell = arena_malloc(cells->num, sizeof(*cell));
 
-    long *map = compute_cell_map(cells);
+    long *map = compute_cell_map(nodes, cells);
     for (long i = 0; i < cells->num; i++) {
         cell[i].map = map[i];
         cell[i].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
@@ -728,7 +744,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 void mesh_build(Mesh *mesh)
 {
     connect_cells(&mesh->nodes, &mesh->cells);
-    reorder_cells(&mesh->cells);
+    reorder_cells(&mesh->nodes, &mesh->cells);
 
     create_faces(&mesh->cells, &mesh->faces);
     reorder_faces(&mesh->cells, &mesh->faces);

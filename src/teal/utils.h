@@ -29,6 +29,7 @@ bool isclose(double lhs, double rhs);
 
 int lcmp(const void *lhs, const void *rhs);
 int fcmp(const void *lhs, const void *rhs);
+int vcmp(const void *lhs, const void *rhs);
 
 void lswap(long *lhs, long *rhs);
 void fswap(double *lhs, double *rhs);
