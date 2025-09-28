@@ -261,26 +261,26 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
 {
     Arena save = arena_save();
 
-    Dict global2coord = dict_create(sizeof(long), sizeof(vector));
+    Dict *global2coord = dict_create(sizeof(long), sizeof(vector));
     long num_cells[2] = {0};
     for (long i = 0; i < entities->num; i++) {
         if (i == lhs || i == rhs) {
             for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
-                    dict_insert(&global2coord, &cells->node.idx[k], &(vector){0});
+                    dict_insert(global2coord, &cells->node.idx[k], &(vector){0});
                 }
                 int side = (i == lhs) ? LHS : RHS;
                 num_cells[side] += 1;
             }
         }
     }
-    collect_coords(nodes, &global2coord);
+    collect_coords(nodes, global2coord);
 
     num_cells[LHS] = sync_lsum(num_cells[LHS]);
     num_cells[RHS] = sync_lsum(num_cells[RHS]);
     assert(num_cells[LHS] == num_cells[RHS]);
 
-    Kdtree center2link = kdtree_create(sizeof(Link));
+    Kdtree *center2link = kdtree_create(sizeof(Link));
     vector mean[2] = {0};
     long off_cells = sync_exsum(cells->num);
     for (long i = 0; i < entities->num; i++) {
@@ -289,13 +289,13 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
                 vector center = {0};
                 long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
-                    vector *coord = dict_lookup(&global2coord, &cells->node.idx[k]);
+                    vector *coord = dict_lookup(global2coord, &cells->node.idx[k]);
                     assert(coord);
                     center = vector_add(center, vector_div(*coord, num_nodes));
                 }
                 int side = (i == lhs) ? LHS : RHS;
                 long cell = j + off_cells;
-                kdtree_insert(&center2link, center, &(Link){side, cell, -1});
+                kdtree_insert(center2link, center, &(Link){side, cell, -1});
                 mean[side] = vector_add(mean[side], center);
             }
         }
@@ -303,15 +303,15 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
 
     mean[LHS] = vector_div(sync_vsum(mean[LHS]), num_cells[LHS]);
     mean[RHS] = vector_div(sync_vsum(mean[RHS]), num_cells[RHS]);
-    collect_links(mean, &center2link);
+    collect_links(mean, center2link);
 
-    Dict local2global = dict_create(sizeof(long), sizeof(long));
-    collect_edges(cells, &center2link, &local2global);
+    Dict *local2global = dict_create(sizeof(long), sizeof(long));
+    collect_edges(cells, center2link, local2global);
 
     idx_t *xadj = malloc((cells->num + 1) * sizeof(*xadj));
     assert(xadj);
 
-    idx_t *adjncy = malloc((dual->xadj[cells->num] + local2global.num) * sizeof(*adjncy));
+    idx_t *adjncy = malloc((dual->xadj[cells->num] + local2global->num) * sizeof(*adjncy));
     assert(adjncy);
 
     xadj[0] = 0;
@@ -321,7 +321,7 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
         for (long j = dual->xadj[i]; j < dual->xadj[i + 1]; j++) {
             adjncy[xadj[i + 1]++] = dual->adjncy[j];
         }
-        long *global = dict_lookup(&local2global, &i);
+        long *global = dict_lookup(local2global, &i);
         if (global) {
             adjncy[xadj[i + 1]++] = *global;
         }
@@ -764,20 +764,20 @@ static void decompose_communicator(const Dict *adjncy2part)
 {
     Arena save = arena_save();
 
-    Dict parts = dict_create(sizeof(long), 0);
+    Dict *parts = dict_create(sizeof(long), 0);
     for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        dict_insert(&parts, item->val, 0);
+        dict_insert(parts, item->val, 0);
     }
 
-    int *degree = arena_malloc(parts.num, sizeof(*degree));
+    int *degree = arena_malloc(parts->num, sizeof(*degree));
     int num_degrees = 0;
-    for (DictItem *item = parts.beg; item; item = item->next) {
+    for (DictItem *item = parts->beg; item; item = item->next) {
         long *rank = item->key;
         if (*rank != sync.rank) {
             degree[num_degrees++] = *rank;
         }
     }
-    assert(num_degrees == parts.num - !!dict_lookup(&parts, &(long){sync.rank}));
+    assert(num_degrees == parts->num - !!dict_lookup(parts, &(long){sync.rank}));
 
     int reorder = true;
     MPI_Comm comm;
@@ -963,16 +963,16 @@ static void partition_cells(MeshNodes *nodes, MeshCells *cells, MeshEntities *en
     idx_t *part = arena_malloc(cells->num, sizeof(*part));
     compute_partitioning(cells, &dual, part);
 
-    Dict adjncy2part = dict_create(sizeof(long), sizeof(long));
-    collect_adjncys(cells, &dual, part, &adjncy2part);
-    collect_parts(cells, part, &adjncy2part);
+    Dict *adjncy2part = dict_create(sizeof(long), sizeof(long));
+    collect_adjncys(cells, &dual, part, adjncy2part);
+    collect_parts(cells, part, adjncy2part);
 
-    long num_neighbors = count_neighbor_cells(cells, &adjncy2part);
+    long num_neighbors = count_neighbor_cells(cells, adjncy2part);
     Neighbor *neighbor = arena_malloc(sync_lmax(num_neighbors), sizeof(*neighbor));
-    collect_neighbor_cells(cells, &adjncy2part, neighbor);
+    collect_neighbor_cells(cells, adjncy2part, neighbor);
 
     int dst = sync.rank;
-    decompose_communicator(&adjncy2part);
+    decompose_communicator(adjncy2part);
     free(dual.xadj);
     free(dual.adjncy);
 
@@ -1012,13 +1012,13 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
 
-    Dict global2coord = dict_create(sizeof(long), sizeof(vector));
+    Dict *global2coord = dict_create(sizeof(long), sizeof(vector));
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            dict_insert(&global2coord, &cells->node.idx[j], &(vector){0});
+            dict_insert(global2coord, &cells->node.idx[j], &(vector){0});
         }
     }
-    collect_coords(nodes, &global2coord);
+    collect_coords(nodes, global2coord);
 
     typedef struct {
         long rank;
@@ -1026,18 +1026,18 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         long new;
     } Node;
 
-    long cap = sync_lmax(global2coord.num);
+    long cap = sync_lmax(global2coord->num);
     Node *node = arena_calloc(cap, sizeof(*node));
 
     long num = 0;
-    for (DictItem *item = global2coord.beg; item; item = item->next) {
+    for (DictItem *item = global2coord->beg; item; item = item->next) {
         long *global = item->key;
         node[num].rank = sync.rank;
         node[num].old = *global;
         node[num].new = -1;
         num += 1;
     }
-    assert(num == global2coord.num);
+    assert(num == global2coord->num);
 
     for (long i = num; i < cap; i++) {
         node[i].old = node[i].new = -1;
@@ -1053,7 +1053,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            if (node[i].old != -1 && dict_lookup(&global2coord, &node[i].old)) {
+            if (node[i].old != -1 && dict_lookup(global2coord, &node[i].old)) {
                 node[i].rank = lmin(node[i].rank, sync.rank);
             }
         }
@@ -1068,12 +1068,12 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
     qsort(node, num, sizeof(*node), lcmp);
 
-    Dict global2global = dict_create(sizeof(long), sizeof(long));
+    Dict *global2global = dict_create(sizeof(long), sizeof(long));
     long off_nodes = sync_exsum(num_inner);
     for (long i = 0; i < num; i++) {
         if (node[i].rank == -sync.rank) {
             node[i].new = i + off_nodes;
-            dict_insert(&global2global, &node[i].old, &node[i].new);
+            dict_insert(global2global, &node[i].old, &node[i].new);
         }
     }
 
@@ -1081,7 +1081,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            long *global = dict_lookup(&global2global, &node[i].old);
+            long *global = dict_lookup(global2global, &node[i].old);
             if (global) {
                 assert(node[i].new == -1 || node[i].new == *global);
                 node[i].new = *global;
@@ -1103,19 +1103,19 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     for (long i = 0; i < nodes->num; i++) {
         assert(node[i].new != -1);
         global[i] = node[i].new;
-        vector *coord = dict_lookup(&global2coord, &node[i].old);
+        vector *coord = dict_lookup(global2coord, &node[i].old);
         assert(coord);
         nodes->coord[i] = *coord;
     }
 
-    Dict global2local = dict_create(sizeof(long), sizeof(long));
+    Dict *global2local = dict_create(sizeof(long), sizeof(long));
     for (long i = 0; i < nodes->num; i++) {
-        dict_insert(&global2local, &node[i].old, &i);
+        dict_insert(global2local, &node[i].old, &i);
     }
 
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            long *local = dict_lookup(&global2local, &cells->node.idx[j]);
+            long *local = dict_lookup(global2local, &cells->node.idx[j]);
             assert(local);
             cells->node.idx[j] = *local;
         }
@@ -1202,12 +1202,12 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
 {
     Arena save = arena_save();
 
-    Kdtree centers = kdtree_create(0);
+    Kdtree *centers = kdtree_create(0);
     long num = 0;
     for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
             vector center = vector_add(recv[num++].center, entities->offset[i]);
-            kdtree_insert(&centers, center, 0);
+            kdtree_insert(centers, center, 0);
         }
     }
     assert(num == cells->num_periodic);
@@ -1223,7 +1223,7 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(recv, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            if (recv[i].rank == -1 && kdtree_lookup(&centers, recv[i].center)) {
+            if (recv[i].rank == -1 && kdtree_lookup(centers, recv[i].center)) {
                 recv[i].rank = sync.rank;
             }
         }
@@ -1243,7 +1243,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
 {
     Arena save = arena_save();
 
-    Kdtree centers = kdtree_create(0);
+    Kdtree *centers = kdtree_create(0);
     for (long i = 0; i < cells->num_inner; i++) {
         vector center = {0};
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
@@ -1251,7 +1251,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
             vector coord = nodes->coord[cells->node.idx[j]];
             center = vector_add(center, vector_div(coord, num_nodes));
         }
-        kdtree_insert(&centers, center, 0);
+        kdtree_insert(centers, center, 0);
     }
 
     for (long i = cells->num_periodic; i < num; i++) {
@@ -1265,7 +1265,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(recv, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            if (recv[i].rank == -1 && kdtree_lookup(&centers, recv[i].center)) {
+            if (recv[i].rank == -1 && kdtree_lookup(centers, recv[i].center)) {
                 recv[i].rank = sync.rank;
             }
         }
@@ -1413,26 +1413,26 @@ static void consume_heap_allocations(MeshNodes *nodes, MeshCells *cells)
     cells->node.idx = idx;
 }
 
-Mesh mesh_read(const char *fname)
+Mesh *mesh_read(const char *fname)
 {
     assert(fexists(fname));
-    Mesh mesh = {0};
 
-    read_file(&mesh, fname);
+    Mesh *mesh = arena_calloc(1, sizeof(*mesh));
 
-    mesh.cells.num_inner = count_inner_cells(&mesh.entities);
-    assert(sync.size <= sync_lsum(mesh.cells.num_inner));
+    read_file(mesh, fname);
 
-    partition_cells(&mesh.nodes, &mesh.cells, &mesh.entities);
-    compute_cell_counts(&mesh.cells, &mesh.entities);
+    mesh->cells.num_inner = count_inner_cells(&mesh->entities);
+    assert(sync.size <= sync_lsum(mesh->cells.num_inner));
 
-    partition_nodes(&mesh.nodes, &mesh.cells);
+    partition_cells(&mesh->nodes, &mesh->cells, &mesh->entities);
+    compute_cell_counts(&mesh->cells, &mesh->entities);
 
-    compute_offsets(&mesh.nodes, &mesh.cells, &mesh.entities);
+    partition_nodes(&mesh->nodes, &mesh->cells);
 
-    create_neighbors(&mesh.nodes, &mesh.cells, &mesh.entities, &mesh.neighbors);
+    compute_offsets(&mesh->nodes, &mesh->cells, &mesh->entities);
+    create_neighbors(&mesh->nodes, &mesh->cells, &mesh->entities, &mesh->neighbors);
 
-    consume_heap_allocations(&mesh.nodes, &mesh.cells);
+    consume_heap_allocations(&mesh->nodes, &mesh->cells);
 
     return mesh;
 }

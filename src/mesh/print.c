@@ -2,6 +2,7 @@
 
 #include "mesh.h"
 #include "teal/sync.h"
+#include "teal/utils.h"
 
 static void print_null(void)
 {
@@ -96,6 +97,8 @@ static void print_face_cell(const MeshFaceCell *cell, long idx)
 
 void mesh_print(const Mesh *mesh)
 {
+    assert(mesh);
+
     for (long rank = 0; rank < sync.size; rank++) {
         if (rank == sync.rank) {
             printf("rank %d:\n", sync.rank);

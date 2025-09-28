@@ -108,6 +108,8 @@ static void split_entities(MeshEntities *entities, long idx, long beg, long end,
 
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
 {
+    assert(mesh);
+
     long idx = find_entity(&mesh->entities, entity);
     assert(idx != -1);
 

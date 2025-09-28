@@ -16,6 +16,8 @@ static long count_exchange_cells(const MeshNeighbors *neighbors)
 
 void mesh_summary(const Mesh *mesh)
 {
+    assert(mesh);
+
     long inner_nodes = sync_lsum(mesh->nodes.num_inner);
     long inner_cells = sync_lsum(mesh->cells.num_inner);
     long inner_faces = sync_lsum(mesh->faces.num_inner);

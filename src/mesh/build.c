@@ -119,8 +119,8 @@ static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells)
     Queue *beg = 0;
     Queue **end = &beg;
 
-    long seed = find_seed_cell(nodes, cells);
     long num = 0;
+    long seed = find_seed_cell(nodes, cells);
     push(&end, seed);
     map[seed] = num++;
     while (beg) {
@@ -133,10 +133,11 @@ static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells)
             }
         }
     }
+    assert(num == cells->num_inner);
+
     for (long i = cells->num_inner; i < cells->num; i++) {
         map[i] = num++;
     }
-    assert(num == cells->num);
 
     arena_load(save);
     return arena_smuggle(map, cells->num, sizeof(*map));
@@ -199,7 +200,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
         long node[MAX_FACE_NODES];
     } Face;
 
-    Dict pair2face = dict_create(sizeof(Pair), sizeof(Face));
+    Dict *pair2face = dict_create(sizeof(Pair), sizeof(Face));
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
             long min = lmin(i, cells->cell.idx[j]);
@@ -212,11 +213,11 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
                     }
                 }
             }
-            dict_insert(&pair2face, &(Pair){min, max}, &face);
+            dict_insert(pair2face, &(Pair){min, max}, &face);
         }
     }
 
-    long num_faces = pair2face.num;
+    long num_faces = pair2face->num;
     long *off = arena_malloc(num_faces + 1, sizeof(*off));
     long *idx = arena_malloc(num_faces * MAX_FACE_NODES, sizeof(*idx));
     MeshFaceCell *cell = arena_malloc(num_faces, sizeof(*cell));
@@ -226,7 +227,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     long num = 0;
     long num_inner = 0;
     long num_ghost = 0;
-    for (DictItem *item = pair2face.beg; item; item = item->next) {
+    for (DictItem *item = pair2face->beg; item; item = item->next) {
         Pair *pair = item->key;
         Face *face = item->val;
         assert(pair->left < cells->num_inner);
@@ -326,7 +327,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
 {
     Arena save = arena_save();
 
-    Kdtree center2local = kdtree_create(sizeof(long));
+    Kdtree *center2local = kdtree_create(sizeof(long));
     for (long i = 0; i < cells->num; i++) {
         if (cells->num_inner <= i && i < cells->num_inner + cells->num_ghost) {
             continue;  // skip ghost cells
@@ -338,7 +339,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
             center = vector_add(center, vector_div(coord, num_nodes));
         }
         long local = (i < cells->num_inner) ? i : cells->cell.idx[cells->cell.off[i]];
-        kdtree_insert(&center2local, center, &local);
+        kdtree_insert(center2local, center, &local);
     }
 
     long tot_recv = cells->num - cells->num_inner - cells->num_ghost;
@@ -393,7 +394,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
 
     long *idx = arena_malloc(tot_send, sizeof(*idx));
     for (long i = 0; i < tot_send; i++) {
-        long *local = kdtree_lookup(&center2local, send[i]);
+        long *local = kdtree_lookup(center2local, send[i]);
         assert(local);
         idx[i] = *local;
     }
@@ -743,6 +744,8 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 
 void mesh_build(Mesh *mesh)
 {
+    assert(mesh);
+
     connect_cells(&mesh->nodes, &mesh->cells);
     reorder_cells(&mesh->nodes, &mesh->cells);
 

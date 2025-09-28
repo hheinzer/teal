@@ -479,10 +479,11 @@ static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, t
     neighbors->recv_off = recv_off;
 }
 
-Mesh mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags periodic)
+Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags periodic)
 {
     assert(sync.size <= lmax(1, num_cells.x) * lmax(1, num_cells.y) * lmax(1, num_cells.z));
-    Mesh mesh = {0};
+
+    Mesh *mesh = arena_calloc(1, sizeof(*mesh));
 
     int dims[3] = {0};
     int ndims = (num_cells.x > 1) + (num_cells.y > 1) + (num_cells.z > 1);
@@ -508,15 +509,15 @@ Mesh mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags peri
     split_bounds(&min_coord.z, &max_coord.z, &num_cells.z, 2, ndims, dims, coords);
 
     tuple num_nodes = {num_cells.x + 1, num_cells.y + 1, num_cells.z + 1};
-    create_nodes(&mesh.nodes, min_coord, max_coord, num_cells, num_nodes, coords);
-    compute_globals(&mesh.nodes, num_nodes, dims, coords, neighbor);
+    create_nodes(&mesh->nodes, min_coord, max_coord, num_cells, num_nodes, coords);
+    compute_globals(&mesh->nodes, num_nodes, dims, coords, neighbor);
 
-    create_cells(&mesh.cells, num_cells, num_nodes, ndims, dims, coords, neighbor);
-    reorder_nodes(&mesh.nodes, &mesh.cells, num_nodes, coords);
-    reorder_cells(&mesh.cells, num_cells, ndims, dims, coords, neighbor);
+    create_cells(&mesh->cells, num_cells, num_nodes, ndims, dims, coords, neighbor);
+    reorder_nodes(&mesh->nodes, &mesh->cells, num_nodes, coords);
+    reorder_cells(&mesh->cells, num_cells, ndims, dims, coords, neighbor);
 
-    create_entities(&mesh.entities, num_cells, del_coord, ndims, dims, periods, coords, neighbor);
-    create_neighbors(&mesh.cells, &mesh.neighbors, num_cells, ndims, dims, coords, neighbor);
+    create_entities(&mesh->entities, num_cells, del_coord, ndims, dims, periods, coords, neighbor);
+    create_neighbors(&mesh->cells, &mesh->neighbors, num_cells, ndims, dims, coords, neighbor);
 
     return mesh;
 }

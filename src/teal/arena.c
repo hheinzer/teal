@@ -13,19 +13,21 @@ enum { ALIGN = 64 };  // getconf LEVEL1_DCACHE_LINESIZE
 #define MAKE_REGION_NOACCESS(addr, size) __asan_poison_memory_region(addr, size)
 #define MAKE_REGION_ADDRESSABLE(addr, size) __asan_unpoison_memory_region(addr, size)
 #define MAKE_REGION_DEFINED(addr, size) MAKE_REGION_ADDRESSABLE(addr, size)
-enum { REDZONE = ALIGN };
+enum { REDZONE = 64 };
 #elif defined(ENABLE_VALGRIND)
 #include <valgrind/memcheck.h>
 #define MAKE_REGION_NOACCESS(addr, size) VALGRIND_MAKE_MEM_NOACCESS(addr, size)
 #define MAKE_REGION_ADDRESSABLE(addr, size) VALGRIND_MAKE_MEM_UNDEFINED(addr, size)
 #define MAKE_REGION_DEFINED(addr, size) VALGRIND_MAKE_MEM_DEFINED(addr, size)
-enum { REDZONE = ALIGN };
+enum { REDZONE = 64 };
 #else
 #define MAKE_REGION_NOACCESS(addr, size) ((void)(addr), (void)(size))
 #define MAKE_REGION_ADDRESSABLE(addr, size) ((void)(addr), (void)(size))
 #define MAKE_REGION_DEFINED(addr, size) ((void)(addr), (void)(size))
 enum { REDZONE = 0 };
 #endif
+
+_Static_assert(REDZONE == 0 || REDZONE % ALIGN == 0, "REDZONE must be a multiple of ALIGN");
 
 static Arena arena = {0};
 static char *arena_base = 0;

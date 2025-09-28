@@ -132,6 +132,8 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
 
 void mesh_write(const Mesh *mesh, const char *fname)
 {
+    assert(mesh && fname);
+
     hid_t file = h5io_file_create(fname);
 
     write_nodes(&mesh->nodes, file);

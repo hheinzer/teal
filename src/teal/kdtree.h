@@ -8,7 +8,7 @@ typedef struct KdtreeItem KdtreeItem;
 struct Kdtree {
     long num;
     KdtreeItem *beg;
-    KdtreeItem *end;
+    KdtreeItem **end;
     long size_val;
 };
 
@@ -21,7 +21,7 @@ struct KdtreeItem {
 };
 
 /* Returns empty kd-tree; if `size_val == 0` it behaves as a set of points (values ignored). */
-Kdtree kdtree_create(long size_val);
+Kdtree *kdtree_create(long size_val);
 
 /* Returns pointer to stored value if `key` is already present; else inserts and returns `0`. */
 void *kdtree_insert(Kdtree *self, vector key, const void *val);

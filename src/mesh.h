@@ -105,10 +105,10 @@ typedef struct {
 } Mesh;
 
 /* Create a distributed Cartesian mesh with optional per-axis periodicity. */
-Mesh mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags periodic);
+Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags periodic);
 
 /* Read a mesh from disk. */
-Mesh mesh_read(const char *fname);
+Mesh *mesh_read(const char *fname);
 
 /* Split an entity's cells by a plane through `root` with unit-normal `normal`. */
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);

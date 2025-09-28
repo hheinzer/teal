@@ -11,25 +11,25 @@ int main(int argc, char **argv)
     vector max_coord = {9, 3, 1};
     tuple num_cells = {450, 150, 50};
     flags periodic = {.x = true, .z = true};
-    Mesh mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
 
-    for (long i = 0; i < mesh.nodes.num; i++) {
-        vector *coord = &mesh.nodes.coord[i];
+    for (long i = 0; i < mesh->nodes.num; i++) {
+        vector *coord = &mesh->nodes.coord[i];
         double a = 4.5, b = 3.5, c = 1.0 / 6;
         coord->y += c * (3 - coord->y) * (1 + tanh(b * (fabs(coord->x - a) - b)));
     }
 
     vector root = {3, 0, 0};
     vector normal = {1, 0, 0};
-    mesh_split(&mesh, "bottom", root, normal);
+    mesh_split(mesh, "bottom", root, normal);
 
-    mesh_build(&mesh);
-    mesh_test(&mesh);
-    mesh_summary(&mesh);
+    mesh_build(mesh);
+    mesh_test(mesh);
+    mesh_summary(mesh);
 
     string fname;
     sprintf(fname, "%s_mesh.h5", argv[0]);
-    mesh_write(&mesh, fname);
+    mesh_write(mesh, fname);
 
     teal_finalize();
 }

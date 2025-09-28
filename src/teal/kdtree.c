@@ -8,11 +8,12 @@
 #include "teal/vector.h"
 #include "utils.h"
 
-Kdtree kdtree_create(long size_val)
+Kdtree *kdtree_create(long size_val)
 {
     assert(size_val >= 0);
-    Kdtree tree = {0};
-    tree.size_val = size_val;
+    Kdtree *tree = arena_calloc(1, sizeof(*tree));
+    tree->end = &tree->beg;
+    tree->size_val = size_val;
     return tree;
 }
 
@@ -59,10 +60,8 @@ void *kdtree_insert(Kdtree *self, vector key, const void *val)
     (*item)->val = self->size_val ? arena_memdup(val, 1, self->size_val) : NON_NULL;
 
     self->num += 1;
-    if (self->end) {
-        self->end->next = *item;
-    }
-    self->end = *item;
+    *self->end = *item;
+    self->end = &(*item)->next;
 
     return 0;
 }
