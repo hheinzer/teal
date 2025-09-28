@@ -1,29 +1,31 @@
 # Teal
 
-Teal is a general-purpose computational fluid dynamics library designed to solve
-hyperbolic-parabolic conservation laws on 3D unstructured meshes using the finite-volume method. It
-includes a simple mesh generator and can integrate with GMSH for complex geometries. Built-in
-solvers handle the compressible Euler and Navier-Stokes equations, with support for user-defined
-source terms. The flexible teal API makes it easy to implement solvers for other equation systems.
+Teal is a general-purpose computational fluid dynamics library for solving hyperbolic-parabolic
+conservation laws on 3D unstructured meshes using the finite-volume method. It includes a simple
+mesh generator and integrates with GMSH for complex geometries. Built-in solvers cover the
+compressible Euler and Navier-Stokes equations, with support for user-defined source terms. The teal
+API is designed for flexibility, making it straightforward to extend to other systems of equations.
 
 ## Features
 
-- 3D unstructured mixed meshes
-  - Built-in Cartesian mesh generator
-  - Mesh reader for GMSH and internal formats
-  - Extensible to other mesh formats
-- 2nd order spatial accuracy
-  - Least-squares gradient reconstruction
-- Up to 3rd order temporal accuracy
-  - Low storage explicit Runge-Kutta schemes
-  - Implicit Euler with Newton-GMRES solver
-- Modular equation system design
-  - Compressible Euler and Navier-Stokes equations
-  - Extensible to other conservation laws
+- **Meshes**
+    - 3D unstructured mixed meshes
+    - Built-in Cartesian mesh generator
+    - Readers for GMSH and internal formats
+    - Extensible to additional formats
+- **Accuracy**
+    - 2nd-order spatial accuracy
+        - Least-squares gradient reconstruction
+    - Up to 3rd-order temporal accuracy
+        - Low-storage explicit Runge-Kutta schemes
+        - Implicit Euler with Newton-GMRES solver
+- **Equations**
+    - Compressible Euler and Navier-Stokes
+    - Modular design for adding other conservation laws
 
 ## Getting started
 
-Clone the repository and build:
+Clone and build:
 
 ```bash
 git clone https://github.com/hheinzer/teal.git
@@ -31,31 +33,30 @@ cd teal
 make
 ```
 
-The `make` build places executables into the `bin` directory.
+Executables are placed in the `bin` directory.
 
-The best way to get started with teal is to check out the test cases in [run](run/). For example,
-you can try running the [Sod shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube) case:
+The best way to get started with teal is by running test cases in [run](run/). For example, the [Sod
+shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube):
 
 ```bash
 mpirun -n 4 bin/riemann/sod
 ```
 
-The test cases showcase all capabilities of the solver framework. If your editor or IDE supports
-"jump to definition", you can follow the program flow directly in the source.
+The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition,"
+you can follow the program flow directly in the source.
 
-If you run into compilation problems, check the [installation](INSTALL.md) instructions.
+Check the [installation](INSTALL.md) instructions if you run into compilation issues.
 
 ## Documentation
 
-For now, there is no dedicated documentation. In my opinion, the function and variable names
-together with the inline comments should be enough to understand what's going on. I know that this
-is probably a hot take; I will spend some extra time and effort to put together something better, if
-there is enough interest in the project.
+For now, there is no dedicated documentation. In my opinion, function and variable names together
+with inline comments should be enough to understand what's going on. If there is enough interest in
+the project, I'll invest time in proper documentation.
 
 If you want to explore the code, the [src](src/) directory contains the main modules of teal. Each
-module’s header file provides a brief overview and lists its public functions. The folder with the
-name of the module contains its implementation. One exception is the `teal` module which contains
-the core tools used throughout all modules.
+module's header file provides a brief overview and lists public functions. The folder named after
+the module contains the implementation. One exception is the `teal` module which contains the core
+tools used across all modules.
 
 ## Contributing
 
@@ -85,26 +86,23 @@ Teal is licensed under the GPL-3.0 [license](LICENSE).
 ## Things you might find odd
 
 - I do not use unsigned integers. Whenever I need an integer, I always use `long` unless I have to
-  match an external API. This has never caused a problem for me, and it removes the need to think
-  about integer types.
-- I use `const` only for function arguments, not for local variables. In my experience, `const` for
-  a local variable has never caught a bug, but adds a lot of visual noise. One exception is when I
-  want to create a typed constant, then I use `static const`.
+  match an external API.
+- I use `const` only for function arguments, not for local variables. One exception is when I want
+  to create a typed constant, then I use `static const`.
 - I use an arena allocator for most of the memory management. The implementation is loosely based on
   an [article](https://nullprogram.com/blog/2023/09/27/) by [@skeeto](https://github.com/skeeto).
 - There are no config files, the simulations are defined directly in C. In my opinion, parsing
-  config files is annoying and results in inefficient or unnecessary complex codes. I might be
-  heavily biased here from many years of using Nek5000 for work. If you really want to, you are free
-  to write a config module that can parse input files.
+  config files adds unnecessary complexity if you can compile quickly.
 
 ## On the use of AI
 
 Nowadays, a lot of what you see and read on the internet is produced by AI. Personally, I get
-annoyed reading the smooth texts generated by ChatGPT *et al*. However, it is probably unwise to
-completely ignore LLMs, because who knows where this technology might be going in the future. In the
-interest of transparency, I will say that I do use ChatGPT to get a second opinion on things like
-texts/comments/documentation, as well as function implementations. At the moment, I am still unsure
-how useful the generated output is; Very often I find myself arguing with the LLM. Should you be
-unconvinced that the code in this repo was written by an actual human, take a look at the
-implementation of [`mesh_read()`](src/mesh/read.c). Maybe you can let your favorite LLM take a crack
-at implementing that function.
+annoyed reading the smooth texts generated by ChatGPT *et al*. Still, ignoring the technology
+entirely would be shortsighted.
+
+In the interest of transparency, I will say that I do use ChatGPT for feedback on text, comments, or
+function drafts. What works well is using it as a sort of static analysis tool, but it cannot
+produce entire functions on its own, unless the scope is very small.
+
+If you doubt that teal was written by an actual human, take a look at the implementation of
+[`mesh_read()`](src/mesh/read.c) and let your favorite LLM take a crack at implementing it.
