@@ -1,8 +1,12 @@
+#include "read.h"
+
 #include <parmetis.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "mesh.h"
+#include "reorder.h"
 #include "teal/arena.h"
 #include "teal/array.h"
 #include "teal/dict.h"
@@ -11,18 +15,15 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-void read_hdf5(Mesh *mesh, const char *fname);
-void read_gmsh(Mesh *mesh, const char *fname);
-
 /* Dispatch to reader based on file extension. */
 static void read_file(Mesh *mesh, const char *fname)
 {
     char *ext = strrchr(fname, '.');
     if (ext && !strcmp(ext, ".h5")) {
-        read_hdf5(mesh, fname);
+        mesh_read_hdf5(mesh, fname);
     }
     else if (ext && !strcmp(ext, ".msh")) {
-        read_gmsh(mesh, fname);
+        mesh_read_gmsh(mesh, fname);
     }
     else {
         abort();
@@ -38,7 +39,7 @@ static long count_inner_cells(const MeshEntities *entities)
     return count;
 }
 
-/* Gather coordinates for a set of global node ids to the owners of those ids. */
+/* Gather coordinates for requested global node ids to their owning ranks. */
 static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
 {
     Arena save = arena_save();
@@ -53,7 +54,7 @@ static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
     int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
     for (DictItem *item = global2coord->beg; item; item = item->next) {
         long *global = item->key;
-        long rank = array_digitize(&num_nodes[1], *global, sync.size);
+        long rank = array_ldigitize(&num_nodes[1], *global, sync.size);
         num_recv[rank] += 1;
     }
 
@@ -69,7 +70,7 @@ static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
     }
     for (DictItem *item = global2coord->beg; item; item = item->next) {
         long *global = item->key;
-        long rank = array_digitize(&num_nodes[1], *global, sync.size);
+        long rank = array_ldigitize(&num_nodes[1], *global, sync.size);
         idx_recv[off_recv[rank + 1]++] = *global - num_nodes[rank];
     }
     for (long i = 0; i < sync.size; i++) {
@@ -104,7 +105,7 @@ static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
     }
     for (DictItem *item = global2coord->beg; item; item = item->next) {
         long *global = item->key;
-        long rank = array_digitize(&num_nodes[1], *global, sync.size);
+        long rank = array_ldigitize(&num_nodes[1], *global, sync.size);
         *(vector *)item->val = coord_recv[off_recv[rank + 1]++];
     }
     for (long i = 0; i < sync.size; i++) {
@@ -120,7 +121,7 @@ typedef struct {
     long peer;
 } Link;
 
-/* Propagate centers around the ring to discover their periodic partners. */
+/* Discover periodic partners by ring-rotating shifted centers. */
 static void collect_links(const vector *mean, Kdtree *center2link)
 {
     Arena save = arena_save();
@@ -186,7 +187,7 @@ static void collect_links(const vector *mean, Kdtree *center2link)
     arena_load(save);
 }
 
-/* For each periodic link discovered, request the peer’s global id from the owning rank. */
+/* For each periodic link, request the peer cell's global id from its owner. */
 static void collect_edges(const MeshCells *cells, const Kdtree *center2link, Dict *local2global)
 {
     typedef struct {
@@ -215,7 +216,7 @@ static void collect_edges(const MeshCells *cells, const Kdtree *center2link, Dic
 
     int *num_send = arena_calloc(sync.size, sizeof(*num_send));
     for (long i = 0; i < tot_send; i++) {
-        long rank = array_digitize(&num_cells[1], send[i].cell, sync.size);
+        long rank = array_ldigitize(&num_cells[1], send[i].cell, sync.size);
         num_send[rank] += 1;
     }
 
@@ -243,7 +244,7 @@ static void collect_edges(const MeshCells *cells, const Kdtree *center2link, Dic
     MPI_Alltoallv(send, num_send, off_send, type, recv, num_recv, off_recv, type, sync.comm);
     MPI_Type_free(&type);
 
-    long off_cells = sync_exsum(cells->num);
+    long off_cells = sync_lexsum(cells->num);
     for (long i = 0; i < tot_recv; i++) {
         long local = recv[i].cell - off_cells;
         long global = recv[i].peer;
@@ -282,7 +283,7 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
 
     Kdtree *center2link = kdtree_create(sizeof(Link));
     vector mean[2] = {0};
-    long off_cells = sync_exsum(cells->num);
+    long off_cells = sync_lexsum(cells->num);
     for (long i = 0; i < entities->num; i++) {
         if (i == lhs || i == rhs) {
             for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
@@ -335,7 +336,16 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
     arena_load(save);
 }
 
-/* Build the dual cell graph with ParMETIS, then connect periodic entity pairs. */
+static bool rotate_at_char(char *dst, const char *src, char sep)
+{
+    char *pos = strchr(src, sep);
+    if (pos) {
+        return sprintf(dst, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src);
+    }
+    return false;
+}
+
+/* Build the dual graph (ParMETIS) and add edges for periodic entity pairs. */
 static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
                           const MeshEntities *entities)
 {
@@ -367,7 +377,7 @@ static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     for (long lhs = 0; lhs < entities->num; lhs++) {
         string name;
-        if (strrot(name, entities->name[lhs], ':')) {
+        if (rotate_at_char(name, entities->name[lhs], ':')) {
             for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
                 if (!strcmp(entities->name[rhs], name)) {
                     connect_periodic(nodes, cells, entities, &dual, lhs, rhs);
@@ -380,7 +390,7 @@ static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
     return dual;
 }
 
-/* For each outer cell, copy the partition of its adjacent inner cell. */
+/* Set partitions of outer cells to their adjacent inner cell's partition. */
 static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t *part)
 {
     Arena save = arena_save();
@@ -395,7 +405,7 @@ static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t 
     int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
     for (long i = cells->num_inner; i < cells->num; i++) {
         long inner = dual->adjncy[dual->xadj[i]];
-        long rank = array_digitize(&num_cells[1], inner, sync.size);
+        long rank = array_ldigitize(&num_cells[1], inner, sync.size);
         num_recv[rank] += 1;
     }
 
@@ -412,7 +422,7 @@ static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t 
     }
     for (long i = cells->num_inner; i < cells->num; i++) {
         long inner = dual->adjncy[dual->xadj[i]];
-        long rank = array_digitize(&num_cells[1], inner, sync.size);
+        long rank = array_ldigitize(&num_cells[1], inner, sync.size);
         idx_recv[off_recv[rank + 1]++] = inner - num_cells[rank];
     }
     for (long i = 0; i < sync.size; i++) {
@@ -447,7 +457,7 @@ static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t 
     }
     for (long i = cells->num_inner; i < cells->num; i++) {
         long inner = dual->adjncy[dual->xadj[i]];
-        long rank = array_digitize(&num_cells[1], inner, sync.size);
+        long rank = array_ldigitize(&num_cells[1], inner, sync.size);
         part[i] = part_recv[off_recv[rank + 1]++];
     }
     for (long i = 0; i < sync.size; i++) {
@@ -457,7 +467,7 @@ static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t 
     arena_load(save);
 }
 
-/* Compute a k-way partition of the dual graph with ParMETIS. */
+/* Partition the dual graph (k-way) and refine with ParMETIS. */
 static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t *part)
 {
     Arena save = arena_save();
@@ -492,6 +502,10 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
                              &nparts, tpwgts, ubvec, options, &edgecut, part, &sync.comm);
     assert(ret == METIS_OK);
 
+    ret = ParMETIS_V3_RefineKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag, &numflag, &ncon,
+                                 &nparts, tpwgts, ubvec, options, &edgecut, part, &sync.comm);
+    assert(ret == METIS_OK);
+
     long *num_cells = arena_calloc(sync.size, sizeof(*num_cells));
     for (long i = 0; i < cells->num_inner; i++) {
         num_cells[part[i]] += 1;
@@ -504,7 +518,7 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
     arena_load(save);
 }
 
-/* Collect remote adjacency vertex ids by destination partition. */
+/* Gather remote adjacency ids, grouped by destination partition. */
 static void collect_adjncys(const MeshCells *cells, const Dual *dual, const idx_t *part,
                             Dict *adjncy2part)
 {
@@ -554,7 +568,7 @@ static void collect_adjncys(const MeshCells *cells, const Dual *dual, const idx_
     }
 }
 
-/* For all unique remote adjacency ids, fetch their partition ids. */
+/* Resolve partitions for unique remote adjacency ids. */
 static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjncy2part)
 {
     Arena save = arena_save();
@@ -569,7 +583,7 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
     int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
     for (DictItem *item = adjncy2part->beg; item; item = item->next) {
         long *adjncy = item->key;
-        long rank = array_digitize(&num_cells[1], *adjncy, sync.size);
+        long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
         num_recv[rank] += 1;
     }
 
@@ -585,7 +599,7 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
     }
     for (DictItem *item = adjncy2part->beg; item; item = item->next) {
         long *adjncy = item->key;
-        long rank = array_digitize(&num_cells[1], *adjncy, sync.size);
+        long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
         idx_recv[off_recv[rank + 1]++] = *adjncy - num_cells[rank];
     }
     for (long i = 0; i < sync.size; i++) {
@@ -611,7 +625,7 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
         part_send[i] = part[idx_send[i]];
     }
 
-    long *part_recv = arena_malloc(adjncy2part->num, sizeof(*idx_send));
+    long *part_recv = arena_malloc(adjncy2part->num, sizeof(*part_recv));
     MPI_Alltoallv(part_send, num_send, off_send, MPI_LONG, part_recv, num_recv, off_recv, MPI_LONG,
                   sync.comm);
 
@@ -620,13 +634,14 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
     }
     for (DictItem *item = adjncy2part->beg; item; item = item->next) {
         long *adjncy = item->key;
-        long rank = array_digitize(&num_cells[1], *adjncy, sync.size);
+        long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
         *(long *)item->val = part_recv[off_recv[rank + 1]++];
     }
 
     arena_load(save);
 }
 
+/* Count remote inner neighbors (nonlocal and inner on peer). */
 static long count_neighbor_cells(const MeshCells *cells, const Dict *adjncy2part)
 {
     Arena save = arena_save();
@@ -646,7 +661,7 @@ static long count_neighbor_cells(const MeshCells *cells, const Dict *adjncy2part
         long *adjncy = item->key;
         long *part = item->val;
         if (*part != sync.rank) {
-            long rank = array_digitize(&num_cells[1], *adjncy, sync.size);
+            long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
             if (*adjncy < num_cells[rank] + num_inner[rank]) {
                 count += 1;
             }
@@ -676,7 +691,7 @@ static MPI_Datatype create_neighbor_type(void)
     return type;
 }
 
-/* Request node lists for remote inner neighbors. */
+/* Fetch node lists for remote inner neighbors. */
 static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2part,
                                    Neighbor *neighbor)
 {
@@ -697,7 +712,7 @@ static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2pa
         long *adjncy = item->key;
         long *part = item->val;
         if (*part != sync.rank) {
-            long rank = array_digitize(&num_cells[1], *adjncy, sync.size);
+            long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
             if (*adjncy < num_cells[rank] + num_inner[rank]) {
                 num_recv[rank] += 1;
             }
@@ -719,7 +734,7 @@ static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2pa
         long *adjncy = item->key;
         long *part = item->val;
         if (*part != sync.rank) {
-            long rank = array_digitize(&num_cells[1], *adjncy, sync.size);
+            long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
             if (*adjncy < num_cells[rank] + num_inner[rank]) {
                 idx_recv[off_recv[rank + 1]++] = *adjncy - num_cells[rank];
             }
@@ -759,37 +774,45 @@ static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2pa
     arena_load(save);
 }
 
-/* Rebuild communicator as a distributed graph over the set of adjacent partitions. */
-static void decompose_communicator(const Dict *adjncy2part)
+/* Rebuild communicator as a dist-graph over adjacent partitions. */
+static void decompose_comm(const Dict *adjncy2part)
 {
     Arena save = arena_save();
 
-    Dict *parts = dict_create(sizeof(long), 0);
+    Dict *part2count = dict_create(sizeof(long), sizeof(long));
     for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        dict_insert(parts, item->val, 0);
-    }
-
-    int *degree = arena_malloc(parts->num, sizeof(*degree));
-    int num_degrees = 0;
-    for (DictItem *item = parts->beg; item; item = item->next) {
-        long *rank = item->key;
-        if (*rank != sync.rank) {
-            degree[num_degrees++] = *rank;
+        long *part = item->val;
+        if (*part != sync.rank) {
+            long *count = dict_insert(part2count, part, &(long){1});
+            if (count) {
+                *count += 1;
+            }
         }
     }
-    assert(num_degrees == parts->num - !!dict_lookup(parts, &(long){sync.rank}));
 
-    int reorder = true;
+    int deg = part2count->num;
+    int *rank = arena_malloc(deg, sizeof(*rank));
+    int *weight = arena_malloc(deg, sizeof(*weight));
+    int num = 0;
+    for (DictItem *item = part2count->beg; item; item = item->next) {
+        long *part = item->key;
+        long *count = item->val;
+        rank[num] = *part;
+        weight[num] = *count;
+        num += 1;
+    }
+    assert(num == deg);
+
     MPI_Comm comm;
-    MPI_Dist_graph_create_adjacent(sync.comm, num_degrees, degree, MPI_UNWEIGHTED, num_degrees,
-                                   degree, MPI_UNWEIGHTED, MPI_INFO_NULL, reorder, &comm);
+    MPI_Dist_graph_create_adjacent(sync.comm, deg, rank, weight, deg, rank, weight, MPI_INFO_NULL,
+                                   true, &comm);
     sync_reinit(comm);
 
     arena_load(save);
 }
 
-/* After communicator reordering, exchange node arrays and neighbor lists from old and new ranks. */
-static void resolve_reordering(MeshNodes *nodes, Neighbor *neighbor, long *num_neighbors, int dst)
+/* After comm change, swap node arrays and neighbor lists with previous rank. */
+static void resolve_comm_reorder(MeshNodes *nodes, Neighbor *neighbor, long *num_neighbors, int dst)
 {
     Arena save = arena_save();
 
@@ -832,7 +855,7 @@ static void resolve_reordering(MeshNodes *nodes, Neighbor *neighbor, long *num_n
     arena_load(save);
 }
 
-/* Redistribute cells by partition. */
+/* Move cells to their target partitions and rebuild entity offsets. */
 static void redistribute_cells(MeshCells *cells, MeshEntities *entities, const idx_t *part)
 {
     Arena save = arena_save();
@@ -926,7 +949,7 @@ static void redistribute_cells(MeshCells *cells, MeshEntities *entities, const i
     arena_load(save);
 }
 
-/* Append received neighbor cells to the tail of the local cell array. */
+/* Append received neighbor cells to local cells. */
 static void append_neighbor_cells(MeshCells *cells, const Neighbor *neighbor, long num_neighbors)
 {
     long num_cells = cells->num + num_neighbors;
@@ -954,6 +977,7 @@ static void append_neighbor_cells(MeshCells *cells, const Neighbor *neighbor, lo
     assert(cells->node.idx);
 }
 
+/* Partition cells (build dual, partition, comm rebuild), then append neighbors. */
 static void partition_cells(MeshNodes *nodes, MeshCells *cells, MeshEntities *entities)
 {
     Arena save = arena_save();
@@ -972,12 +996,12 @@ static void partition_cells(MeshNodes *nodes, MeshCells *cells, MeshEntities *en
     collect_neighbor_cells(cells, adjncy2part, neighbor);
 
     int dst = sync.rank;
-    decompose_communicator(adjncy2part);
+    decompose_comm(adjncy2part);
     free(dual.xadj);
     free(dual.adjncy);
 
     if (dst != sync.rank) {
-        resolve_reordering(nodes, neighbor, &num_neighbors, dst);
+        resolve_comm_reorder(nodes, neighbor, &num_neighbors, dst);
     }
 
     redistribute_cells(cells, entities, part);
@@ -986,6 +1010,7 @@ static void partition_cells(MeshNodes *nodes, MeshCells *cells, MeshEntities *en
     arena_load(save);
 }
 
+/* Derive {inner,ghost,periodic} counts from entity offsets. */
 static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
 {
     long num_inner = 0;
@@ -1007,7 +1032,7 @@ static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
     cells->num_periodic = num_periodic;
 }
 
-/* Partition nodes to match redistributed cells. */
+/* Redistribute nodes to match current cells and renumber connectivity. */
 static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
@@ -1020,14 +1045,12 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
     collect_coords(nodes, global2coord);
 
-    typedef struct {
+    long cap = sync_lmax(global2coord->num);
+    struct {
         long rank;
         long old;
         long new;
-    } Node;
-
-    long cap = sync_lmax(global2coord->num);
-    Node *node = arena_calloc(cap, sizeof(*node));
+    } *node = arena_calloc(cap, sizeof(*node));
 
     long num = 0;
     for (DictItem *item = global2coord->beg; item; item = item->next) {
@@ -1069,7 +1092,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     qsort(node, num, sizeof(*node), lcmp);
 
     Dict *global2global = dict_create(sizeof(long), sizeof(long));
-    long off_nodes = sync_exsum(num_inner);
+    long off_nodes = sync_lexsum(num_inner);
     for (long i = 0; i < num; i++) {
         if (node[i].rank == -sync.rank) {
             node[i].new = i + off_nodes;
@@ -1126,7 +1149,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     nodes->global = arena_smuggle(global, nodes->num, sizeof(*global));
 }
 
-/* Compute periodic entity offsets from mean cell centers of each periodic pair. */
+/* Offset between periodic pair = mean(center_rhs) - mean(center_lhs). */
 static void compute_offset(const MeshNodes *nodes, const MeshCells *cells,
                            const MeshEntities *entities, vector *offset, long lhs, long rhs)
 {
@@ -1165,7 +1188,7 @@ static void compute_offsets(const MeshNodes *nodes, const MeshCells *cells, Mesh
     vector *offset = arena_calloc(entities->num, sizeof(*offset));
     for (long lhs = 0; lhs < entities->num; lhs++) {
         string name;
-        if (strrot(name, entities->name[lhs], ':')) {
+        if (rotate_at_char(name, entities->name[lhs], ':')) {
             for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
                 if (!strcmp(entities->name[rhs], name)) {
                     compute_offset(nodes, cells, entities, offset, lhs, rhs);
@@ -1196,7 +1219,7 @@ static MPI_Datatype create_recv_type(void)
     return type;
 }
 
-/* Determine owning ranks of periodic cells by matching shifted centers across entity pairs. */
+/* Identify owner ranks of periodic outers by matching shifted centers. */
 static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *entities, Recv *recv,
                                    long cap)
 {
@@ -1237,7 +1260,7 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
     arena_load(save);
 }
 
-/* Determine owning ranks of non-periodic cells by matching to inner centers. */
+/* Identify owner ranks of non-periodic outers by matching inner centers. */
 static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cells, Recv *recv,
                                    long cap, long num)
 {
@@ -1279,62 +1302,46 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
     arena_load(save);
 }
 
-static long *compute_recv_map(const MeshCells *cells, const MeshEntities *entities,
-                              const Recv *recv, long beg, long end)
+/* Reorder outer cells and Recv by (entity,rank). */
+static void reorder(MeshCells *cells, const MeshEntities *entities, Recv *recv, long beg, long end)
 {
-    long *map = arena_malloc(end - beg, sizeof(*map));
+    Arena save = arena_save();
+
+    long tot = end - beg;
+    long *key = arena_malloc(tot, sizeof(*key));
     long num = 0;
     for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
-            map[num] = (i * sync.size) + recv[num].rank;
+            key[num] = ((i * sync.size) + recv[num].rank) * tot + num;
             num += 1;
         }
     }
     assert(num == cells->num_periodic);
-    for (long i = num; i < end - beg; i++) {
-        map[i] = (entities->num * sync.size) + recv[i].rank;
+    for (long i = num; i < tot; i++) {
+        key[i] = ((entities->num * sync.size) + recv[i].rank) * tot + i;
     }
-    return map;
-}
 
-/* Reorder outer cells by (entity,rank) so neighbor groups are contiguous and entity-stable. */
-static void reorder_cells(MeshCells *cells, const MeshEntities *entities, Recv *recv, long beg,
-                          long end)
-{
-    Arena save = arena_save();
+    mesh_reorder_cells(cells, 0, beg, end, key);
 
-    typedef struct {
-        long map;
-        long num;
-        long node[MAX_CELL_NODES];
+    struct {
+        long key;
         Recv recv;
-    } Cell;
+    } *buf = arena_malloc(tot, sizeof(*buf));
 
-    Cell *cell = arena_malloc(end - beg, sizeof(*cell));
-
-    long *map = compute_recv_map(cells, entities, recv, beg, end);
-    for (long num = 0, i = beg; i < end; i++, num++) {
-        cell[num].map = map[num];
-        cell[num].num = cells->node.off[i + 1] - cells->node.off[i];
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cell[num].node[k] = cells->node.idx[j];
-        }
-        cell[num].recv = recv[num];
+    for (long i = 0; i < tot; i++) {
+        buf[i].key = key[i];
+        buf[i].recv = recv[i];
     }
-    qsort(cell, end - beg, sizeof(*cell), lcmp);
+    qsort(buf, tot, sizeof(*buf), lcmp);
 
-    for (long num = 0, i = beg; i < end; i++, num++) {
-        cells->node.off[i + 1] = cells->node.off[i] + cell[num].num;
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cells->node.idx[j] = cell[num].node[k];
-        }
-        recv[num] = cell[num].recv;
+    for (long i = 0; i < tot; i++) {
+        recv[i] = buf[i].recv;
     }
 
     arena_load(save);
 }
 
-/* Build neighbor meta data from outer cells sorted by (entity,rank). */
+/* Build neighbor groups from outers sorted by (entity,rank). */
 static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
                              MeshNeighbors *neighbors)
 {
@@ -1346,7 +1353,8 @@ static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const Mes
 
     Arena save = arena_save();
 
-    long cap = sync_lmax(end - beg);
+    long tot = end - beg;
+    long cap = sync_lmax(tot);
     Recv *recv = arena_calloc(cap, sizeof(*recv));
 
     long num = 0;
@@ -1358,15 +1366,15 @@ static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const Mes
             center = vector_add(center, vector_div(coord, num_nodes));
         }
         recv[num].center = center;
-        recv[num].entity = array_digitize(&entities->cell_off[1], i, entities->num);
+        recv[num].entity = array_ldigitize(&entities->cell_off[1], i, entities->num);
         num += 1;
     }
-    assert(num == end - beg);
+    assert(num == tot);
 
     collect_periodic_ranks(cells, entities, recv, cap);
     collect_neighbor_ranks(nodes, cells, recv, cap, num);
 
-    reorder_cells(cells, entities, recv, beg, end);
+    reorder(cells, entities, recv, beg, end);
 
     neighbors->num = 1;
     for (long i = 1; i < num; i++) {
@@ -1398,7 +1406,8 @@ static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const Mes
     neighbors->recv_off = arena_smuggle(recv_off, neighbors->num + 1, sizeof(*recv_off));
 }
 
-static void consume_heap_allocations(MeshNodes *nodes, MeshCells *cells)
+/* Convert heap-backed arrays to arena-owned arrays. */
+static void convert_allocations(MeshNodes *nodes, MeshCells *cells)
 {
     vector *coord = arena_memdup(nodes->coord, nodes->num, sizeof(*coord));
     free(nodes->coord);
@@ -1432,7 +1441,7 @@ Mesh *mesh_read(const char *fname)
     compute_offsets(&mesh->nodes, &mesh->cells, &mesh->entities);
     create_neighbors(&mesh->nodes, &mesh->cells, &mesh->entities, &mesh->neighbors);
 
-    consume_heap_allocations(&mesh->nodes, &mesh->cells);
+    convert_allocations(&mesh->nodes, &mesh->cells);
 
     return mesh;
 }

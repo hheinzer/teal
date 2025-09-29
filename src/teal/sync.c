@@ -101,7 +101,7 @@ vector sync_vsum(vector val)
     return sum;
 }
 
-long sync_exsum(long val)
+long sync_lexsum(long val)
 {
     long exsum = 0;
     MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);

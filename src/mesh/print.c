@@ -85,7 +85,7 @@ static void print_graph(const MeshGraph *graph, long idx)
     }
 }
 
-static void print_face_cell(const MeshFaceCell *cell, long idx)
+static void print_face_cells(const FaceCells *cell, long idx)
 {
     if (cell) {
         printf(" %ld %ld |", cell[idx].left, cell[idx].right);
@@ -140,7 +140,7 @@ void mesh_print(const Mesh *mesh)
                 for (long i = 0; i < mesh->faces.num; i++) {
                     printf("\t\t [%ld]", i);
                     print_graph(&mesh->faces.node, i);
-                    print_face_cell(mesh->faces.cell, i);
+                    print_face_cells(mesh->faces.cell, i);
                     print_double(mesh->faces.area, i);
                     print_vector(mesh->faces.center, i);
                     print_matrix(mesh->faces.basis, i);

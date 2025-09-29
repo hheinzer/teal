@@ -3,17 +3,19 @@
 #include <string.h>
 
 #include "mesh.h"
+#include "reorder.h"
 #include "teal/arena.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-/* Factor `sync.size` into a Cartesian grid, biased by the global cell counts to balance work. */
+/* Factor `sync.size` into a Cartesian grid, biased by global cell counts to balance work. */
 static void compute_dims(tuple num_cells, int ndims, int *dims)
 {
     long cells[3] = {lmax(1, num_cells.x), lmax(1, num_cells.y), lmax(1, num_cells.z)};
     dims[0] = dims[1] = dims[2] = 1;
 
+    // sort axes by descending global cell count (try larger cuts first)
     long perm[3] = {0, 1, 2};
     if (cells[perm[1]] > cells[perm[0]]) {
         lswap(&perm[0], &perm[1]);
@@ -34,12 +36,14 @@ static void compute_dims(tuple num_cells, int ndims, int *dims)
         if (factor > prime / factor) {
             factor = prime;
         }
+
+        // choose axis with largest cell count
         double best_score = -1;
         long best_axis = -1;
         for (long i = 0; i < ndims; i++) {
             long axis = perm[i];
             if (dims[axis] > cells[axis] / factor) {
-                continue;  // would over-subdivide this axis
+                continue;  // would over-subdivide axis
             }
             double score = (double)cells[axis] / dims[axis];
             if (score > best_score) {
@@ -53,8 +57,8 @@ static void compute_dims(tuple num_cells, int ndims, int *dims)
     }
 }
 
-/* Split physical bounds and cell counts for this rank's Cartesian slice. If `dim` is inactive,
- * collapse that axis to size 1; otherwise compute the rank's local sub-interval and cells. */
+/* Split physical bounds and cell counts for this rank's Cartesian slice. If axis is inactive,
+ * collapse that axis to 1 cell; otherwise compute the rank's local sub-interval and cells count. */
 static void split_bounds(double *min_coord, double *max_coord, long *num_cells, long dim, int ndims,
                          const int *dims, const int *coords)
 {
@@ -71,7 +75,7 @@ static void split_bounds(double *min_coord, double *max_coord, long *num_cells, 
     else {
         *num_cells = 1;
         if (isclose(*min_coord, *max_coord)) {
-            *max_coord = *min_coord + 1;
+            *max_coord = *min_coord + 1;  // non-zero extent
         }
     }
 }
@@ -81,7 +85,6 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
                          tuple num_nodes, const int *coords)
 {
     nodes->num = num_nodes.x * num_nodes.y * num_nodes.z;
-
     vector *coord = arena_malloc(nodes->num, sizeof(*coord));
     long num = 0;
     long num_inner = 0;
@@ -99,7 +102,6 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
         }
     }
     assert(num == nodes->num);
-
     nodes->num_inner = num_inner;
     nodes->coord = coord;
 }
@@ -109,7 +111,7 @@ static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, 
                             const int *neighbor)
 {
     long *global = arena_malloc(nodes->num, sizeof(*global));
-    long off_inner = sync_exsum(nodes->num_inner);
+    long off_inner = sync_lexsum(nodes->num_inner);
     int tag_x = sync_tag();
     int tag_y = sync_tag();
     int tag_z = sync_tag();
@@ -253,9 +255,9 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
     assert(cells->node.idx);
 }
 
-static long *compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int *coords)
+/* Build node reorder key to [inner, neighbor] for the current rank. */
+static void compute_node_key(const MeshNodes *nodes, tuple num_nodes, const int *coords, long *key)
 {
-    long *map = arena_malloc(nodes->num, sizeof(*map));
     long num = 0;
     long num_inner = 0;
     long num_neighbors = 0;
@@ -263,10 +265,10 @@ static long *compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int
         for (long j = 0; j < num_nodes.y; j++) {
             for (long i = 0; i < num_nodes.x; i++) {
                 if (!(i == 0 && coords[0]) && !(j == 0 && coords[1]) && !(k == 0 && coords[2])) {
-                    map[num] = num_inner++;
+                    key[num] = num_inner++;
                 }
                 else {
-                    map[num] = nodes->num_inner + num_neighbors++;
+                    key[num] = nodes->num_inner + num_neighbors++;
                 }
                 num += 1;
             }
@@ -275,66 +277,30 @@ static long *compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int
     assert(num == nodes->num);
     assert(num_inner == nodes->num_inner);
     assert(num_neighbors == num - num_inner);
-    return map;
 }
 
-/* Reorder node arrays to [inner, neighbor]. */
-static void reorder_nodes(MeshNodes *nodes, MeshCells *cells, tuple num_nodes, const int *coords)
+/* Build cell reorder key to [inner, ghost, periodic, neighbor] for the current rank. */
+static void compute_cell_key(const MeshCells *cells, tuple num_cells, int ndims, const int *dims,
+                             const int *coords, const int *neighbor, long *key)
 {
-    Arena save = arena_save();
-
-    typedef struct {
-        long map;
-        long global;
-        vector coord;
-    } Node;
-
-    Node *node = arena_malloc(nodes->num, sizeof(*node));
-
-    long *map = compute_node_map(nodes, num_nodes, coords);
-    for (long i = 0; i < nodes->num; i++) {
-        node[i].map = map[i];
-        node[i].global = nodes->global[i];
-        node[i].coord = nodes->coord[i];
-    }
-    qsort(node, nodes->num, sizeof(*node), lcmp);  // sort by map
-
-    for (long i = 0; i < nodes->num; i++) {
-        nodes->global[i] = node[i].global;
-        nodes->coord[i] = node[i].coord;
-    }
-
-    for (long i = 0; i < cells->num; i++) {
-        for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            cells->node.idx[j] = map[cells->node.idx[j]];
-        }
-    }
-
-    arena_load(save);
-}
-
-static long *compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims, const int *dims,
-                              const int *coords, const int *neighbor)
-{
-    long *map = arena_malloc(cells->num, sizeof(*map));
     long num = 0;
     long num_inner = 0;
     long num_ghost = 0;
     long num_periodic = 0;
     long num_neighbors = 0;
     for (long i = 0; i < cells->num_inner; i++) {
-        map[num++] = num_inner++;
+        key[num++] = num_inner++;
     }
     for (long i = 0; i < 2 * ndims; i++) {
         for (long j = 0; j < num_cells_side(num_cells, i); j++) {
             if (neighbor[i] == MPI_PROC_NULL) {
-                map[num] = cells->num_inner + num_ghost++;
+                key[num] = cells->num_inner + num_ghost++;
             }
             else if (is_edge_side(dims, coords, i)) {
-                map[num] = cells->num_inner + cells->num_ghost + num_periodic++;
+                key[num] = cells->num_inner + cells->num_ghost + num_periodic++;
             }
             else {
-                map[num] =
+                key[num] =
                     cells->num_inner + cells->num_ghost + cells->num_periodic + num_neighbors++;
             }
             num += 1;
@@ -345,39 +311,22 @@ static long *compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims
     assert(num_ghost == cells->num_ghost);
     assert(num_periodic == cells->num_periodic);
     assert(num_neighbors == num - num_inner - num_ghost - num_periodic);
-    return map;
 }
 
-/* Reorder cell arrays to [inner, ghost, periodic, neighbor]. */
-static void reorder_cells(MeshCells *cells, tuple num_cells, int ndims, const int *dims,
-                          const int *coords, const int *neighbor)
+/* Reorder nodes then cells; fix connectivity using in-place maps. */
+static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple num_nodes, int ndims,
+                    const int *dims, const int *coords, const int *neighbor)
 {
     Arena save = arena_save();
 
-    typedef struct {
-        long map;
-        long num;
-        long node[MAX_CELL_NODES];
-    } Cell;
+    long num = lmax(nodes->num, cells->num);
+    long *key = arena_malloc(num, sizeof(*key));
 
-    Cell *cell = arena_malloc(cells->num, sizeof(*cell));
+    compute_node_key(nodes, num_nodes, coords, key);
+    mesh_reorder_nodes(nodes, cells, key);
 
-    long *map = compute_cell_map(cells, num_cells, ndims, dims, coords, neighbor);
-    for (long i = 0; i < cells->num; i++) {
-        cell[i].map = map[i];
-        cell[i].num = cells->node.off[i + 1] - cells->node.off[i];
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cell[i].node[k] = cells->node.idx[j];
-        }
-    }
-    qsort(cell, cells->num, sizeof(*cell), lcmp);
-
-    for (long i = 0; i < cells->num; i++) {
-        cells->node.off[i + 1] = cells->node.off[i] + cell[i].num;
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cells->node.idx[j] = cell[i].node[k];
-        }
-    }
+    compute_cell_key(cells, num_cells, ndims, dims, coords, neighbor, key);
+    mesh_reorder_cells(cells, 0, 0, cells->num, key);
 
     arena_load(save);
 }
@@ -489,10 +438,9 @@ Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags per
     int ndims = (num_cells.x > 1) + (num_cells.y > 1) + (num_cells.z > 1);
     compute_dims(num_cells, ndims, dims);
 
-    int reorder = true;
     int periods[3] = {periodic.x, periodic.y, periodic.z};
     MPI_Comm comm;
-    MPI_Cart_create(sync.comm, ndims, dims, periods, reorder, &comm);
+    MPI_Cart_create(sync.comm, ndims, dims, periods, true, &comm);
     sync_reinit(comm);
 
     int coords[3] = {0};
@@ -513,8 +461,7 @@ Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags per
     compute_globals(&mesh->nodes, num_nodes, dims, coords, neighbor);
 
     create_cells(&mesh->cells, num_cells, num_nodes, ndims, dims, coords, neighbor);
-    reorder_nodes(&mesh->nodes, &mesh->cells, num_nodes, coords);
-    reorder_cells(&mesh->cells, num_cells, ndims, dims, coords, neighbor);
+    reorder(&mesh->nodes, &mesh->cells, num_cells, num_nodes, ndims, dims, coords, neighbor);
 
     create_entities(&mesh->entities, num_cells, del_coord, ndims, dims, periods, coords, neighbor);
     create_neighbors(&mesh->cells, &mesh->neighbors, num_cells, ndims, dims, coords, neighbor);

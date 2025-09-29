@@ -1,4 +1,4 @@
-#pragma once
+#pragma once  // IWYU pragma: always_keep
 
 #include <stdint.h>
 
@@ -39,8 +39,6 @@ void memswap(void *lhs, void *rhs, long size);
 uint64_t fnv1a(const void *ptr, long size);
 
 bool fexists(const char *fname);
-
-int strrot(char *dst, const char *src, char sep);
 
 long str2size(const char *str);
 void size2str(char *str, double size);

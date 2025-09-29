@@ -65,14 +65,14 @@ typedef struct {
 
 typedef struct {
     long left, right;  // adjacent face cells (left: always inner; right: inner or outer)
-} MeshFaceCell;
+} FaceCells;
 
 typedef struct {
     long num;
     long num_inner;
     long num_ghost;
-    MeshGraph node;      // face-to-node connectivity
-    MeshFaceCell *cell;  // face-to-cell connectivity
+    MeshGraph node;   // face-to-node connectivity
+    FaceCells *cell;  // face-to-cell connectivity
     double *area;
     vector *center;
     matrix *basis;   // local orthonormal basis (x: normal; y,z: tangents)

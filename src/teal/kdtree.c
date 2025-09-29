@@ -33,8 +33,7 @@ static int keycmp(vector lhs, vector rhs, long depth)
     if (cmp) {
         return cmp;
     }
-    cmp = veccmp(lhs, rhs, depth + 1);
-    if (cmp) {
+    if ((cmp = veccmp(lhs, rhs, depth + 1))) {
         return cmp;
     }
     return veccmp(lhs, rhs, depth + 2);

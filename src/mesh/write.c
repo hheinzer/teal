@@ -4,7 +4,7 @@
 #include "teal/arena.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
-#include "teal/utils.h"  // IWYU pragma: keep
+#include "teal/utils.h"
 
 static void write_nodes(const MeshNodes *nodes, hid_t loc)
 {
@@ -28,7 +28,7 @@ static void write_node_graph(const MeshGraph *node, const long *global, long num
 
     long num = num_cells + (sync.rank == 0);
     long *off = arena_malloc(num, sizeof(*off));
-    long offset = sync_exsum(node->off[num_cells]);
+    long offset = sync_lexsum(node->off[num_cells]);
     for (long i = 0; i < num; i++) {
         off[i] = offset + node->off[i + (sync.rank != 0)];
     }
@@ -67,7 +67,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     long *global = arena_malloc(num_cells, sizeof(*global));
     int *rank = arena_malloc(num_cells, sizeof(*rank));
 
-    long off_cells = sync_exsum(num_cells);
+    long off_cells = sync_lexsum(num_cells);
     long num = 0;
     for (long i = 0; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {

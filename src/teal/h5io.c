@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "sync.h"
-#include "utils.h"  // IWYU pragma: keep
+#include "utils.h"
 
 hid_t h5io_file_create(const char *name)
 {

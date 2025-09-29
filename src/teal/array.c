@@ -96,7 +96,7 @@ vector array_vsum(const vector *arr, long num)
     return sum;
 }
 
-long array_digitize(const long *arr, long val, long num)
+long array_ldigitize(const long *arr, long val, long num)
 {
     assert(arr ? num >= 0 : num == 0);
     if (num == 0) {

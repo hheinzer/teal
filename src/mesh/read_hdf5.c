@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "mesh.h"
+#include "reorder.h"
 #include "teal/arena.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
@@ -89,37 +90,18 @@ static void read_entities(MeshEntities *entities, hid_t loc)
 }
 
 /* Reorder cell arrays to [inner, ghost, periodic]. */
-static void reorder_cells(MeshCells *cells, MeshEntities *entities, hid_t loc)
+static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
 {
     Arena save = arena_save();
 
     long *entity = arena_malloc(cells->num, sizeof(*entity));
     h5io_dataset_read("cells/entity", entity, (hsize_t[]){cells->num}, 1, H5IO_LONG, loc);
 
-    typedef struct {
-        long entity;
-        long num;
-        long node[MAX_CELL_NODES];
-    } Cell;
-
-    Cell *cell = arena_calloc(cells->num, sizeof(*cell));
-
-    for (long i = 0; i < cells->num; i++) {
-        cell[i].entity = entity[i];
-        cell[i].num = cells->node.off[i + 1] - cells->node.off[i];
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cell[i].node[k] = cells->node.idx[j];
-        }
-    }
-    qsort(cell, cells->num, sizeof(*cell), lcmp);
+    mesh_reorder_cells(cells, 0, 0, cells->num, entity);
 
     long *cell_off = arena_calloc(entities->num + 1, sizeof(*cell_off));
     for (long i = 0; i < cells->num; i++) {
-        cells->node.off[i + 1] = cells->node.off[i] + cell[i].num;
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cells->node.idx[j] = cell[i].node[k];
-        }
-        cell_off[cell[i].entity + 1] += 1;
+        cell_off[entity[i] + 1] += 1;
     }
     for (long i = 0; i < entities->num; i++) {
         cell_off[i + 1] += cell_off[i];
@@ -130,7 +112,7 @@ static void reorder_cells(MeshCells *cells, MeshEntities *entities, hid_t loc)
     entities->cell_off = arena_smuggle(cell_off, entities->num + 1, sizeof(*cell_off));
 }
 
-void read_hdf5(Mesh *mesh, const char *fname)
+void mesh_read_hdf5(Mesh *mesh, const char *fname)
 {
     hid_t file = h5io_file_open(fname);
 
@@ -138,7 +120,7 @@ void read_hdf5(Mesh *mesh, const char *fname)
     read_cells(&mesh->cells, file);
     read_entities(&mesh->entities, file);
 
-    reorder_cells(&mesh->cells, &mesh->entities, file);
+    reorder(&mesh->cells, &mesh->entities, file);
 
     h5io_file_close(file);
 }

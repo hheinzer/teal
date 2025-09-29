@@ -9,8 +9,9 @@ Windows, I recommend that you use WSL.
 - MPI implementation with `mpicc` (Open MPI or MPICH)
 - HDF5 **built with MPI support** (headers + libs)
 - METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
+- libunwind for your platform, adapt the Makefile if it's not x86_64
 
-> ParMETIS: both `i64=0` and `i64=1` builds are supported. For very large meshes (when 32‑bit
+> For ParMETIS, both `i64=0` and `i64=1` builds are supported. For very large meshes (when 32-bit
 > indices overflow), use the `i64=1` build.
 
 ## Compilers
@@ -22,4 +23,4 @@ possible to use TCC, albeit with a performance hit.
 ## Notes
 
 - Ensure you install the *parallel* HDF5 package on your system (often suffixed `-mpi` or `-openmpi`).
-- If you use module systems on clusters, load MPI, HDF5‑MPI, METIS, and ParMETIS before building.
+- If you use module systems on clusters, load MPI, HDF5-MPI, METIS, and ParMETIS before building.

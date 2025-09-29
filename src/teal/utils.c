@@ -13,14 +13,14 @@
 
 enum { BUFLEN = 4096 };
 
-static int append(char *str, long *pos, const char *format, ...)
+static bool append(char *str, long *pos, const char *format, ...)
 {
     if (!str || !pos || *pos < 0 || !format) {
         abort();
     }
     if (*pos >= BUFLEN) {
         str[BUFLEN - 1] = 0;
-        return 1;
+        return false;
     }
 
     va_list args;
@@ -30,15 +30,15 @@ static int append(char *str, long *pos, const char *format, ...)
     va_end(args);
 
     if (num < 0) {
-        return -1;
+        return false;
     }
     if (num >= rem) {
         *pos = BUFLEN - 1;
         str[*pos] = 0;
-        return 1;
+        return false;
     }
     *pos += num;
-    return 0;
+    return true;
 }
 
 void assert_fail(const char *file, long line, const char *func, const char *expr)
@@ -50,8 +50,8 @@ void assert_fail(const char *file, long line, const char *func, const char *expr
     char buf[BUFLEN];
     long pos = 0;
 
-    if (append(buf, &pos, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank, file, line, func,
-               expr)) {
+    if (!append(buf, &pos, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank, file, line, func,
+                expr)) {
         goto out;
     }
 
@@ -68,8 +68,8 @@ void assert_fail(const char *file, long line, const char *func, const char *expr
             }
             unw_word_t iptr = 0;
             unw_get_reg(&cur, UNW_REG_IP, &iptr);
-            if (append(buf, &pos, "\t %2ld. %-30s (+0x%lx) [0x%lx]\n", frame++, name, offset,
-                       iptr)) {
+            if (!append(buf, &pos, "\t %2ld. %-30s (+0x%lx) [0x%lx]\n", frame++, name, offset,
+                        iptr)) {
                 break;
             }
         }
@@ -143,8 +143,7 @@ int vcmp(const void *lhs, const void *rhs)
     if (cmp) {
         return cmp;
     }
-    cmp = fcmp(&_lhs->y, &_rhs->y);
-    if (cmp) {
+    if ((cmp = fcmp(&_lhs->y, &_rhs->y))) {
         return cmp;
     }
     return fcmp(&_lhs->z, &_rhs->z);
@@ -209,13 +208,6 @@ bool fexists(const char *fname)
     }
     fclose(file);
     return true;
-}
-
-int strrot(char *dst, const char *src, char sep)
-{
-    assert(dst && src);
-    char *pos = strchr(src, sep);
-    return pos ? sprintf(dst, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src) : 0;
 }
 
 long str2size(const char *str)

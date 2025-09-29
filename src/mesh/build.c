@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "mesh.h"
+#include "reorder.h"
 #include "teal/arena.h"
 #include "teal/array.h"
 #include "teal/dict.h"
@@ -107,80 +108,35 @@ static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells)
     return seed;
 }
 
-static long *compute_cell_map(const MeshNodes *nodes, const MeshCells *cells)
+static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
 
-    long *map = arena_malloc(cells->num, sizeof(*map));
+    long *key = arena_malloc(cells->num_inner, sizeof(*key));
     for (long i = 0; i < cells->num_inner; i++) {
-        map[i] = -1;
+        key[i] = -1;
     }
 
     Queue *beg = 0;
     Queue **end = &beg;
 
-    long num = 0;
     long seed = find_seed_cell(nodes, cells);
+    long num = 0;
     push(&end, seed);
-    map[seed] = num++;
+    key[seed] = num++;
     while (beg) {
         long index = pop(&beg, &end);
         for (long i = cells->cell.off[index]; i < cells->cell.off[index + 1]; i++) {
             long next = cells->cell.idx[i];
-            if (next < cells->num_inner && map[next] == -1) {
+            if (next < cells->num_inner && key[next] == -1) {
                 push(&end, next);
-                map[next] = num++;
+                key[next] = num++;
             }
         }
     }
     assert(num == cells->num_inner);
 
-    for (long i = cells->num_inner; i < cells->num; i++) {
-        map[i] = num++;
-    }
-
-    arena_load(save);
-    return arena_smuggle(map, cells->num, sizeof(*map));
-}
-
-static void reorder_cells(const MeshNodes *nodes, MeshCells *cells)
-{
-    Arena save = arena_save();
-
-    typedef struct {
-        long map;
-        long num_nodes;
-        long node[MAX_CELL_NODES];
-        long num_cells;
-        long cell[MAX_CELL_FACES];
-    } Cell;
-
-    Cell *cell = arena_malloc(cells->num, sizeof(*cell));
-
-    long *map = compute_cell_map(nodes, cells);
-    for (long i = 0; i < cells->num; i++) {
-        cell[i].map = map[i];
-        cell[i].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cell[i].node[k] = cells->node.idx[j];
-        }
-        cell[i].num_cells = cells->cell.off[i + 1] - cells->cell.off[i];
-        for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
-            cell[i].cell[k] = cells->cell.idx[j];
-        }
-    }
-    qsort(cell, cells->num, sizeof(*cell), lcmp);
-
-    for (long i = 0; i < cells->num; i++) {
-        cells->node.off[i + 1] = cells->node.off[i] + cell[i].num_nodes;
-        for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cells->node.idx[j] = cell[i].node[k];
-        }
-        cells->cell.off[i + 1] = cells->cell.off[i] + cell[i].num_cells;
-        for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
-            cells->cell.idx[j] = map[cell[i].cell[k]];
-        }
-    }
+    mesh_reorder_cells(cells, 0, 0, cells->num_inner, key);
 
     arena_load(save);
 }
@@ -220,7 +176,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     long num_faces = pair2face->num;
     long *off = arena_malloc(num_faces + 1, sizeof(*off));
     long *idx = arena_malloc(num_faces * MAX_FACE_NODES, sizeof(*idx));
-    MeshFaceCell *cell = arena_malloc(num_faces, sizeof(*cell));
+    FaceCells *cell = arena_malloc(num_faces, sizeof(*cell));
 
     off[0] = 0;
 
@@ -258,52 +214,21 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     faces->cell = arena_smuggle(cell, num_faces, sizeof(*cell));
 }
 
-static long *compute_face_map(const MeshCells *cells, const MeshFaces *faces)
-{
-    long *map = arena_malloc(faces->num, sizeof(*map));
-    for (long i = 0; i < faces->num; i++) {
-        if (faces->cell[i].right < cells->num_inner) {
-            map[i] = faces->cell[i].left;
-        }
-        else {
-            map[i] = faces->cell[i].right;
-        }
-    }
-    return map;
-}
-
 /* Reorder face arrays to [inner (sorted by left), outer (sorted by right)]. */
-static void reorder_faces(const MeshCells *cells, MeshFaces *faces)
+static void reorder(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
 
-    typedef struct {
-        long map;
-        long num;
-        long node[MAX_FACE_NODES];
-        MeshFaceCell cell;
-    } Face;
-
-    Face *face = arena_malloc(faces->num, sizeof(*face));
-
-    long *map = compute_face_map(cells, faces);
+    long *key = arena_malloc(faces->num, sizeof(*key));
     for (long i = 0; i < faces->num; i++) {
-        face[i].map = map[i];
-        face[i].num = faces->node.off[i + 1] - faces->node.off[i];
-        for (long k = 0, j = faces->node.off[i]; j < faces->node.off[i + 1]; j++, k++) {
-            face[i].node[k] = faces->node.idx[j];
+        if (faces->cell[i].right < cells->num_inner) {
+            key[i] = faces->cell[i].left;
         }
-        face[i].cell = faces->cell[i];
-    }
-    qsort(face, faces->num, sizeof(*face), lcmp);
-
-    for (long i = 0; i < faces->num; i++) {
-        faces->node.off[i + 1] = faces->node.off[i] + face[i].num;
-        for (long k = 0, j = faces->node.off[i]; j < faces->node.off[i + 1]; j++, k++) {
-            faces->node.idx[j] = face[i].node[k];
+        else {
+            key[i] = faces->cell[i].right;
         }
-        faces->cell[i] = face[i].cell;
     }
+    mesh_reorder_faces(faces, key);
 
     arena_load(save);
 }
@@ -352,7 +277,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
             vector coord = nodes->coord[cells->node.idx[j]];
             center = vector_add(center, vector_div(coord, num_nodes));
         }
-        long entity = array_digitize(&entities->cell_off[1], i, entities->num);
+        long entity = array_ldigitize(&entities->cell_off[1], i, entities->num);
         if (entity < entities->num) {
             recv[num] = vector_add(center, entities->offset[entity]);
         }
@@ -748,10 +673,11 @@ void mesh_build(Mesh *mesh)
     assert(mesh);
 
     connect_cells(&mesh->nodes, &mesh->cells);
-    reorder_cells(&mesh->nodes, &mesh->cells);
+
+    improve_cell_ordering(&mesh->nodes, &mesh->cells);
 
     create_faces(&mesh->cells, &mesh->faces);
-    reorder_faces(&mesh->cells, &mesh->faces);
+    reorder(&mesh->cells, &mesh->faces);
 
     compute_face_entities(&mesh->faces, &mesh->entities);
 
