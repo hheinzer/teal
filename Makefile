@@ -1,7 +1,7 @@
 # compiler, default flags, and libraries
 CC = clang
 CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Isrc
-LDLIBS = -lm -lhdf5 -lmetis -lparmetis
+LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 
 # debug flags

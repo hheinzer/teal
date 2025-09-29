@@ -1,5 +1,7 @@
 #include "utils.h"
 
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -9,9 +11,76 @@
 #include "option.h"
 #include "sync.h"
 
+enum { BUFLEN = 4096 };
+
+static int append(char *str, long *pos, const char *format, ...)
+{
+    if (!str || !pos || *pos < 0 || !format) {
+        abort();
+    }
+    if (*pos >= BUFLEN) {
+        str[BUFLEN - 1] = 0;
+        return 1;
+    }
+
+    va_list args;
+    va_start(args, format);
+    long rem = BUFLEN - *pos;
+    long num = vsnprintf(&str[*pos], rem, format, args);
+    va_end(args);
+
+    if (num < 0) {
+        return -1;
+    }
+    if (num >= rem) {
+        *pos = BUFLEN - 1;
+        str[*pos] = 0;
+        return 1;
+    }
+    *pos += num;
+    return 0;
+}
+
 void assert_fail(const char *file, long line, const char *func, const char *expr)
 {
-    fprintf(stderr, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank, file, line, func, expr);
+    if (!file || line < 0 || !func || !expr) {
+        abort();
+    }
+
+    char buf[BUFLEN];
+    long pos = 0;
+
+    if (append(buf, &pos, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank, file, line, func,
+               expr)) {
+        goto out;
+    }
+
+    unw_context_t ctx;
+    unw_cursor_t cur;
+    if (!unw_getcontext(&ctx) && !unw_init_local(&cur, &ctx)) {
+        long frame = 0;
+        while (unw_step(&cur) > 0) {
+            string name = "";
+            unw_word_t offset = 0;
+            if (unw_get_proc_name(&cur, name, sizeof(name), &offset)) {
+                strcpy(name, "???");
+                offset = 0;
+            }
+            unw_word_t iptr = 0;
+            unw_get_reg(&cur, UNW_REG_IP, &iptr);
+            if (append(buf, &pos, "\t %2ld. %-32s (+0x%lx) [0x%lx]\n", frame++, name, offset,
+                       iptr)) {
+                break;
+            }
+        }
+    }
+
+out:
+    if (pos > 0) {
+        fwrite(buf, sizeof(*buf), pos, stderr);
+        fflush(stderr);
+    }
+
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     abort();
 }
