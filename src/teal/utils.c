@@ -68,7 +68,7 @@ void assert_fail(const char *file, long line, const char *func, const char *expr
             }
             unw_word_t iptr = 0;
             unw_get_reg(&cur, UNW_REG_IP, &iptr);
-            if (append(buf, &pos, "\t %2ld. %-32s (+0x%lx) [0x%lx]\n", frame++, name, offset,
+            if (append(buf, &pos, "\t %2ld. %-30s (+0x%lx) [0x%lx]\n", frame++, name, offset,
                        iptr)) {
                 break;
             }
