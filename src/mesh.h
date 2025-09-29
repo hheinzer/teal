@@ -119,6 +119,7 @@ void mesh_build(Mesh *mesh);
 /* Print a per-rank, human-readable mesh dump. */
 void mesh_print(const Mesh *mesh);
 
+/* Test the mesh integrety and report violations. */
 void mesh_test(const Mesh *mesh);
 
 /* Print a global mesh summary. */

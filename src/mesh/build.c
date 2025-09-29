@@ -490,16 +490,16 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
 static matrix compute_face_basis(const vector *coord, long num_nodes)
 {
     matrix basis;
-    vector nrm = basis.x = compute_face_normal(coord, num_nodes);
-    double nqz = hypot(nrm.x, nrm.y);
-    double nqy = hypot(nrm.x, nrm.z);
+    vector normal = basis.x = compute_face_normal(coord, num_nodes);
+    double nqz = hypot(normal.x, normal.y);
+    double nqy = hypot(normal.x, normal.z);
     if (nqz > nqy) {
-        basis.y = (vector){-nrm.y / nqz, nrm.x / nqz, 0};
-        basis.z = (vector){-nrm.x * nrm.z / nqz, -nrm.y * nrm.z / nqz, nqz};
+        basis.y = (vector){-normal.y / nqz, normal.x / nqz, 0};
+        basis.z = (vector){-normal.x * normal.z / nqz, -normal.y * normal.z / nqz, nqz};
     }
     else {
-        basis.y = (vector){-nrm.x * nrm.y / nqy, nqy, -nrm.y * nrm.z / nqy};
-        basis.z = (vector){-nrm.z / nqy, 0, nrm.x / nqy};
+        basis.y = (vector){-normal.x * normal.y / nqy, nqy, -normal.y * normal.z / nqy};
+        basis.z = (vector){-normal.z / nqy, 0, normal.x / nqy};
     }
     return basis;
 }
@@ -644,15 +644,16 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
     for (long i = 0; i < faces->num; i++) {
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
-        vector nrm = faces->basis[i].x;
-        vector inc = vector_mul(vector_abs(nrm), faces->area[i] / 2);
+        vector normal = faces->basis[i].x;
+        vector inc = vector_mul(vector_abs(normal), faces->area[i] / 2);
         projection[left] = vector_add(projection[left], inc);
         if (right < cells->num_inner) {
             projection[right] = vector_add(projection[right], inc);
         }
         else if (i < faces->num_inner + faces->num_ghost) {  // mirror left center across the faces
             vector c2f = vector_sub(faces->center[i], center[left]);
-            center[right] = vector_add(center[left], vector_mul(nrm, 2 * vector_dot(c2f, nrm)));
+            center[right] =
+                vector_add(center[left], vector_mul(normal, 2 * vector_dot(c2f, normal)));
         }
     }
 
