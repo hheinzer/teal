@@ -3,27 +3,44 @@
 #include <stdlib.h>
 
 #include "teal/arena.h"
-#include "teal/dict.h"
+#include "teal/array.h"
 #include "teal/utils.h"
 
-void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *key)
+static bool is_valid(const long *map, long num)
 {
     Arena save = arena_save();
 
+    long *cnt = arena_calloc(num, sizeof(*cnt));
+    for (long i = 0; i < num; i++) {
+        if (0 <= map[i] && map[i] < num) {
+            cnt[map[i]] += 1;
+        }
+    }
+
+    bool ret = true;
+    ret &= array_lmin(cnt, num) == 1;
+    ret &= array_lmax(cnt, num) == 1;
+    ret &= array_lsum(cnt, num) == num;
+
+    arena_load(save);
+    return ret;
+}
+
+void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *map)
+{
+    assert(is_valid(map, nodes->num));
+
+    Arena save = arena_save();
+
     struct {
-        long key;
-        long idx;
         long global;
         vector coord;
     } *buf = arena_malloc(nodes->num, sizeof(*buf));
 
     for (long i = 0; i < nodes->num; i++) {
-        buf[i].key = key[i];
-        buf[i].idx = i;
-        buf[i].global = nodes->global[i];
-        buf[i].coord = nodes->coord[i];
+        buf[map[i]].global = nodes->global[i];
+        buf[map[i]].coord = nodes->coord[i];
     }
-    qsort(buf, nodes->num, sizeof(*buf), lcmp);
 
     for (long i = 0; i < nodes->num; i++) {
         nodes->global[i] = buf[i].global;
@@ -31,16 +48,9 @@ void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *key)
     }
 
     if (cells) {
-        Dict *old2new = dict_create(sizeof(long), sizeof(long));
-        for (long i = 0; i < nodes->num; i++) {
-            dict_insert(old2new, &buf[i].idx, &i);
-        }
         for (long i = 0; i < cells->num; i++) {
             for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-                long *new = dict_lookup(old2new, &cells->node.idx[j]);
-                if (new) {
-                    cells->node.idx[j] = *new;
-                }
+                cells->node.idx[j] = map[cells->node.idx[j]];
             }
         }
     }
@@ -48,14 +58,14 @@ void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *key)
     arena_load(save);
 }
 
-void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, const long *key)
+void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, const long *map)
 {
+    assert(is_valid(map, end - beg));
+
     Arena save = arena_save();
 
     long tot = end - beg;
     struct {
-        long key;
-        long idx;
         long num_nodes;
         long node[MAX_CELL_NODES];
         long num_cells;
@@ -63,26 +73,15 @@ void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, 
     } *buf = arena_malloc(tot, sizeof(*buf));
 
     for (long num = 0, i = beg; i < end; i++, num++) {
-        buf[num].key = key[num];
-        buf[num].idx = i;
-        buf[num].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+        buf[map[num]].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            buf[num].node[k] = cells->node.idx[j];
+            buf[map[num]].node[k] = cells->node.idx[j];
         }
         if (cells->cell.off && cells->cell.idx) {
-            buf[num].num_cells = cells->cell.off[i + 1] - cells->cell.off[i];
+            buf[map[num]].num_cells = cells->cell.off[i + 1] - cells->cell.off[i];
             for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
-                buf[num].cell[k] = cells->cell.idx[j];
+                buf[map[num]].cell[k] = cells->cell.idx[j];
             }
-        }
-    }
-    qsort(buf, tot, sizeof(*buf), lcmp);
-
-    Dict *old2new;
-    if ((cells->cell.off && cells->cell.idx) || faces) {
-        old2new = dict_create(sizeof(long), sizeof(long));
-        for (long num = 0, i = beg; i < end; i++, num++) {
-            dict_insert(old2new, &buf[num].idx, &i);
         }
     }
 
@@ -94,20 +93,17 @@ void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, 
         if (cells->cell.off && cells->cell.idx) {
             cells->cell.off[i + 1] = cells->cell.off[i] + buf[num].num_cells;
             for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
-                long *new = dict_lookup(old2new, &buf[num].cell[k]);
-                cells->cell.idx[j] = new ? *new : buf[num].cell[k];
+                cells->cell.idx[j] = buf[num].cell[k];
             }
         }
     }
 
     if (cells->cell.off && cells->cell.idx) {
         for (long i = 0; i < cells->num; i++) {
-            if (i < beg || end <= i) {
-                for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
-                    long *new = dict_lookup(old2new, &cells->cell.idx[j]);
-                    if (new) {
-                        cells->cell.idx[j] = *new;
-                    }
+            for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
+                long idx = cells->cell.idx[j];
+                if (beg <= idx && idx < end) {
+                    cells->cell.idx[j] = beg + map[idx - beg];
                 }
             }
         }
@@ -115,12 +111,13 @@ void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, 
 
     if (faces) {
         for (long i = 0; i < faces->num; i++) {
-            long *new = dict_lookup(old2new, &faces->cell[i].left);
-            if (new) {
-                faces->cell[i].left = *new;
+            long left = faces->cell[i].left;
+            if (beg <= left && left < end) {
+                faces->cell[i].left = beg + map[left - beg];
             }
-            if ((new = dict_lookup(old2new, &faces->cell[i].right))) {
-                faces->cell[i].right = *new;
+            long right = faces->cell[i].right;
+            if (beg <= right && right < end) {
+                faces->cell[i].right = beg + map[right - beg];
             }
         }
     }

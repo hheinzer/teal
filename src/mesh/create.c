@@ -255,8 +255,8 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
     assert(cells->node.idx);
 }
 
-/* Build node reorder key to [inner, neighbor] for the current rank. */
-static void compute_node_key(const MeshNodes *nodes, tuple num_nodes, const int *coords, long *key)
+/* Build node reorder map to [inner, neighbor] for the current rank. */
+static void compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int *coords, long *map)
 {
     long num = 0;
     long num_inner = 0;
@@ -265,10 +265,10 @@ static void compute_node_key(const MeshNodes *nodes, tuple num_nodes, const int 
         for (long j = 0; j < num_nodes.y; j++) {
             for (long i = 0; i < num_nodes.x; i++) {
                 if (!(i == 0 && coords[0]) && !(j == 0 && coords[1]) && !(k == 0 && coords[2])) {
-                    key[num] = num_inner++;
+                    map[num] = num_inner++;
                 }
                 else {
-                    key[num] = nodes->num_inner + num_neighbors++;
+                    map[num] = nodes->num_inner + num_neighbors++;
                 }
                 num += 1;
             }
@@ -279,9 +279,9 @@ static void compute_node_key(const MeshNodes *nodes, tuple num_nodes, const int 
     assert(num_neighbors == num - num_inner);
 }
 
-/* Build cell reorder key to [inner, ghost, periodic, neighbor] for the current rank. */
-static void compute_cell_key(const MeshCells *cells, tuple num_cells, int ndims, const int *dims,
-                             const int *coords, const int *neighbor, long *key)
+/* Build cell reorder map to [inner, ghost, periodic, neighbor] for the current rank. */
+static void compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims, const int *dims,
+                             const int *coords, const int *neighbor, long *map)
 {
     long num = 0;
     long num_inner = 0;
@@ -289,18 +289,18 @@ static void compute_cell_key(const MeshCells *cells, tuple num_cells, int ndims,
     long num_periodic = 0;
     long num_neighbors = 0;
     for (long i = 0; i < cells->num_inner; i++) {
-        key[num++] = num_inner++;
+        map[num++] = num_inner++;
     }
     for (long i = 0; i < 2 * ndims; i++) {
         for (long j = 0; j < num_cells_side(num_cells, i); j++) {
             if (neighbor[i] == MPI_PROC_NULL) {
-                key[num] = cells->num_inner + num_ghost++;
+                map[num] = cells->num_inner + num_ghost++;
             }
             else if (is_edge_side(dims, coords, i)) {
-                key[num] = cells->num_inner + cells->num_ghost + num_periodic++;
+                map[num] = cells->num_inner + cells->num_ghost + num_periodic++;
             }
             else {
-                key[num] =
+                map[num] =
                     cells->num_inner + cells->num_ghost + cells->num_periodic + num_neighbors++;
             }
             num += 1;
@@ -320,13 +320,13 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
     Arena save = arena_save();
 
     long num = lmax(nodes->num, cells->num);
-    long *key = arena_malloc(num, sizeof(*key));
+    long *map = arena_malloc(num, sizeof(*map));
 
-    compute_node_key(nodes, num_nodes, coords, key);
-    mesh_reorder_nodes(nodes, cells, key);
+    compute_node_map(nodes, num_nodes, coords, map);
+    mesh_reorder_nodes(nodes, cells, map);
 
-    compute_cell_key(cells, num_cells, ndims, dims, coords, neighbor, key);
-    mesh_reorder_cells(cells, 0, 0, cells->num, key);
+    compute_cell_map(cells, num_cells, ndims, dims, coords, neighbor, map);
+    mesh_reorder_cells(cells, 0, 0, cells->num, map);
 
     arena_load(save);
 }

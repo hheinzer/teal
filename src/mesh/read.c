@@ -1045,18 +1045,23 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
     collect_coords(nodes, global2coord);
 
-    long cap = sync_lmax(global2coord->num);
-    struct {
+    typedef struct {
         long rank;
         long old;
+        vector coord;
         long new;
-    } *node = arena_calloc(cap, sizeof(*node));
+    } Node;
+
+    long cap = sync_lmax(global2coord->num);
+    Node *node = arena_calloc(cap, sizeof(*node));
 
     long num = 0;
     for (DictItem *item = global2coord->beg; item; item = item->next) {
         long *global = item->key;
+        vector *coord = item->val;
         node[num].rank = sync.rank;
         node[num].old = *global;
+        node[num].coord = *coord;
         node[num].new = -1;
         num += 1;
     }
@@ -1066,9 +1071,16 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         node[i].old = node[i].new = -1;
     }
 
+    MPI_Datatype tmp;
+    int len[4] = {1, 1, 1, 1};
+    MPI_Aint dis[4] = {offsetof(Node, rank), offsetof(Node, old), offsetof(Node, coord),
+                       offsetof(Node, new)};
+    MPI_Datatype typ[4] = {MPI_LONG, MPI_LONG, vector_type, MPI_LONG};
+    MPI_Type_create_struct(4, len, dis, typ, &tmp);
     MPI_Datatype type;
-    MPI_Type_contiguous(3, MPI_LONG, &type);
+    MPI_Type_create_resized(tmp, 0, sizeof(Node), &type);
     MPI_Type_commit(&type);
+    MPI_Type_free(&tmp);
 
     int dst = (sync.rank + 1) % sync.size;
     int src = (sync.rank - 1 + sync.size) % sync.size;
@@ -1091,12 +1103,12 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
     qsort(node, num, sizeof(*node), lcmp);
 
-    Dict *global2global = dict_create(sizeof(long), sizeof(long));
+    Dict *old2new = dict_create(sizeof(long), sizeof(long));
     long off_nodes = sync_lexsum(num_inner);
     for (long i = 0; i < num; i++) {
         if (node[i].rank == -sync.rank) {
             node[i].new = i + off_nodes;
-            dict_insert(global2global, &node[i].old, &node[i].new);
+            dict_insert(old2new, &node[i].old, &node[i].new);
         }
     }
 
@@ -1104,10 +1116,11 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            long *global = dict_lookup(global2global, &node[i].old);
-            if (global) {
-                assert(node[i].new == -1 || node[i].new == *global);
-                node[i].new = *global;
+            if (node[i].new == -1) {
+                long *new = dict_lookup(old2new, &node[i].old);
+                if (new) {
+                    node[i].new = *new;
+                }
             }
         }
     }
@@ -1126,19 +1139,17 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     for (long i = 0; i < nodes->num; i++) {
         assert(node[i].new != -1);
         global[i] = node[i].new;
-        vector *coord = dict_lookup(global2coord, &node[i].old);
-        assert(coord);
-        nodes->coord[i] = *coord;
+        nodes->coord[i] = node[i].coord;
     }
 
-    Dict *global2local = dict_create(sizeof(long), sizeof(long));
+    Dict *old2local = dict_create(sizeof(long), sizeof(long));
     for (long i = 0; i < nodes->num; i++) {
-        dict_insert(global2local, &node[i].old, &i);
+        dict_insert(old2local, &node[i].old, &i);
     }
 
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            long *local = dict_lookup(global2local, &cells->node.idx[j]);
+            long *local = dict_lookup(old2local, &cells->node.idx[j]);
             assert(local);
             cells->node.idx[j] = *local;
         }
@@ -1302,41 +1313,65 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
     arena_load(save);
 }
 
+static void compute_cell_map(const MeshCells *cells, const MeshEntities *entities, const Recv *recv,
+                             long tot, long *map)
+{
+    Arena save = arena_save();
+
+    long (*off)[sync.size + 1] = arena_calloc(entities->num + 1, sizeof(*off));
+    long num = 0;
+    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
+        for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
+            off[i][recv[num++].rank + 1] += 1;
+        }
+    }
+    assert(num == cells->num_periodic);
+    for (long i = num; i < tot; i++) {
+        off[entities->num][recv[i].rank + 1] += 1;
+    }
+
+    long base = 0;
+    for (long i = 0; i < entities->num + 1; ++i) {
+        for (int j = 0; j < sync.size; ++j) {
+            off[i][j + 1] += off[i][j];
+        }
+        for (int j = 0; j < sync.size + 1; ++j) {
+            off[i][j] += base;
+        }
+        base = off[i][sync.size];
+    }
+
+    num = 0;
+    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
+        for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
+            map[num] = off[i][recv[num].rank]++;
+            num += 1;
+        }
+    }
+    assert(num == cells->num_periodic);
+    for (long i = num; i < tot; i++) {
+        map[i] = off[entities->num][recv[i].rank]++;
+    }
+
+    arena_load(save);
+}
+
 /* Reorder outer cells and Recv by (entity,rank). */
 static void reorder(MeshCells *cells, const MeshEntities *entities, Recv *recv, long beg, long end)
 {
     Arena save = arena_save();
 
     long tot = end - beg;
-    long *key = arena_malloc(tot, sizeof(*key));
-    long num = 0;
-    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
-        for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
-            key[num] = ((i * sync.size) + recv[num].rank) * tot + num;
-            num += 1;
-        }
-    }
-    assert(num == cells->num_periodic);
-    for (long i = num; i < tot; i++) {
-        key[i] = ((entities->num * sync.size) + recv[i].rank) * tot + i;
-    }
+    long *map = arena_malloc(tot, sizeof(*map));
+    compute_cell_map(cells, entities, recv, tot, map);
 
-    mesh_reorder_cells(cells, 0, beg, end, key);
+    mesh_reorder_cells(cells, 0, beg, end, map);
 
-    struct {
-        long key;
-        Recv recv;
-    } *buf = arena_malloc(tot, sizeof(*buf));
-
+    Recv *buf = arena_malloc(tot, sizeof(*buf));
     for (long i = 0; i < tot; i++) {
-        buf[i].key = key[i];
-        buf[i].recv = recv[i];
+        buf[map[i]] = recv[i];
     }
-    qsort(buf, tot, sizeof(*buf), lcmp);
-
-    for (long i = 0; i < tot; i++) {
-        recv[i] = buf[i].recv;
-    }
+    memcpy(recv, buf, tot * sizeof(*buf));
 
     arena_load(save);
 }

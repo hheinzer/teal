@@ -12,7 +12,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-/* Build cell-to-cell connectivity from cell-to-node connectivity using METIS. */
+/* Build dual (cell->cell) graph from cell->node with METIS; drop outer-outer edges. */
 static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
@@ -108,13 +108,14 @@ static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells)
     return seed;
 }
 
+/* BFS-reorder inner cells [0,num_inner); remap cell->cell accordingly. */
 static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
 
-    long *key = arena_malloc(cells->num_inner, sizeof(*key));
+    long *map = arena_malloc(cells->num_inner, sizeof(*map));
     for (long i = 0; i < cells->num_inner; i++) {
-        key[i] = -1;
+        map[i] = -1;
     }
 
     Queue *beg = 0;
@@ -123,25 +124,25 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
     long seed = find_seed_cell(nodes, cells);
     long num = 0;
     push(&end, seed);
-    key[seed] = num++;
+    map[seed] = num++;
     while (beg) {
         long index = pop(&beg, &end);
         for (long i = cells->cell.off[index]; i < cells->cell.off[index + 1]; i++) {
             long next = cells->cell.idx[i];
-            if (next < cells->num_inner && key[next] == -1) {
+            if (next < cells->num_inner && map[next] == -1) {
                 push(&end, next);
-                key[next] = num++;
+                map[next] = num++;
             }
         }
     }
     assert(num == cells->num_inner);
 
-    mesh_reorder_cells(cells, 0, 0, cells->num_inner, key);
+    mesh_reorder_cells(cells, 0, 0, cells->num_inner, map);
 
     arena_load(save);
 }
 
-/* Build face-to-node and face-to-cell connectivity. Each unique adjacent cell pair is one face. */
+/* Build faces: one per unique adjacent cell pair; fill face->node and face->cell. */
 static void create_faces(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
@@ -214,7 +215,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     faces->cell = arena_smuggle(cell, num_faces, sizeof(*cell));
 }
 
-/* Reorder face arrays to [inner (sorted by left), outer (sorted by right)]. */
+/* Reorder faces: inner first (by left), then outer (by right). */
 static void reorder(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
@@ -233,6 +234,7 @@ static void reorder(const MeshCells *cells, MeshFaces *faces)
     arena_load(save);
 }
 
+/* Compute per-entity face offsets: inner faces first, then one face per outer cell by entity. */
 static void compute_face_entities(const MeshFaces *faces, MeshEntities *entities)
 {
     long *face_off = arena_malloc(entities->num + 1, sizeof(*face_off));
@@ -246,7 +248,7 @@ static void compute_face_entities(const MeshFaces *faces, MeshEntities *entities
     entities->face_off = face_off;
 }
 
-/* Build neighbor send graph by matching outer-cell centers against neighbor receive windows. */
+/* Build send lists: match neighbors' requested receive centers to local cells. */
 static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
                                const MeshEntities *entities, MeshNeighbors *neighbors)
 {

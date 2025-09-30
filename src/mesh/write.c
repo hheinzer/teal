@@ -19,7 +19,6 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
-/* Write CSR graph `node` with globalized offsets and indices remapped. */
 static void write_node_graph(const MeshGraph *node, const long *global, long num_cells, hid_t loc)
 {
     Arena save = arena_save();
@@ -30,13 +29,13 @@ static void write_node_graph(const MeshGraph *node, const long *global, long num
     long *off = arena_malloc(num, sizeof(*off));
     long offset = sync_lexsum(node->off[num_cells]);
     for (long i = 0; i < num; i++) {
-        off[i] = offset + node->off[i + (sync.rank != 0)];
+        off[i] = offset + node->off[i + (sync.rank != 0)];  // globalize offsets
     }
     h5io_dataset_write("off", off, (hsize_t[]){num}, 1, H5IO_LONG, group);
 
     long *idx = arena_malloc(node->off[num_cells], sizeof(*idx));
     for (long i = 0; i < node->off[num_cells]; i++) {
-        idx[i] = global[node->idx[i]];
+        idx[i] = global[node->idx[i]];  // remap indices
     }
     h5io_dataset_write("idx", idx, (hsize_t[]){node->off[num_cells]}, 1, H5IO_LONG, group);
 

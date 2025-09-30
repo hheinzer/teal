@@ -25,7 +25,6 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
-/* Read CSR graph `node` and normalize offsets to local base. */
 static void read_node_graph(MeshGraph *node, long num_cells, hid_t loc)
 {
     hid_t group = h5io_group_open("node", loc);
@@ -45,7 +44,7 @@ static void read_node_graph(MeshGraph *node, long num_cells, hid_t loc)
                  sync.comm, MPI_STATUS_IGNORE);
 
     for (long i = 0; i < num_cells; i++) {
-        node->off[i + 1] -= offset;
+        node->off[i + 1] -= offset;  // localize offsets
     }
 
     node->idx = malloc(node->off[num_cells] * sizeof(*node->idx));
@@ -89,7 +88,6 @@ static void read_entities(MeshEntities *entities, hid_t loc)
     h5io_group_close(group);
 }
 
-/* Reorder cell arrays to [inner, ghost, periodic]. */
 static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
 {
     Arena save = arena_save();
@@ -97,15 +95,25 @@ static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
     long *entity = arena_malloc(cells->num, sizeof(*entity));
     h5io_dataset_read("cells/entity", entity, (hsize_t[]){cells->num}, 1, H5IO_LONG, loc);
 
-    mesh_reorder_cells(cells, 0, 0, cells->num, entity);
-
-    long *cell_off = arena_calloc(entities->num + 1, sizeof(*cell_off));
+    long *num_cells = arena_calloc(entities->num, sizeof(*num_cells));
     for (long i = 0; i < cells->num; i++) {
-        cell_off[entity[i] + 1] += 1;
+        num_cells[entity[i]] += 1;
     }
+
+    long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
+    cell_off[0] = 0;
     for (long i = 0; i < entities->num; i++) {
-        cell_off[i + 1] += cell_off[i];
+        cell_off[i + 1] = cell_off[i] + num_cells[i];
     }
+
+    long *map = arena_malloc(cells->num, sizeof(*map));
+    for (long i = 0; i < entities->num; i++) {
+        cell_off[i + 1] -= num_cells[i];
+    }
+    for (long i = 0; i < cells->num; i++) {
+        map[i] = cell_off[entity[i] + 1]++;
+    }
+    mesh_reorder_cells(cells, 0, 0, cells->num, map);
 
     arena_load(save);
 

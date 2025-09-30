@@ -38,10 +38,11 @@ static void grow_entities(MeshEntities *entities, long idx)
     entities->offset = memcpy(offset, entities->offset, (entities->num - 1) * sizeof(*offset));
 }
 
-/* Build a key for cells [beg,end) that encodes which side of the plane a cell center lies on. */
-static void compute_cell_key(const MeshNodes *nodes, const MeshCells *cells, vector root,
-                             vector normal, long beg, long end, long *key)
+/* Build a map for cells [beg,end) that encodes which side of the plane a cell center lies on. */
+static long compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, vector root,
+                             vector normal, long beg, long end, long *map)
 {
+    long off = 0;
     for (long num = 0, i = beg; i < end; i++, num++) {
         vector center = {0};
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
@@ -49,12 +50,24 @@ static void compute_cell_key(const MeshNodes *nodes, const MeshCells *cells, vec
             vector coord = nodes->coord[cells->node.idx[j]];
             center = vector_add(center, vector_div(coord, num_nodes));
         }
-        key[num] = (vector_dot(vector_sub(center, root), normal) <= 0) ? i : end + i;
+        map[num] = vector_dot(vector_sub(center, root), normal) <= 0;
+        off += map[num];
     }
+
+    long tot = end - beg;
+    long lhs = 0;
+    long rhs = 0;
+    for (long i = 0; i < tot; i++) {
+        map[i] = map[i] ? lhs++ : off + rhs++;
+    }
+    assert(lhs == off);
+    assert(rhs == tot - off);
+    return off;
 }
 
 /* Split entity metadata at `idx` into two consecutive entities. */
-static void split_entities(MeshEntities *entities, long idx, long beg, long end, const long *key)
+static void split_entities(MeshEntities *entities, long idx, long beg, long end, const long *map,
+                           long off)
 {
     for (long i = entities->num - 1; i > idx; i--) {
         strcpy(entities->name[i], entities->name[i - 1]);
@@ -66,7 +79,7 @@ static void split_entities(MeshEntities *entities, long idx, long beg, long end,
     strcat(entities->name[idx + 1], "-b");
 
     for (long num = 0, i = beg; i < end; i++, num++) {
-        entities->cell_off[idx + 1] -= key[num] >= end;
+        entities->cell_off[idx + 1] -= map[num] >= off;
     }
 
     entities->offset[idx + 1] = entities->offset[idx];
@@ -86,11 +99,11 @@ void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
     long beg = mesh->entities.cell_off[idx];
     long end = mesh->entities.cell_off[idx + 1];
     long tot = end - beg;
-    long *key = arena_malloc(tot, sizeof(*key));
-    compute_cell_key(&mesh->nodes, &mesh->cells, root, normal, beg, end, key);
+    long *map = arena_malloc(tot, sizeof(*map));
+    long off = compute_cell_map(&mesh->nodes, &mesh->cells, root, normal, beg, end, map);
 
-    mesh_reorder_cells(&mesh->cells, 0, beg, end, key);
-    split_entities(&mesh->entities, idx, beg, end, key);
+    mesh_reorder_cells(&mesh->cells, 0, beg, end, map);
+    split_entities(&mesh->entities, idx, beg, end, map, off);
 
     arena_load(save);
 }
