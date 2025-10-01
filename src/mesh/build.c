@@ -66,14 +66,14 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
 
 typedef struct Queue Queue;
 struct Queue {
-    long index;
+    long idx;
     Queue *next;
 };
 
-static void push(Queue ***end, long index)
+static void push(Queue ***end, long idx)
 {
     Queue *new = arena_malloc(1, sizeof(*new));
-    new->index = index;
+    new->idx = idx;
     new->next = 0;
     **end = new;
     *end = &new->next;
@@ -86,7 +86,7 @@ static long pop(Queue **beg, Queue ***end)
     if (!*beg) {
         *end = beg;
     }
-    return cur->index;
+    return cur->idx;
 }
 
 static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells)
@@ -126,12 +126,12 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
     push(&end, seed);
     map[seed] = num++;
     while (beg) {
-        long index = pop(&beg, &end);
-        for (long i = cells->cell.off[index]; i < cells->cell.off[index + 1]; i++) {
-            long next = cells->cell.idx[i];
-            if (next < cells->num_inner && map[next] == -1) {
-                push(&end, next);
-                map[next] = num++;
+        long cur = pop(&beg, &end);
+        for (long i = cells->cell.off[cur]; i < cells->cell.off[cur + 1]; i++) {
+            long idx = cells->cell.idx[i];
+            if (idx < cells->num_inner && map[idx] == -1) {
+                push(&end, idx);
+                map[idx] = num++;
             }
         }
     }
