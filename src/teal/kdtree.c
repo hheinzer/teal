@@ -104,13 +104,13 @@ static Stack *pop(Stack **top)
     return cur;
 }
 
-static double squared_distance(vector lhs, vector rhs)
+static scalar squared_distance(vector lhs, vector rhs)
 {
     vector sub = vector_sub(lhs, rhs);
     return vector_dot(sub, sub);
 }
 
-static void heap_replace(const void *item_val, double item_metric, void *val, double *metric,
+static void heap_replace(const void *item_val, scalar item_metric, void *val, scalar *metric,
                          long num, long size)
 {
     char (*_val)[size] = val;
@@ -141,7 +141,7 @@ static void heap_replace(const void *item_val, double item_metric, void *val, do
     }
 }
 
-static double delta(vector lhs, vector rhs, long depth)
+static scalar delta(vector lhs, vector rhs, long depth)
 {
     switch (depth % 3) {
         case 0: return lhs.x - rhs.x;
@@ -160,7 +160,7 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
 
     Arena save = arena_save();
 
-    double *metric = arena_malloc(num, sizeof(*metric));
+    scalar *metric = arena_malloc(num, sizeof(*metric));
     for (long i = 0; i < num; i++) {
         metric[i] = INFINITY;
     }
@@ -175,12 +175,12 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
             continue;
         }
 
-        double item_metric = squared_distance(key, item->key);
+        scalar item_metric = squared_distance(key, item->key);
         if (item_metric < metric[0]) {
             heap_replace(item->val, item_metric, val, metric, num, self->size_val);
         }
 
-        double del = delta(key, item->key, depth);
+        scalar del = delta(key, item->key, depth);
         push(&top, (del < 0) ? item->left : item->right, depth + 1);
         if (sq(del) <= metric[0]) {
             push(&top, (del < 0) ? item->right : item->left, depth + 1);
@@ -190,7 +190,7 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
     arena_load(save);
 }
 
-long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, double radius)
+long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, scalar radius)
 {
     assert(self && (val ? (cap > 0 && self->size_val > 0) : cap == 0) && radius >= 0);
     if (cap == 0) {
@@ -200,7 +200,7 @@ long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, double r
     Arena save = arena_save();
 
     char (*_val)[self->size_val] = val;
-    double metric = sq(radius);
+    scalar metric = sq(radius);
     long num = 0;
 
     Stack *top = 0;
@@ -213,12 +213,12 @@ long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, double r
             continue;
         }
 
-        double item_metric = squared_distance(key, item->key);
+        scalar item_metric = squared_distance(key, item->key);
         if (item_metric <= metric) {
             memcpy(_val[num++], item->val, self->size_val);
         }
 
-        double del = delta(key, item->key, depth);
+        scalar del = delta(key, item->key, depth);
         push(&top, (del < 0) ? item->left : item->right, depth + 1);
         if (sq(del) <= metric) {
             push(&top, (del < 0) ? item->right : item->left, depth + 1);

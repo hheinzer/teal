@@ -4,8 +4,10 @@
 
 typedef char string[128];
 
+typedef double scalar;
+
 typedef struct {
-    double x, y, z;
+    scalar x, y, z;
 } vector;
 
 typedef struct {

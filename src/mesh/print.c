@@ -29,7 +29,7 @@ static void print_long_pair(const long *arr, long idx)
     }
 }
 
-static void print_double(const double *arr, long idx)
+static void print_scalar(const scalar *arr, long idx)
 {
     if (arr) {
         printf(" %g |", arr[idx]);
@@ -125,7 +125,7 @@ void mesh_print(const Mesh *mesh)
                     printf("\t\t [%ld]", i);
                     print_graph(&mesh->cells.node, i);
                     print_graph(&mesh->cells.cell, i);
-                    print_double(mesh->cells.volume, i);
+                    print_scalar(mesh->cells.volume, i);
                     print_vector(mesh->cells.center, i);
                     print_vector(mesh->cells.projection, i);
                     printf("\n");
@@ -141,7 +141,7 @@ void mesh_print(const Mesh *mesh)
                     printf("\t\t [%ld]", i);
                     print_graph(&mesh->faces.node, i);
                     print_face_cells(mesh->faces.cell, i);
-                    print_double(mesh->faces.area, i);
+                    print_scalar(mesh->faces.area, i);
                     print_vector(mesh->faces.center, i);
                     print_matrix(mesh->faces.basis, i);
                     print_vector(mesh->faces.weight, i);

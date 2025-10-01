@@ -36,30 +36,30 @@ long array_lsum(const long *arr, long num)
     return sum;
 }
 
-double array_fmin(const double *arr, long num)
+scalar array_fmin(const scalar *arr, long num)
 {
     assert(arr ? num >= 0 : num == 0);
-    double min = INFINITY;
+    scalar min = INFINITY;
     for (long i = 0; i < num; i++) {
         min = fmin(min, arr[i]);
     }
     return min;
 }
 
-double array_fmax(const double *arr, long num)
+scalar array_fmax(const scalar *arr, long num)
 {
     assert(arr ? num >= 0 : num == 0);
-    double max = -INFINITY;
+    scalar max = -INFINITY;
     for (long i = 0; i < num; i++) {
         max = fmax(max, arr[i]);
     }
     return max;
 }
 
-double array_fsum(const double *arr, long num)
+scalar array_fsum(const scalar *arr, long num)
 {
     assert(arr ? num >= 0 : num == 0);
-    double sum = 0;
+    scalar sum = 0;
     for (long i = 0; i < num; i++) {
         sum += arr[i];
     }

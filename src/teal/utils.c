@@ -96,7 +96,7 @@ void print(const char *format, ...)
     }
 }
 
-double sq(double val)
+scalar sq(scalar val)
 {
     return val * val;
 }
@@ -111,10 +111,10 @@ long lmax(long lhs, long rhs)
     return (lhs > rhs) ? lhs : rhs;
 }
 
-bool isclose(double lhs, double rhs)
+bool isclose(scalar lhs, scalar rhs)
 {
-    static const double atol = 1.0e-12;
-    static const double rtol = 1.0e-10;
+    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
+    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
     return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
 }
 
@@ -129,8 +129,8 @@ int lcmp(const void *lhs, const void *rhs)
 int fcmp(const void *lhs, const void *rhs)
 {
     assert(lhs && rhs);
-    const double *_lhs = lhs;
-    const double *_rhs = rhs;
+    const scalar *_lhs = lhs;
+    const scalar *_rhs = rhs;
     return isclose(*_lhs, *_rhs) ? 0 : (*_lhs > *_rhs) - (*_lhs < *_rhs);
 }
 
@@ -157,10 +157,10 @@ void lswap(long *lhs, long *rhs)
     *rhs = swap;
 }
 
-void fswap(double *lhs, double *rhs)
+void fswap(scalar *lhs, scalar *rhs)
 {
     assert(lhs && rhs);
-    double swap = *lhs;
+    scalar swap = *lhs;
     *lhs = *rhs;
     *rhs = swap;
 }
@@ -213,9 +213,9 @@ bool fexists(const char *fname)
 long str2size(const char *str)
 {
     assert(str);
-    static const double base = 1000;
+    static const scalar base = 1000;
     char *end;
-    double size = strtod(str, &end);
+    scalar size = strtod(str, &end);
     switch (*end) {
         case 'K': size *= base; break;
         case 'M': size *= base * base; break;
@@ -226,10 +226,10 @@ long str2size(const char *str)
     return ceil(size);
 }
 
-void size2str(char *str, double size)
+void size2str(char *str, scalar size)
 {
     assert(str && size >= 0);
-    static const double base = 1000;
+    static const scalar base = 1000;
     char *prefix = "\0KMGT";
     while (size >= base && prefix[1]) {
         size /= base;

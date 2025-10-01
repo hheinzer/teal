@@ -5,8 +5,8 @@
 #define H5IO_UCHAR H5T_NATIVE_UCHAR
 #define H5IO_INT H5T_NATIVE_INT
 #define H5IO_LONG H5T_NATIVE_LONG
-#define H5IO_DOUBLE H5T_NATIVE_DOUBLE
 #define H5IO_STRING H5T_C_S1
+#define H5IO_SCALAR (sizeof(scalar) == sizeof(float) ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE)
 
 hid_t h5io_file_create(const char *name);
 hid_t h5io_file_open(const char *name);

@@ -354,7 +354,7 @@ static void correct_coord_order(vector *coord, long num_nodes)
     }
 }
 
-static double compute_face_area(const vector *coord, long num_nodes)
+static scalar compute_face_area(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
         case 3: {
@@ -371,7 +371,7 @@ static double compute_face_area(const vector *coord, long num_nodes)
     }
 }
 
-static vector weighted_average(const vector *arr, const double *wgt, long num)
+static vector weighted_average(const vector *arr, const scalar *wgt, long num)
 {
     vector wsum = {0};
     for (long i = 0; i < num; i++) {
@@ -388,7 +388,7 @@ static vector compute_face_center(const vector *coord, long num_nodes)
             vector lhs[3] = {coord[0], coord[1], coord[2]};
             vector rhs[3] = {coord[0], coord[2], coord[3]};
             vector cen[2] = {compute_face_center(lhs, 3), compute_face_center(rhs, 3)};
-            double area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
+            scalar area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
             return weighted_average(cen, area, 2);
         }
         default: abort();
@@ -418,8 +418,8 @@ static matrix compute_face_basis(const vector *coord, long num_nodes)
 {
     matrix basis;
     vector normal = basis.x = compute_face_normal(coord, num_nodes);
-    double nqz = hypot(normal.x, normal.y);
-    double nqy = hypot(normal.x, normal.z);
+    scalar nqz = hypot(normal.x, normal.y);
+    scalar nqy = hypot(normal.x, normal.z);
     if (nqz > nqy) {
         basis.y = (vector){-normal.y / nqz, normal.x / nqz, 0};
         basis.z = (vector){-normal.x * normal.z / nqz, -normal.y * normal.z / nqz, nqz};
@@ -449,7 +449,7 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, l
 
 static void compute_face_geometry(const MeshNodes *nodes, const MeshCells *cells, MeshFaces *faces)
 {
-    double *area = arena_malloc(faces->num, sizeof(*area));
+    scalar *area = arena_malloc(faces->num, sizeof(*area));
     vector *center = arena_malloc(faces->num, sizeof(*center));
     matrix *basis = arena_malloc(faces->num, sizeof(*basis));
 
@@ -471,7 +471,7 @@ static void compute_face_geometry(const MeshNodes *nodes, const MeshCells *cells
     faces->basis = basis;
 }
 
-static double compute_cell_volume(const vector *coord, long num_nodes)
+static scalar compute_cell_volume(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
         case 4: {
@@ -507,21 +507,21 @@ static vector compute_cell_center(const vector *coord, long num_nodes)
             vector lhs[4] = {coord[0], coord[1], coord[2], coord[4]};
             vector rhs[4] = {coord[0], coord[2], coord[3], coord[4]};
             vector cen[2] = {compute_cell_center(lhs, 4), compute_cell_center(rhs, 4)};
-            double vol[2] = {compute_cell_volume(lhs, 4), compute_cell_volume(rhs, 4)};
+            scalar vol[2] = {compute_cell_volume(lhs, 4), compute_cell_volume(rhs, 4)};
             return weighted_average(cen, vol, 2);
         }
         case 6: {
             vector lhs[5] = {coord[0], coord[1], coord[4], coord[3], coord[5]};
             vector rhs[4] = {coord[0], coord[1], coord[2], coord[5]};
             vector cen[2] = {compute_cell_center(lhs, 5), compute_cell_center(rhs, 4)};
-            double vol[2] = {compute_cell_volume(lhs, 5), compute_cell_volume(rhs, 4)};
+            scalar vol[2] = {compute_cell_volume(lhs, 5), compute_cell_volume(rhs, 4)};
             return weighted_average(cen, vol, 2);
         }
         case 8: {
             vector lhs[6] = {coord[0], coord[1], coord[2], coord[4], coord[5], coord[6]};
             vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
             vector cen[2] = {compute_cell_center(lhs, 6), compute_cell_center(rhs, 6)};
-            double vol[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
+            scalar vol[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
             return weighted_average(cen, vol, 2);
         }
         default: abort();
@@ -554,7 +554,7 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
 static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, const MeshFaces *faces,
                                   const MeshEntities *entities, const MeshNeighbors *neighbors)
 {
-    double *volume = arena_calloc(cells->num, sizeof(*volume));
+    scalar *volume = arena_calloc(cells->num, sizeof(*volume));
     vector *center = arena_malloc(cells->num, sizeof(*center));
     vector *projection = arena_calloc(cells->num, sizeof(*projection));
 
@@ -601,17 +601,17 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
 
-    double *r11 = arena_calloc(cells->num_inner, sizeof(*r11));
-    double *r12 = arena_calloc(cells->num_inner, sizeof(*r12));
-    double *r22 = arena_calloc(cells->num_inner, sizeof(*r22));
-    double *r13 = arena_calloc(cells->num_inner, sizeof(*r13));
-    double *r23 = arena_calloc(cells->num_inner, sizeof(*r23));
-    double *r33 = arena_calloc(cells->num_inner, sizeof(*r33));
+    scalar *r11 = arena_calloc(cells->num_inner, sizeof(*r11));
+    scalar *r12 = arena_calloc(cells->num_inner, sizeof(*r12));
+    scalar *r22 = arena_calloc(cells->num_inner, sizeof(*r22));
+    scalar *r13 = arena_calloc(cells->num_inner, sizeof(*r13));
+    scalar *r23 = arena_calloc(cells->num_inner, sizeof(*r23));
+    scalar *r33 = arena_calloc(cells->num_inner, sizeof(*r33));
     for (long i = 0; i < faces->num; i++) {
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        double theta2 = sq(1.0 / vector_len(delta));
+        scalar theta2 = sq(1.0 / vector_len(delta));
         r11[left] += theta2 * delta.x * delta.x;
         r12[left] += theta2 * delta.x * delta.y;
         r22[left] += theta2 * delta.y * delta.y;
@@ -641,8 +641,8 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        double theta2 = sq(1.0 / vector_len(delta));
-        double beta = (r12[left] * r23[left] - r13[left] * r22[left]) / (r11[left] * r22[left]);
+        scalar theta2 = sq(1.0 / vector_len(delta));
+        scalar beta = (r12[left] * r23[left] - r13[left] * r22[left]) / (r11[left] * r22[left]);
         vector alpha;
         alpha.x = delta.x / sq(r11[left]);
         alpha.y = (delta.y - r12[left] / r11[left] * delta.x) / sq(r22[left]);

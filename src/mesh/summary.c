@@ -32,9 +32,9 @@ void mesh_summary(const Mesh *mesh)
     vector min_coord = sync_vmin(array_vmin(mesh->nodes.coord, mesh->nodes.num_inner));
     vector max_coord = sync_vmax(array_vmax(mesh->nodes.coord, mesh->nodes.num_inner));
 
-    double min_volume = sync_fmin(array_fmin(mesh->cells.volume, mesh->cells.num_inner));
-    double max_volume = sync_fmax(array_fmax(mesh->cells.volume, mesh->cells.num_inner));
-    double sum_volume = sync_fsum(array_fsum(mesh->cells.volume, mesh->cells.num_inner));
+    scalar min_volume = sync_fmin(array_fmin(mesh->cells.volume, mesh->cells.num_inner));
+    scalar max_volume = sync_fmax(array_fmax(mesh->cells.volume, mesh->cells.num_inner));
+    scalar sum_volume = sync_fsum(array_fsum(mesh->cells.volume, mesh->cells.num_inner));
 
     print("Mesh summary:\n");
     print("\t number of inner nodes:    %ld\n", inner_nodes);

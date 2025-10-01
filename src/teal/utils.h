@@ -20,19 +20,19 @@ void assert_fail(const char *file, long line, const char *func, const char *expr
 
 void print(const char *format, ...) __attribute((format(printf, 1, 2)));
 
-double sq(double val);
+scalar sq(scalar val);
 
 long lmin(long lhs, long rhs);
 long lmax(long lhs, long rhs);
 
-bool isclose(double lhs, double rhs);
+bool isclose(scalar lhs, scalar rhs);
 
 int lcmp(const void *lhs, const void *rhs);
 int fcmp(const void *lhs, const void *rhs);
 int vcmp(const void *lhs, const void *rhs);
 
 void lswap(long *lhs, long *rhs);
-void fswap(double *lhs, double *rhs);
+void fswap(scalar *lhs, scalar *rhs);
 void vswap(vector *lhs, vector *rhs);
 void memswap(void *lhs, void *rhs, long size);
 
@@ -41,4 +41,4 @@ uint64_t fnv1a(const void *ptr, long size);
 bool fexists(const char *fname);
 
 long str2size(const char *str);
-void size2str(char *str, double size);
+void size2str(char *str, scalar size);

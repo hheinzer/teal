@@ -14,7 +14,7 @@ void sync_init(int *argc, char ***argv)
     MPI_Comm_rank(sync.comm, &sync.rank);
     MPI_Comm_size(sync.comm, &sync.size);
 
-    MPI_Type_contiguous(3, MPI_DOUBLE, &vector_type);
+    MPI_Type_contiguous(3, MPI_SCALAR, &vector_type);
     MPI_Type_commit(&vector_type);
 
     enum { MPI_TAG_UB_MIN = 32767 };
@@ -59,45 +59,45 @@ long sync_lsum(long val)
     return sum;
 }
 
-double sync_fmin(double val)
+scalar sync_fmin(scalar val)
 {
-    double min = val;
-    MPI_Allreduce(&val, &min, 1, MPI_DOUBLE, MPI_MIN, sync.comm);
+    scalar min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_SCALAR, MPI_MIN, sync.comm);
     return min;
 }
 
-double sync_fmax(double val)
+scalar sync_fmax(scalar val)
 {
-    double max = val;
-    MPI_Allreduce(&val, &max, 1, MPI_DOUBLE, MPI_MAX, sync.comm);
+    scalar max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_SCALAR, MPI_MAX, sync.comm);
     return max;
 }
 
-double sync_fsum(double val)
+scalar sync_fsum(scalar val)
 {
-    double sum = 0;
-    MPI_Allreduce(&val, &sum, 1, MPI_DOUBLE, MPI_SUM, sync.comm);
+    scalar sum = 0;
+    MPI_Allreduce(&val, &sum, 1, MPI_SCALAR, MPI_SUM, sync.comm);
     return sum;
 }
 
 vector sync_vmin(vector val)
 {
     vector min = val;
-    MPI_Allreduce(&val, &min, 3, MPI_DOUBLE, MPI_MIN, sync.comm);
+    MPI_Allreduce(&val, &min, 3, MPI_SCALAR, MPI_MIN, sync.comm);
     return min;
 }
 
 vector sync_vmax(vector val)
 {
     vector max = val;
-    MPI_Allreduce(&val, &max, 3, MPI_DOUBLE, MPI_MAX, sync.comm);
+    MPI_Allreduce(&val, &max, 3, MPI_SCALAR, MPI_MAX, sync.comm);
     return max;
 }
 
 vector sync_vsum(vector val)
 {
     vector sum = {0};
-    MPI_Allreduce(&val, &sum, 3, MPI_DOUBLE, MPI_SUM, sync.comm);
+    MPI_Allreduce(&val, &sum, 3, MPI_SCALAR, MPI_SUM, sync.comm);
     return sum;
 }
 

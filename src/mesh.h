@@ -58,7 +58,7 @@ typedef struct {
     long num_periodic;
     MeshGraph node;  // cell-to-node connectivity
     MeshGraph cell;  // cell-to-cell connectivity
-    double *volume;
+    scalar *volume;
     vector *center;
     vector *projection;  // axis-aligned projection of cell volume
 } MeshCells;
@@ -73,7 +73,7 @@ typedef struct {
     long num_ghost;
     MeshGraph node;   // face-to-node connectivity
     FaceCells *cell;  // face-to-cell connectivity
-    double *area;
+    scalar *area;
     vector *center;
     matrix *basis;   // local orthonormal basis (x: normal; y,z: tangents)
     vector *weight;  // least-squares weights for gradient reconstruction

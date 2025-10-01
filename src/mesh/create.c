@@ -38,14 +38,14 @@ static void compute_dims(tuple num_cells, int ndims, int *dims)
         }
 
         // choose axis with largest cell count
-        double best_score = -1;
+        scalar best_score = -1;
         long best_axis = -1;
         for (long i = 0; i < ndims; i++) {
             long axis = perm[i];
             if (dims[axis] > cells[axis] / factor) {
                 continue;  // would over-subdivide axis
             }
-            double score = (double)cells[axis] / dims[axis];
+            scalar score = (scalar)cells[axis] / dims[axis];
             if (score > best_score) {
                 best_score = score;
                 best_axis = axis;
@@ -59,12 +59,12 @@ static void compute_dims(tuple num_cells, int ndims, int *dims)
 
 /* Split physical bounds and cell counts for this rank's Cartesian slice. If axis is inactive,
  * collapse that axis to 1 cell; otherwise compute the rank's local sub-interval and cells count. */
-static void split_bounds(double *min_coord, double *max_coord, long *num_cells, long dim, int ndims,
+static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, long dim, int ndims,
                          const int *dims, const int *coords)
 {
     if (ndims > dim) {
         assert(!isclose(*min_coord, *max_coord));
-        double width = (*max_coord - *min_coord) / *num_cells;
+        scalar width = (*max_coord - *min_coord) / *num_cells;
         long base = *num_cells / dims[dim];
         long extra = *num_cells % dims[dim];
         long offset = (coords[dim] * base) + lmin(coords[dim], extra);
@@ -333,7 +333,7 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
 
 static vector offset_side(vector del_coord, int idx)
 {
-    double sign = (idx % 2) ? -1 : +1;
+    scalar sign = (idx % 2) ? -1 : +1;
     switch (idx / 2) {
         case 0: return (vector){sign * del_coord.x, 0, 0};
         case 1: return (vector){0, sign * del_coord.y, 0};

@@ -14,7 +14,7 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
     long tot_inner = sync_lsum(num_inner);
     h5io_attribute_write(0, "num", &tot_inner, 1, H5IO_LONG, group);
 
-    h5io_dataset_write("coord", nodes->coord, (hsize_t[]){num_inner, 3}, 2, H5IO_DOUBLE, group);
+    h5io_dataset_write("coord", nodes->coord, (hsize_t[]){num_inner, 3}, 2, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 }
@@ -105,9 +105,9 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     h5io_dataset_write("global", global, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
     h5io_dataset_write("rank", rank, (hsize_t[]){num_cells}, 1, H5IO_INT, group);
 
-    h5io_dataset_write("volume", cells->volume, (hsize_t[]){num_cells}, 1, H5IO_DOUBLE, group);
-    h5io_dataset_write("center", cells->center, (hsize_t[]){num_cells, 3}, 2, H5IO_DOUBLE, group);
-    h5io_dataset_write("projection", cells->projection, (hsize_t[]){num_cells, 3}, 2, H5IO_DOUBLE,
+    h5io_dataset_write("volume", cells->volume, (hsize_t[]){num_cells}, 1, H5IO_SCALAR, group);
+    h5io_dataset_write("center", cells->center, (hsize_t[]){num_cells, 3}, 2, H5IO_SCALAR, group);
+    h5io_dataset_write("projection", cells->projection, (hsize_t[]){num_cells, 3}, 2, H5IO_SCALAR,
                        group);
 
     h5io_group_close(group);

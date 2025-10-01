@@ -22,12 +22,12 @@ vector vector_sub(vector lhs, vector rhs)
     return (vector){lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
 }
 
-vector vector_mul(vector lhs, double rhs)
+vector vector_mul(vector lhs, scalar rhs)
 {
     return (vector){lhs.x * rhs, lhs.y * rhs, lhs.z * rhs};
 }
 
-vector vector_div(vector lhs, double rhs)
+vector vector_div(vector lhs, scalar rhs)
 {
     return vector_mul(lhs, 1.0 / rhs);
 }
@@ -37,12 +37,12 @@ vector vector_abs(vector vec)
     return (vector){fabs(vec.x), fabs(vec.y), fabs(vec.z)};
 }
 
-double vector_dot(vector lhs, vector rhs)
+scalar vector_dot(vector lhs, vector rhs)
 {
     return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
 }
 
-double vector_len(vector vec)
+scalar vector_len(vector vec)
 {
     return sqrt(vector_dot(vec, vec));
 }

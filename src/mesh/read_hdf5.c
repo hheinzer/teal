@@ -20,7 +20,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     nodes->coord = malloc(nodes->num * sizeof(*nodes->coord));
     assert(nodes->coord);
 
-    h5io_dataset_read("coord", nodes->coord, (hsize_t[]){nodes->num, 3}, 2, H5IO_DOUBLE, group);
+    h5io_dataset_read("coord", nodes->coord, (hsize_t[]){nodes->num, 3}, 2, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 }
