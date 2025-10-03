@@ -1,24 +1,14 @@
-#pragma once  // IWYU pragma: always_keep
+#pragma once
 
 #include <stdint.h>
 
 #include "teal.h"
 
-static const int NON_NULL;
-#define NON_NULL ((void *)&NON_NULL)
+#define NON_NULL ((void *)(uintptr_t)1)  // NOLINT(performance-no-int-to-ptr)
 
 #define countof(a) (sizeof(a) / sizeof(*(a)))
 
-#ifdef NDEBUG
-#define assert(expr) (__builtin_expect(!!(expr), 1) ? (void)0 : __builtin_unreachable())
-#else
-#define assert(expr) ((expr) ? (void)0 : assert_fail(__FILE__, __LINE__, __func__, #expr))
-#endif
-
-void assert_fail(const char *file, long line, const char *func, const char *expr)
-    __attribute((noreturn));
-
-void print(const char *format, ...) __attribute((format(printf, 1, 2)));
+void print(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 
 scalar sq(scalar val);
 
@@ -36,9 +26,7 @@ void fswap(scalar *lhs, scalar *rhs);
 void vswap(vector *lhs, vector *rhs);
 void memswap(void *lhs, void *rhs, long size);
 
-uint64_t fnv1a(const void *ptr, long size);
-
 bool fexists(const char *fname);
 
 long str2size(const char *str);
-void size2str(char *str, scalar size);
+strbuf size2str(scalar size);

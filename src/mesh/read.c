@@ -9,6 +9,7 @@
 #include "reorder.h"
 #include "teal/arena.h"
 #include "teal/array.h"
+#include "teal/assert.h"
 #include "teal/dict.h"
 #include "teal/kdtree.h"
 #include "teal/sync.h"
@@ -26,7 +27,7 @@ static void read_file(Mesh *mesh, const char *fname)
         mesh_read_gmsh(mesh, fname);
     }
     else {
-        abort();
+        assert(false);
     }
 }
 
@@ -336,13 +337,14 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
     arena_load(save);
 }
 
-static bool rotate_at_char(char *dst, const char *src, char sep)
+static strbuf rotate_at_char(const char *src, char sep)
 {
+    strbuf dst = {0};
     char *pos = strchr(src, sep);
     if (pos) {
-        return sprintf(dst, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src);
+        sprintf(dst.buf, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src);
     }
-    return false;
+    return dst;
 }
 
 /* Build the dual graph (ParMETIS) and add edges for periodic entity pairs. */
@@ -376,12 +378,10 @@ static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
     assert(ret == METIS_OK);
 
     for (long lhs = 0; lhs < entities->num; lhs++) {
-        string name;
-        if (rotate_at_char(name, entities->name[lhs], ':')) {
-            for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
-                if (!strcmp(entities->name[rhs], name)) {
-                    connect_periodic(nodes, cells, entities, &dual, lhs, rhs);
-                }
+        strbuf name = rotate_at_char(entities->name[lhs].buf, ':');
+        for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
+            if (!strcmp(entities->name[rhs].buf, name.buf)) {
+                connect_periodic(nodes, cells, entities, &dual, lhs, rhs);
             }
         }
     }
@@ -490,9 +490,8 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
     }
 
     real_t *ubvec = arena_malloc(ncon, sizeof(*ubvec));
-    static const real_t mild_imbalance = 1.05;
     for (long i = 0; i < ncon; i++) {
-        ubvec[i] = mild_imbalance;
+        ubvec[i] = 1.05;  // NOLINT(readability-magic-numbers)
     }
 
     idx_t options[3] = {0};
@@ -1160,9 +1159,10 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     nodes->global = arena_smuggle(global, nodes->num, sizeof(*global));
 }
 
-/* Offset between periodic pair = mean(center_rhs) - mean(center_lhs). */
-static void compute_offset(const MeshNodes *nodes, const MeshCells *cells,
-                           const MeshEntities *entities, vector *offset, long lhs, long rhs)
+/* Translation between periodic pair = mean(center_rhs) - mean(center_lhs). */
+static void compute_translation(const MeshNodes *nodes, const MeshCells *cells,
+                                const MeshEntities *entities, vector *translation, long lhs,
+                                long rhs)
 {
     long num_cells[2] = {0};
     vector mean[2] = {0};
@@ -1189,25 +1189,24 @@ static void compute_offset(const MeshNodes *nodes, const MeshCells *cells,
     mean[LHS] = vector_div(sync_vsum(mean[LHS]), num_cells[LHS]);
     mean[RHS] = vector_div(sync_vsum(mean[RHS]), num_cells[RHS]);
 
-    offset[lhs] = vector_sub(mean[RHS], mean[LHS]);
-    offset[rhs] = vector_sub(mean[LHS], mean[RHS]);
+    translation[lhs] = vector_sub(mean[RHS], mean[LHS]);
+    translation[rhs] = vector_sub(mean[LHS], mean[RHS]);
 }
 
 /* Compute offsets for all periodic entity pairs. */
-static void compute_offsets(const MeshNodes *nodes, const MeshCells *cells, MeshEntities *entities)
+static void compute_translations(const MeshNodes *nodes, const MeshCells *cells,
+                                 MeshEntities *entities)
 {
-    vector *offset = arena_calloc(entities->num, sizeof(*offset));
+    vector *translation = arena_calloc(entities->num, sizeof(*translation));
     for (long lhs = 0; lhs < entities->num; lhs++) {
-        string name;
-        if (rotate_at_char(name, entities->name[lhs], ':')) {
-            for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
-                if (!strcmp(entities->name[rhs], name)) {
-                    compute_offset(nodes, cells, entities, offset, lhs, rhs);
-                }
+        strbuf name = rotate_at_char(entities->name[lhs].buf, ':');
+        for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
+            if (!strcmp(entities->name[rhs].buf, name.buf)) {
+                compute_translation(nodes, cells, entities, translation, lhs, rhs);
             }
         }
     }
-    entities->offset = offset;
+    entities->translation = translation;
 }
 
 typedef struct {
@@ -1240,7 +1239,7 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
     long num = 0;
     for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
-            vector center = vector_add(recv[num++].center, entities->offset[i]);
+            vector center = vector_add(recv[num++].center, entities->translation[i]);
             kdtree_insert(centers, center, 0);
         }
     }
@@ -1473,7 +1472,7 @@ Mesh *mesh_read(const char *fname)
 
     partition_nodes(&mesh->nodes, &mesh->cells);
 
-    compute_offsets(&mesh->nodes, &mesh->cells, &mesh->entities);
+    compute_translations(&mesh->nodes, &mesh->cells, &mesh->entities);
     create_neighbors(&mesh->nodes, &mesh->cells, &mesh->entities, &mesh->neighbors);
 
     convert_allocations(&mesh->nodes, &mesh->cells);

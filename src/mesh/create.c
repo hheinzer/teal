@@ -1,10 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
+#include "teal/assert.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
@@ -159,7 +159,7 @@ static long num_cells_side(tuple num_cells, int idx)
         case 0: return num_cells.y * num_cells.z;
         case 1: return num_cells.z * num_cells.x;
         case 2: return num_cells.x * num_cells.y;
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -331,14 +331,14 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
     arena_load(save);
 }
 
-static vector offset_side(vector del_coord, int idx)
+static vector compute_translation(vector del_coord, int idx)
 {
     scalar sign = (idx % 2) ? -1 : +1;
     switch (idx / 2) {
         case 0: return (vector){sign * del_coord.x, 0, 0};
         case 1: return (vector){0, sign * del_coord.y, 0};
         case 2: return (vector){0, 0, sign * del_coord.z};
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -350,20 +350,20 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     entities->num_inner = 1;
     entities->num = entities->num_inner + 2 * ndims;
 
-    string *name = arena_calloc(entities->num, sizeof(*name));
+    strbuf *name = arena_calloc(entities->num, sizeof(*name));
     long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
-    vector *offset = arena_calloc(entities->num, sizeof(*offset));
+    vector *translation = arena_calloc(entities->num, sizeof(*translation));
 
-    strcpy(name[0], "domain");
+    strcpy(name[0].buf, "domain");
     cell_off[0] = 0;
     cell_off[1] = num_cells.x * num_cells.y * num_cells.z;
 
-    static const string side[6] = {"left", "right", "bottom", "top", "back", "front"};
+    char *side[] = {"left", "right", "bottom", "top", "back", "front"};
     long num = 1;
     long num_ghost = 0;
     for (long i = 0; i < 2 * ndims; i++) {
         if (!periods[i / 2]) {
-            strcpy(name[num], side[i]);
+            strcpy(name[num].buf, side[i]);
             cell_off[num + 1] = cell_off[num];
             if (neighbor[i] == MPI_PROC_NULL) {
                 cell_off[num + 1] += num_cells_side(num_cells, i);
@@ -374,12 +374,12 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     }
     for (long i = 0; i < 2 * ndims; i++) {
         if (periods[i / 2]) {
-            sprintf(name[num], "%s:%s", side[i], side[(i % 2 == 0) ? i + 1 : i - 1]);
+            sprintf(name[num].buf, "%s:%s", side[i], side[(i % 2 == 0) ? i + 1 : i - 1]);
             cell_off[num + 1] = cell_off[num];
             if (is_edge_side(dims, coords, i)) {
                 cell_off[num + 1] += num_cells_side(num_cells, i);
             }
-            offset[num] = offset_side(del_coord, i);
+            translation[num] = compute_translation(del_coord, i);
             num += 1;
         }
     }
@@ -388,7 +388,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     entities->num_ghost = num_ghost;
     entities->name = name;
     entities->cell_off = cell_off;
-    entities->offset = offset;
+    entities->translation = translation;
 }
 
 /* Create neighbor metadata in the order [periodic, neighbor]. */

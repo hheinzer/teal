@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <math.h>
 
+#include "assert.h"
 #include "utils.h"
 #include "vector.h"
 

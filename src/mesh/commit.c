@@ -6,6 +6,7 @@
 #include "reorder.h"
 #include "teal/arena.h"
 #include "teal/array.h"
+#include "teal/assert.h"
 #include "teal/dict.h"
 #include "teal/kdtree.h"
 #include "teal/sync.h"
@@ -64,31 +65,6 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     assert(cells->cell.idx);
 }
 
-typedef struct Queue Queue;
-struct Queue {
-    long idx;
-    Queue *next;
-};
-
-static void push(Queue ***end, long idx)
-{
-    Queue *new = arena_malloc(1, sizeof(*new));
-    new->idx = idx;
-    new->next = 0;
-    **end = new;
-    *end = &new->next;
-}
-
-static long pop(Queue **beg, Queue ***end)
-{
-    Queue *cur = *beg;
-    *beg = cur->next;
-    if (!*beg) {
-        *end = beg;
-    }
-    return cur->idx;
-}
-
 static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells)
 {
     long seed = 0;
@@ -118,19 +94,20 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
         map[i] = -1;
     }
 
-    Queue *beg = 0;
-    Queue **end = &beg;
-
     long seed = find_seed_cell(nodes, cells);
+
+    long *queue = arena_malloc(cells->num_inner, sizeof(*queue));
+    long beg = 0;
+    long end = 0;
     long num = 0;
-    push(&end, seed);
+    queue[end++] = seed;
     map[seed] = num++;
-    while (beg) {
-        long cur = pop(&beg, &end);
+    while (beg < end) {
+        long cur = queue[beg++];
         for (long i = cells->cell.off[cur]; i < cells->cell.off[cur + 1]; i++) {
             long idx = cells->cell.idx[i];
             if (idx < cells->num_inner && map[idx] == -1) {
-                push(&end, idx);
+                queue[end++] = idx;
                 map[idx] = num++;
             }
         }
@@ -177,7 +154,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     long num_faces = pair2face->num;
     long *off = arena_malloc(num_faces + 1, sizeof(*off));
     long *idx = arena_malloc(num_faces * MAX_FACE_NODES, sizeof(*idx));
-    FaceCells *cell = arena_malloc(num_faces, sizeof(*cell));
+    Adjacent *cell = arena_malloc(num_faces, sizeof(*cell));
 
     off[0] = 0;
 
@@ -281,7 +258,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
         }
         long entity = array_ldigitize(&entities->cell_off[1], i, entities->num);
         if (entity < entities->num) {
-            recv[num] = vector_add(center, entities->offset[entity]);
+            recv[num] = vector_add(center, entities->translation[entity]);
         }
         else {
             recv[num] = center;
@@ -349,8 +326,8 @@ static void correct_coord_order(vector *coord, long num_nodes)
                     vswap(&coord[i + 1], &coord[i + 2]);
                 }
             }
-            abort();
-        default: abort();
+            assert(false);
+        default: assert(false);
     }
 }
 
@@ -367,7 +344,7 @@ static scalar compute_face_area(const vector *coord, long num_nodes)
             vector rhs[3] = {coord[0], coord[2], coord[3]};
             return compute_face_area(lhs, 3) + compute_face_area(rhs, 3);
         }
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -391,7 +368,7 @@ static vector compute_face_center(const vector *coord, long num_nodes)
             scalar area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
             return weighted_average(cen, area, 2);
         }
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -410,7 +387,7 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
             }
             return vector_unit(sum);
         }
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -495,7 +472,7 @@ static scalar compute_cell_volume(const vector *coord, long num_nodes)
             vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
             return compute_cell_volume(lhs, 6) + compute_cell_volume(rhs, 6);
         }
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -524,7 +501,7 @@ static vector compute_cell_center(const vector *coord, long num_nodes)
             scalar vol[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
             return weighted_average(cen, vol, 2);
         }
-        default: abort();
+        default: assert(false);
     }
 }
 
@@ -588,7 +565,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
 
     for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
-            center[j] = vector_sub(center[j], entities->offset[i]);
+            center[j] = vector_sub(center[j], entities->translation[i]);
         }
     }
 
@@ -670,7 +647,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
     faces->weight = arena_smuggle(weight, faces->num, sizeof(*weight));
 }
 
-void mesh_build(Mesh *mesh)
+void mesh_commit(Mesh *mesh)
 {
     assert(mesh);
 

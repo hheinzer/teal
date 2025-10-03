@@ -15,7 +15,6 @@ Checks:
   - -bugprone-implicit-widening-of-multiplication-result
   - -bugprone-multi-level-implicit-pointer-conversion
   - -bugprone-narrowing-conversions
-  - -bugprone-reserved-identifier
   - -clang-analyzer-security.insecureAPI.*
   - -misc-include-cleaner
   - -misc-no-recursion

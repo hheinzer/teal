@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "assert.h"
 #include "utils.h"
 
-enum { ALIGN = 64 };  // getconf LEVEL1_DCACHE_LINESIZE
+enum { ALIGN = 64 };
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 #include <sanitizer/asan_interface.h>
@@ -27,7 +28,7 @@ enum { REDZONE = 64 };
 enum { REDZONE = 0 };
 #endif
 
-_Static_assert(REDZONE == 0 || REDZONE % ALIGN == 0, "REDZONE must be a multiple of ALIGN");
+STATIC_ASSERT(REDZONE == 0 || REDZONE % ALIGN == 0);
 
 static Arena arena = {0};
 static char *arena_base = 0;

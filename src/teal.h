@@ -2,8 +2,6 @@
 
 #include <stdbool.h>
 
-typedef char string[128];
-
 typedef double scalar;
 
 typedef struct {
@@ -21,6 +19,10 @@ typedef struct {
 typedef struct {
     bool x, y, z;
 } flags;
+
+typedef struct {
+    char buf[128];
+} strbuf;
 
 /* Call exactly once at program start, before any teal API. */
 void teal_init(int *argc, char ***argv);

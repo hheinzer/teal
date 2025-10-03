@@ -1,10 +1,8 @@
-#include <stdlib.h>
-
 #include "mesh.h"
 #include "teal/arena.h"
+#include "teal/assert.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
-#include "teal/utils.h"
 
 static void write_nodes(const MeshNodes *nodes, hid_t loc)
 {
@@ -19,7 +17,7 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
-static void write_node_graph(const MeshGraph *node, const long *global, long num_cells, hid_t loc)
+static void write_node_graph(Graph node, const long *global, long num_cells, hid_t loc)
 {
     Arena save = arena_save();
 
@@ -27,17 +25,17 @@ static void write_node_graph(const MeshGraph *node, const long *global, long num
 
     long num = num_cells + (sync.rank == 0);
     long *off = arena_malloc(num, sizeof(*off));
-    long offset = sync_lexsum(node->off[num_cells]);
+    long offset = sync_lexsum(node.off[num_cells]);
     for (long i = 0; i < num; i++) {
-        off[i] = offset + node->off[i + (sync.rank != 0)];  // globalize offsets
+        off[i] = offset + node.off[i + (sync.rank != 0)];  // globalize offsets
     }
     h5io_dataset_write("off", off, (hsize_t[]){num}, 1, H5IO_LONG, group);
 
-    long *idx = arena_malloc(node->off[num_cells], sizeof(*idx));
-    for (long i = 0; i < node->off[num_cells]; i++) {
-        idx[i] = global[node->idx[i]];  // remap indices
+    long *idx = arena_malloc(node.off[num_cells], sizeof(*idx));
+    for (long i = 0; i < node.off[num_cells]; i++) {
+        idx[i] = global[node.idx[i]];  // remap indices
     }
-    h5io_dataset_write("idx", idx, (hsize_t[]){node->off[num_cells]}, 1, H5IO_LONG, group);
+    h5io_dataset_write("idx", idx, (hsize_t[]){node.off[num_cells]}, 1, H5IO_LONG, group);
 
     h5io_group_close(group);
 
@@ -57,16 +55,14 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     long tot_cells = sync_lsum(num_cells);
     h5io_attribute_write(0, "num", &tot_cells, 1, H5IO_LONG, group);
 
-    write_node_graph(&cells->node, nodes->global, num_cells, group);
+    write_node_graph(cells->node, nodes->global, num_cells, group);
 
     unsigned char *type = arena_malloc(num_cells, sizeof(*type));
     long *entity = arena_malloc(num_cells, sizeof(*entity));
 
     long *local = arena_malloc(num_cells, sizeof(*local));
-    long *global = arena_malloc(num_cells, sizeof(*global));
     int *rank = arena_malloc(num_cells, sizeof(*rank));
 
-    long off_cells = sync_lexsum(num_cells);
     long num = 0;
     for (long i = 0; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
@@ -78,7 +74,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                     case 5: type[num] = VTK_PYRAMID; break;
                     case 6: type[num] = VTK_WEDGE; break;
                     case 8: type[num] = VTK_HEXAHEDRON; break;
-                    default: abort();
+                    default: assert(false);
                 }
             }
             else {
@@ -86,12 +82,11 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                     enum { VTK_TRIANGLE = 5, VTK_QUAD = 9 };
                     case 3: type[num] = VTK_TRIANGLE; break;
                     case 4: type[num] = VTK_QUAD; break;
-                    default: abort();
+                    default: assert(false);
                 }
             }
             entity[num] = i;
             local[num] = j;
-            global[num] = j + off_cells;
             rank[num] = sync.rank;
             num += 1;
         }
@@ -102,7 +97,6 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     h5io_dataset_write("entity", entity, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
 
     h5io_dataset_write("local", local, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
-    h5io_dataset_write("global", global, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
     h5io_dataset_write("rank", rank, (hsize_t[]){num_cells}, 1, H5IO_INT, group);
 
     h5io_dataset_write("volume", cells->volume, (hsize_t[]){num_cells}, 1, H5IO_SCALAR, group);

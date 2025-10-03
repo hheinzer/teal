@@ -4,6 +4,7 @@ Sync sync = {0};
 
 MPI_Datatype vector_type;
 
+enum { MPI_TAG_UB_MIN = 32767 };
 static int tag_ub;
 
 void sync_init(int *argc, char ***argv)
@@ -17,7 +18,6 @@ void sync_init(int *argc, char ***argv)
     MPI_Type_contiguous(3, MPI_SCALAR, &vector_type);
     MPI_Type_commit(&vector_type);
 
-    enum { MPI_TAG_UB_MIN = 32767 };
     int *attr = 0;
     int flag = 0;
     MPI_Comm_get_attr(sync.comm, MPI_TAG_UB, &attr, &flag);

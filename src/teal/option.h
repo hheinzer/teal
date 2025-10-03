@@ -5,7 +5,7 @@
 typedef struct {
     bool quiet;
     long capacity;
-    string restart;
+    strbuf restart;
 } Option;
 
 extern Option option;

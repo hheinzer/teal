@@ -4,6 +4,7 @@
 
 #include "teal/arena.h"
 #include "teal/array.h"
+#include "teal/assert.h"
 #include "teal/utils.h"
 
 static bool is_valid(const long *map, long num)
@@ -133,7 +134,7 @@ void mesh_reorder_faces(MeshFaces *faces, const long *key)
         long key;
         long num;
         long node[MAX_FACE_NODES];
-        FaceCells cell;
+        Adjacent cell;
     } *buf = arena_malloc(faces->num, sizeof(*buf));
 
     for (long i = 0; i < faces->num; i++) {

@@ -4,13 +4,13 @@
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
-#include "teal/utils.h"
+#include "teal/assert.h"
 #include "teal/vector.h"
 
 static long find_entity(const MeshEntities *entities, const char *entity)
 {
     for (long i = 0; i < entities->num; i++) {
-        if (!strcmp(entities->name[i], entity)) {
+        if (!strcmp(entities->name[i].buf, entity)) {
             return i;
         }
     }
@@ -28,20 +28,29 @@ static void grow_entities(MeshEntities *entities, long idx)
     }
     entities->num += 1;
 
-    string *name = arena_calloc(entities->num, sizeof(*name));
+    strbuf *name = arena_calloc(entities->num, sizeof(*name));
     entities->name = memcpy(name, entities->name, (entities->num - 1) * sizeof(*name));
 
     long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
     entities->cell_off = memcpy(cell_off, entities->cell_off, entities->num * sizeof(*cell_off));
+    entities->cell_off[entities->num] = entities->cell_off[entities->num - 1];
 
-    vector *offset = arena_malloc(entities->num, sizeof(*offset));
-    entities->offset = memcpy(offset, entities->offset, (entities->num - 1) * sizeof(*offset));
+    vector *translation = arena_malloc(entities->num, sizeof(*translation));
+    entities->translation =
+        memcpy(translation, entities->translation, (entities->num - 1) * sizeof(*translation));
 }
 
-/* Build a map for cells [beg,end) that encodes which side of the plane a cell center lies on. */
-static long compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, vector root,
-                             vector normal, long beg, long end, long *map)
+/* Reorder cells based on which side of the splitting plane they are on. */
+static long reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
+                    vector root, vector normal, long idx)
 {
+    Arena save = arena_save();
+
+    long beg = entities->cell_off[idx];
+    long end = entities->cell_off[idx + 1];
+    long tot = end - beg;
+    long *map = arena_malloc(tot, sizeof(*map));
+
     long off = 0;
     for (long num = 0, i = beg; i < end; i++, num++) {
         vector center = {0};
@@ -54,7 +63,6 @@ static long compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, vec
         off += map[num];
     }
 
-    long tot = end - beg;
     long lhs = 0;
     long rhs = 0;
     for (long i = 0; i < tot; i++) {
@@ -62,27 +70,25 @@ static long compute_cell_map(const MeshNodes *nodes, const MeshCells *cells, vec
     }
     assert(lhs == off);
     assert(rhs == tot - off);
-    return off;
+
+    mesh_reorder_cells(cells, 0, beg, end, map);
+
+    arena_load(save);
+    return beg + off;
 }
 
 /* Split entity metadata at `idx` into two consecutive entities. */
-static void split_entities(MeshEntities *entities, long idx, long beg, long end, const long *map,
-                           long off)
+static void split_entities(MeshEntities *entities, long idx, long cell_off)
 {
     for (long i = entities->num - 1; i > idx; i--) {
-        strcpy(entities->name[i], entities->name[i - 1]);
+        strcpy(entities->name[i].buf, entities->name[i - 1].buf);
         entities->cell_off[i + 1] = entities->cell_off[i];
-        entities->offset[i] = entities->offset[i - 1];
+        entities->translation[i] = entities->translation[i - 1];
     }
-
-    strcat(entities->name[idx], "-a");
-    strcat(entities->name[idx + 1], "-b");
-
-    for (long num = 0, i = beg; i < end; i++, num++) {
-        entities->cell_off[idx + 1] -= map[num] >= off;
-    }
-
-    entities->offset[idx + 1] = entities->offset[idx];
+    strcat(entities->name[idx].buf, "-a");
+    strcat(entities->name[idx + 1].buf, "-b");
+    entities->cell_off[idx + 1] = cell_off;
+    entities->translation[idx + 1] = entities->translation[idx];
 }
 
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
@@ -94,16 +100,7 @@ void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
 
     grow_entities(&mesh->entities, idx);
 
-    Arena save = arena_save();
+    long cell_off = reorder(&mesh->nodes, &mesh->cells, &mesh->entities, root, normal, idx);
 
-    long beg = mesh->entities.cell_off[idx];
-    long end = mesh->entities.cell_off[idx + 1];
-    long tot = end - beg;
-    long *map = arena_malloc(tot, sizeof(*map));
-    long off = compute_cell_map(&mesh->nodes, &mesh->cells, root, normal, beg, end, map);
-
-    mesh_reorder_cells(&mesh->cells, 0, beg, end, map);
-    split_entities(&mesh->entities, idx, beg, end, map, off);
-
-    arena_load(save);
+    split_entities(&mesh->entities, idx, cell_off);
 }

@@ -4,10 +4,11 @@
 #include <string.h>
 
 #include "arena.h"
+#include "assert.h"
 #include "utils.h"
 
 enum { WIDTH = countof((DictItem){0}.child) };
-_Static_assert(WIDTH == 2 || WIDTH == 4 || WIDTH == 8, "unsupport child array size");
+STATIC_ASSERT(WIDTH == 2 || WIDTH == 4 || WIDTH == 8);
 
 enum { SHIFT = (WIDTH == 2) ? 1 : (WIDTH == 4) ? 2 : (WIDTH == 8) ? 3 : -1 };
 enum { SELECT = (8 * sizeof(uint64_t)) - SHIFT };
@@ -20,6 +21,19 @@ Dict *dict_create(long size_key, long size_val)
     dict->size_key = size_key;
     dict->size_val = size_val;
     return dict;
+}
+
+static uint64_t fnv1a(const void *ptr, long size)
+{
+    static const uint64_t basis = 0xcbf29ce484222325;
+    static const uint64_t prime = 0x00000100000001b3;
+    const uint8_t *byte = ptr;
+    uint64_t hash = basis;
+    for (long i = 0; i < size; i++) {
+        hash ^= byte[i];
+        hash *= prime;
+    }
+    return hash;
 }
 
 void *dict_insert(Dict *self, const void *key, const void *val)
@@ -41,7 +55,6 @@ void *dict_insert(Dict *self, const void *key, const void *val)
     self->num += 1;
     *self->end = *item;
     self->end = &(*item)->next;
-
     return 0;
 }
 

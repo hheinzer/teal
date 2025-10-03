@@ -7,21 +7,16 @@
 
 void teal_finalize(void)
 {
-    string min_size;
-    size2str(min_size, sync_lmin(arena_size()));
+    strbuf min = size2str(sync_lmin(arena_size()));
+    strbuf max = size2str(sync_lmax(arena_size_max()));
+    strbuf tot = size2str(sync_lsum(arena_size()));
 
-    string max_size;
-    size2str(max_size, sync_lmax(arena_size_max()));
-
-    string tot_size;
-    size2str(tot_size, sync_lsum(arena_size()));
-
-    string now;
-    strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
+    strbuf now;
+    strftime(now.buf, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
     print("Goodbye, World!\n");
-    print("\t arena min/max/tot size: %s / %s / %s\n", min_size, max_size, tot_size);
-    print("\t stop time:              %s\n", now);
+    print("\t arena min/max/tot size: %s / %s / %s\n", min.buf, max.buf, tot.buf);
+    print("\t stop time:              %s\n", now.buf);
 
     arena_finalize();
     sync_finalize();

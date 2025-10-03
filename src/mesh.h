@@ -16,15 +16,15 @@
  * - Row r spans idx[ off[r] ... off[r+1]-1 ]
  *
  * Entities represent groups of cells/faces. Each entity has a name, a contiguous range of
- * cells/faces, and (for periodic boundaries) a geometric offset. Face ranges are only defined for
+ * cells/faces, and (for periodic boundaries) a translation. Face ranges are only defined for
  * non-inner entities, while inner entities always refer to subsets of interior mesh (useful for
  * specifying initial conditions).
  *
  * Neighbor meta data describes MPI ranks adjacent to the own rank and contains send/recv graphs
  * that define which cells are exchanged during communication.
  *
- * All geometry information is computed lazily by `mesh_build()` after mesh creation or reading. The
- * mesh may be modified before, but not after, as derived data could be invalidated.
+ * All geometry information is computed by `mesh_commit()` after mesh creation or reading. The mesh
+ * may be modified before, but not after, as derived data could be invalidated.
  *
  * Supported cell types are:
  * - 2D: triangle (3 nodes), quadrangle (4 nodes)
@@ -49,15 +49,15 @@ typedef struct {
 
 typedef struct {
     long *off, *idx;  // CSR graph
-} MeshGraph;
+} Graph;
 
 typedef struct {
     long num;
     long num_inner;
     long num_ghost;
     long num_periodic;
-    MeshGraph node;  // cell-to-node connectivity
-    MeshGraph cell;  // cell-to-cell connectivity
+    Graph node;  // cell-to-node connectivity
+    Graph cell;  // cell-to-cell connectivity
     scalar *volume;
     vector *center;
     vector *projection;  // axis-aligned projection of cell volume
@@ -65,14 +65,14 @@ typedef struct {
 
 typedef struct {
     long left, right;  // adjacent face cells (left: always inner; right: inner or outer)
-} FaceCells;
+} Adjacent;
 
 typedef struct {
     long num;
     long num_inner;
     long num_ghost;
-    MeshGraph node;   // face-to-node connectivity
-    FaceCells *cell;  // face-to-cell connectivity
+    Graph node;      // face-to-node connectivity
+    Adjacent *cell;  // face-to-cell connectivity
     scalar *area;
     vector *center;
     matrix *basis;   // local orthonormal basis (x: normal; y,z: tangents)
@@ -83,17 +83,17 @@ typedef struct {
     long num;
     long num_inner;
     long num_ghost;
-    string *name;
-    long *cell_off;  // entity-to-cell offsets
-    long *face_off;  // entity-to-face offsets
-    vector *offset;  // entity translation (zero for non-periodic)
+    strbuf *name;
+    long *cell_off;       // entity-to-cell offsets
+    long *face_off;       // entity-to-face offsets
+    vector *translation;  // entity translation (zero for non-periodic)
 } MeshEntities;
 
 typedef struct {
     long num;
     long *rank;      // neighbor ranks
     long *recv_off;  // neighbor-to-cell offsets for receiving
-    MeshGraph send;  // neighbor-to-cell graph for sending
+    Graph send;      // neighbor-to-cell graph for sending
 } MeshNeighbors;
 
 typedef struct {
@@ -114,13 +114,13 @@ Mesh *mesh_read(const char *fname);
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 
 /* Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights. */
-void mesh_build(Mesh *mesh);
+void mesh_commit(Mesh *mesh);
 
 /* Print a per-rank, human-readable mesh dump. */
 void mesh_print(const Mesh *mesh);
 
-/* Test the mesh integrety and report violations. */
-void mesh_test(const Mesh *mesh);
+/* Check the mesh integrety and report violations. */
+void mesh_check(const Mesh *mesh);
 
 /* Print a global mesh summary. */
 void mesh_summary(const Mesh *mesh);

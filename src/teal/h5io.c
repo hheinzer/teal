@@ -2,8 +2,8 @@
 
 #include <string.h>
 
+#include "assert.h"
 #include "sync.h"
-#include "utils.h"
 
 hid_t h5io_file_create(const char *name)
 {
@@ -63,8 +63,12 @@ void h5io_attribute_write(const char *object, const char *name, const void *buf,
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
+        long size = strlen(buf);
+        assert(dims == 1 && size > 0);
+
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, strlen(buf));
+        H5Tset_size(type, size);
+        H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
     }
 
@@ -109,14 +113,17 @@ void h5io_attribute_read(const char *object, const char *name, void *buf, hsize_
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
+        assert(dims == 1);
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, sizeof(string));
+        H5Tset_size(type, sizeof(strbuf));
+        H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
     }
 
     hid_t attr = object ? H5Aopen_by_name(loc, object, name, H5P_DEFAULT, H5P_DEFAULT)
                         : H5Aopen(loc, name, H5P_DEFAULT);
     assert(attribute_dims_match(attr, dims));
+
     H5Aread(attr, type, buf);
 
     H5Aclose(attr);
@@ -140,7 +147,8 @@ void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count,
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, sizeof(string));
+        H5Tset_size(type, sizeof(strbuf));
+        H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
     }
 
@@ -193,12 +201,14 @@ void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, int ra
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, sizeof(string));
+        H5Tset_size(type, sizeof(strbuf));
+        H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
     }
 
     hid_t dset = H5Dopen(loc, name, H5P_DEFAULT);
     assert(dataset_dims_match(dset, count, rank));
+
     hid_t file_space = H5Dget_space(dset);
     H5Sselect_hyperslab(file_space, H5S_SELECT_SET, offset, 0, count, 0);
 

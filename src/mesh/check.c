@@ -1,0 +1,352 @@
+#include "teal/check.h"
+
+#include <math.h>
+#include <string.h>
+
+#include "mesh.h"
+#include "teal/arena.h"
+#include "teal/assert.h"
+#include "teal/dict.h"
+#include "teal/sync.h"
+#include "teal/utils.h"
+#include "teal/vector.h"
+
+static void test_nodes(const MeshNodes *nodes)
+{
+    Arena save = arena_save();
+
+    check(nodes->num > 0);
+    check(nodes->num_inner >= 0);
+    check(nodes->num_inner <= nodes->num);
+
+    if (nodes->global) {
+        Dict *global = dict_create(sizeof(long), 0);
+        for (long i = 0; i < nodes->num; i++) {
+            check(nodes->global[i] >= 0);
+            dict_insert(global, &nodes->global[i], 0);
+        }
+        check(global->num == nodes->num);
+    }
+
+    if (nodes->coord) {
+        for (long i = 0; i < nodes->num; i++) {
+            check(isfinite(nodes->coord[i].x));
+            check(isfinite(nodes->coord[i].y));
+            check(isfinite(nodes->coord[i].z));
+        }
+    }
+
+    arena_load(save);
+}
+
+static void test_graph(Graph graph, long num, long min_deg, long max_deg, long min_idx,
+                       long max_idx)
+{
+    check(graph.off[0] == 0);
+    for (long i = 0; i < num; i++) {
+        check(graph.off[i] <= graph.off[i + 1]);
+        if (min_deg >= 0) {
+            check(graph.off[i + 1] - graph.off[i] >= min_deg);
+        }
+        if (max_deg >= 0) {
+            check(graph.off[i + 1] - graph.off[i] <= max_deg);
+        }
+        for (long j = graph.off[i]; j < graph.off[i + 1]; j++) {
+            check(graph.idx[j] >= min_idx);
+            check(graph.idx[j] <= max_idx);
+        }
+    }
+}
+
+static bool has_neighbor(Graph graph, long lhs, long rhs)
+{
+    for (long i = graph.off[lhs]; i < graph.off[lhs + 1]; i++) {
+        if (graph.idx[i] == rhs) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
+{
+    Arena save = arena_save();
+
+    check(cells->num > 0);
+    check(cells->num_inner > 0);
+    check(cells->num_inner < cells->num);
+
+    long num_outer = cells->num - cells->num_inner;
+    check(cells->num_ghost >= 0);
+    check(cells->num_ghost <= num_outer);
+    check(cells->num_periodic >= 0);
+    check(cells->num_periodic <= num_outer);
+    check(cells->num_ghost + cells->num_periodic <= num_outer);
+
+    if (cells->node.off && cells->node.idx) {
+        test_graph(cells->node, cells->num, 3, MAX_CELL_NODES, 0, nodes->num - 1);
+    }
+
+    if (cells->cell.off && cells->cell.idx) {
+        test_graph(cells->cell, cells->num, 1, MAX_CELL_FACES, 0, cells->num - 1);
+
+        Dict *local = dict_create(sizeof(long), 0);
+        for (long i = 0; i < cells->num; i++) {
+            for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
+                check(cells->cell.idx[j] != i);
+                check(has_neighbor(cells->cell, cells->cell.idx[j], i));
+                dict_insert(local, &cells->cell.idx[j], 0);
+            }
+        }
+        check(local->num == cells->num);
+    }
+
+    if (cells->volume) {
+        for (long i = 0; i < cells->num; i++) {
+            check(isfinite(cells->volume[i]));
+            if (i < cells->num_inner) {
+                check(!isclose(cells->volume[i], 0) && cells->volume[i] > 0);
+            }
+            else {
+                check(isclose(cells->volume[i], 0));
+            }
+        }
+    }
+
+    if (cells->center) {
+        for (long i = 0; i < cells->num; i++) {
+            check(isfinite(cells->center[i].x));
+            check(isfinite(cells->center[i].y));
+            check(isfinite(cells->center[i].z));
+        }
+    }
+
+    if (cells->projection) {
+        for (long i = 0; i < cells->num; i++) {
+            check(isfinite(cells->projection[i].x));
+            check(isfinite(cells->projection[i].y));
+            check(isfinite(cells->projection[i].z));
+            if (i < cells->num_inner) {
+                check(!isclose(cells->projection[i].x, 0) && cells->projection[i].x > 0);
+                check(!isclose(cells->projection[i].y, 0) && cells->projection[i].y > 0);
+                check(!isclose(cells->projection[i].z, 0) && cells->projection[i].z > 0);
+            }
+            else {
+                check(isclose(cells->projection[i].x, 0));
+                check(isclose(cells->projection[i].y, 0));
+                check(isclose(cells->projection[i].z, 0));
+            }
+        }
+    }
+
+    arena_load(save);
+}
+
+static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const MeshFaces *faces)
+{
+    Arena save = arena_save();
+
+    check(faces->num > 0);
+    check(faces->num_inner > 0);
+    check(faces->num_inner < faces->num);
+    check(faces->num_ghost >= 0);
+    check(faces->num_ghost <= faces->num - faces->num_inner);
+
+    if (faces->node.off && faces->node.idx) {
+        test_graph(faces->node, faces->num, 3, MAX_FACE_NODES, 0, nodes->num - 1);
+    }
+
+    if (faces->cell) {
+        Dict *left = dict_create(sizeof(long), 0);
+        Dict *right = dict_create(sizeof(long), 0);
+        for (long i = 0; i < faces->num; i++) {
+            check(faces->cell[i].left >= 0);
+            check(faces->cell[i].left < cells->num_inner);
+            if (i < faces->num_inner) {
+                check(faces->cell[i].right >= 0);
+                check(faces->cell[i].right < cells->num_inner);
+            }
+            else if (i < faces->num_inner + faces->num_ghost) {
+                check(faces->cell[i].right >= cells->num_inner);
+                check(faces->cell[i].right < cells->num_inner + cells->num_ghost);
+            }
+            else {
+                check(faces->cell[i].right >= cells->num_inner + cells->num_ghost);
+                check(faces->cell[i].right < cells->num);
+            }
+            check(faces->cell[i].left != faces->cell[i].right);
+            dict_insert(left, &faces->cell[i].left, 0);
+            dict_insert(right, &faces->cell[i].right, 0);
+        }
+        check(left->num <= cells->num_inner);
+        check(right->num >= cells->num - cells->num_inner);
+    }
+
+    if (faces->area) {
+        for (long i = 0; i < faces->num; i++) {
+            check(isfinite(faces->area[i]));
+            check(!isclose(faces->area[i], 0) && faces->area[i] > 0);
+        }
+    }
+
+    if (faces->center) {
+        for (long i = 0; i < faces->num; i++) {
+            check(isfinite(faces->center[i].x));
+            check(isfinite(faces->center[i].y));
+            check(isfinite(faces->center[i].z));
+        }
+    }
+
+    if (faces->basis) {
+        for (long i = 0; i < faces->num; i++) {
+            check(isfinite(faces->basis[i].x.x));
+            check(isfinite(faces->basis[i].x.y));
+            check(isfinite(faces->basis[i].x.z));
+            check(isfinite(faces->basis[i].y.x));
+            check(isfinite(faces->basis[i].y.y));
+            check(isfinite(faces->basis[i].y.z));
+            check(isfinite(faces->basis[i].z.x));
+            check(isfinite(faces->basis[i].z.y));
+            check(isfinite(faces->basis[i].z.z));
+            check(isclose(vector_len(faces->basis[i].x), 1));
+            check(isclose(vector_len(faces->basis[i].y), 1));
+            check(isclose(vector_len(faces->basis[i].z), 1));
+            check(isclose(vector_dot(faces->basis[i].x, faces->basis[i].y), 0));
+            check(isclose(vector_dot(faces->basis[i].y, faces->basis[i].z), 0));
+            check(isclose(vector_dot(faces->basis[i].z, faces->basis[i].x), 0));
+        }
+    }
+
+    if (faces->cell && faces->basis && cells->center) {
+        for (long i = 0; i < faces->num; i++) {
+            long left = faces->cell[i].left;
+            long right = faces->cell[i].right;
+            vector normal = faces->basis[i].x;
+            vector l2r = vector_sub(cells->center[right], cells->center[left]);
+            check(!isclose(vector_len(l2r), 0) && vector_len(l2r) > 0);
+            check(!isclose(vector_dot(normal, l2r), 0) && vector_dot(normal, l2r) > 0);
+        }
+    }
+
+    if (faces->weight) {
+        for (long i = 0; i < faces->num; i++) {
+            check(isfinite(faces->weight[i].x));
+            check(isfinite(faces->weight[i].y));
+            check(isfinite(faces->weight[i].z));
+        }
+    }
+
+    arena_load(save);
+}
+
+static void test_entities(const MeshCells *cells, const MeshFaces *faces,
+                          const MeshEntities *entities)
+{
+    check(entities->num > 0);
+    check(entities->num_inner > 0);
+    check(entities->num_inner <= entities->num);
+    check(entities->num_ghost >= 0);
+    check(entities->num_ghost <= entities->num - entities->num_inner);
+
+    if (entities->name) {
+        for (long i = 0; i < entities->num; i++) {
+            check(strlen(entities->name[i].buf) > 0);
+        }
+    }
+
+    if (entities->cell_off) {
+        check(entities->cell_off[0] == 0);
+        for (long i = 0; i < entities->num; i++) {
+            check(entities->cell_off[i] <= entities->cell_off[i + 1]);
+        }
+        check(entities->cell_off[entities->num_inner] == cells->num_inner);
+        check(entities->cell_off[entities->num_inner + entities->num_ghost] ==
+              cells->num_inner + cells->num_ghost);
+        check(entities->cell_off[entities->num] <= cells->num);
+    }
+
+    if (entities->face_off) {
+        check(entities->face_off[0] == faces->num_inner);
+        for (long i = 0; i < entities->num; i++) {
+            check(entities->face_off[i] <= entities->face_off[i + 1]);
+        }
+        check(entities->face_off[entities->num_inner] == faces->num_inner);
+        check(entities->face_off[entities->num_inner + entities->num_ghost] ==
+              faces->num_inner + faces->num_ghost);
+        check(entities->face_off[entities->num] <= faces->num);
+
+        if (entities->cell_off) {
+            for (long i = entities->num_inner; i < entities->num; i++) {
+                long num_cells = entities->cell_off[i + 1] - entities->cell_off[i];
+                long num_faces = entities->face_off[i + 1] - entities->face_off[i];
+                check(num_cells == num_faces);
+            }
+        }
+    }
+
+    if (entities->translation) {
+        for (long i = 0; i < entities->num; i++) {
+            check(isfinite(entities->translation[i].x));
+            check(isfinite(entities->translation[i].y));
+            check(isfinite(entities->translation[i].z));
+            if (i < entities->num_inner + entities->num_ghost) {
+                check(isclose(entities->translation[i].x, 0));
+                check(isclose(entities->translation[i].y, 0));
+                check(isclose(entities->translation[i].z, 0));
+            }
+            else {
+                check(!isclose(vector_len(entities->translation[i]), 0));
+                if (entities->name) {
+                    check(strchr(entities->name[i].buf, ':'));
+                }
+            }
+        }
+    }
+}
+
+static void test_neighbors(const MeshCells *cells, const MeshNeighbors *neighbors)
+{
+    Arena save = arena_save();
+
+    check(neighbors->num >= 0);
+
+    if (neighbors->rank) {
+        int *rank = arena_malloc(neighbors->num, sizeof(*rank));
+        int tag = sync_tag();
+        MPI_Request *req = arena_malloc(neighbors->num, sizeof(*req));
+        for (long i = 0; i < neighbors->num; i++) {
+            check(neighbors->rank[i] >= 0);
+            check(neighbors->rank[i] < sync.size);
+            MPI_Isendrecv(&sync.rank, 1, MPI_INT, neighbors->rank[i], tag, &rank[i], 1, MPI_INT,
+                          neighbors->rank[i], tag, sync.comm, &req[i]);
+        }
+        MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
+        for (long i = 0; i < neighbors->num; i++) {
+            check(neighbors->rank[i] == rank[i]);
+        }
+    }
+
+    if (neighbors->recv_off) {
+        check(neighbors->recv_off[0] == cells->num_inner + cells->num_ghost);
+        for (long i = 0; i < neighbors->num; i++) {
+            check(neighbors->recv_off[i] <= neighbors->recv_off[i + 1]);
+        }
+        check(neighbors->recv_off[neighbors->num] == cells->num);
+    }
+
+    if (neighbors->send.off && neighbors->send.idx) {
+        test_graph(neighbors->send, neighbors->num, -1, -1, 0, cells->num_inner - 1);
+    }
+
+    arena_load(save);
+}
+
+void mesh_check(const Mesh *mesh)
+{
+    assert(mesh);
+    test_nodes(&mesh->nodes);
+    test_cells(&mesh->nodes, &mesh->cells);
+    test_faces(&mesh->nodes, &mesh->cells, &mesh->faces);
+    test_entities(&mesh->cells, &mesh->faces, &mesh->entities);
+    test_neighbors(&mesh->cells, &mesh->neighbors);
+}

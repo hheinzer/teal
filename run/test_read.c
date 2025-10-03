@@ -19,13 +19,14 @@ int main(int argc, char **argv)
     vector normal = {1, 0, 0};
     mesh_split(mesh, "bottom", root, normal);
 
-    mesh_build(mesh);
-    mesh_test(mesh);
+    mesh_commit(mesh);
+
+    mesh_check(mesh);
     mesh_summary(mesh);
 
-    string fname;
-    sprintf(fname, "%s_mesh.h5", argv[0]);
-    mesh_write(mesh, fname);
+    strbuf fname;
+    sprintf(fname.buf, "%s_mesh.h5", argv[0]);
+    mesh_write(mesh, fname.buf);
 
     teal_finalize();
 }

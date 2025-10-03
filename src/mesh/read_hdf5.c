@@ -3,9 +3,9 @@
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
+#include "teal/assert.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
-#include "teal/utils.h"
 
 static void read_nodes(MeshNodes *nodes, hid_t loc)
 {
@@ -25,7 +25,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
-static void read_node_graph(MeshGraph *node, long num_cells, hid_t loc)
+static void read_node_graph(Graph *node, long num_cells, hid_t loc)
 {
     hid_t group = h5io_group_open("node", loc);
 

@@ -1,8 +1,8 @@
 #include <stdio.h>
 
 #include "mesh.h"
+#include "teal/assert.h"
 #include "teal/sync.h"
-#include "teal/utils.h"
 
 static void print_null(void)
 {
@@ -39,10 +39,10 @@ static void print_scalar(const scalar *arr, long idx)
     }
 }
 
-static void print_string(const string *arr, long idx)
+static void print_strbuf(const strbuf *arr, long idx)
 {
     if (arr) {
-        printf(" %s |", arr[idx]);
+        printf(" %s |", arr[idx].buf);
     }
     else {
         print_null();
@@ -72,11 +72,11 @@ static void print_matrix(const matrix *arr, long idx)
     }
 }
 
-static void print_graph(const MeshGraph *graph, long idx)
+static void print_graph(Graph graph, long idx)
 {
-    if (graph->off && graph->idx) {
-        for (long j = graph->off[idx]; j < graph->off[idx + 1]; j++) {
-            printf(" %ld", graph->idx[j]);
+    if (graph.off && graph.idx) {
+        for (long j = graph.off[idx]; j < graph.off[idx + 1]; j++) {
+            printf(" %ld", graph.idx[j]);
         }
         printf(" |");
     }
@@ -85,7 +85,7 @@ static void print_graph(const MeshGraph *graph, long idx)
     }
 }
 
-static void print_face_cells(const FaceCells *cell, long idx)
+static void print_face_cells(const Adjacent *cell, long idx)
 {
     if (cell) {
         printf(" %ld %ld |", cell[idx].left, cell[idx].right);
@@ -123,8 +123,8 @@ void mesh_print(const Mesh *mesh)
                 printf("\t mesh->cells.{node|cell|volume|center|projection} = [\n");
                 for (long i = 0; i < mesh->cells.num; i++) {
                     printf("\t\t [%ld]", i);
-                    print_graph(&mesh->cells.node, i);
-                    print_graph(&mesh->cells.cell, i);
+                    print_graph(mesh->cells.node, i);
+                    print_graph(mesh->cells.cell, i);
                     print_scalar(mesh->cells.volume, i);
                     print_vector(mesh->cells.center, i);
                     print_vector(mesh->cells.projection, i);
@@ -139,7 +139,7 @@ void mesh_print(const Mesh *mesh)
                 printf("\t mesh->faces.{node|cell|area|center|basis|weight} = [\n");
                 for (long i = 0; i < mesh->faces.num; i++) {
                     printf("\t\t [%ld]", i);
-                    print_graph(&mesh->faces.node, i);
+                    print_graph(mesh->faces.node, i);
                     print_face_cells(mesh->faces.cell, i);
                     print_scalar(mesh->faces.area, i);
                     print_vector(mesh->faces.center, i);
@@ -153,13 +153,13 @@ void mesh_print(const Mesh *mesh)
             if (mesh->entities.num) {
                 printf("\t mesh->entities.{num|inner|ghost} = %ld | %ld | %ld\n",
                        mesh->entities.num, mesh->entities.num_inner, mesh->entities.num_ghost);
-                printf("\t mesh->entities.{name|cell|face|offset} = [\n");
+                printf("\t mesh->entities.{name|cell|face|translation} = [\n");
                 for (long i = 0; i < mesh->entities.num; i++) {
                     printf("\t\t [%ld]", i);
-                    print_string(mesh->entities.name, i);
+                    print_strbuf(mesh->entities.name, i);
                     print_long_pair(mesh->entities.cell_off, i);
                     print_long_pair(mesh->entities.face_off, i);
-                    print_vector(mesh->entities.offset, i);
+                    print_vector(mesh->entities.translation, i);
                     printf("\n");
                 }
                 printf("\t ]\n");
@@ -172,7 +172,7 @@ void mesh_print(const Mesh *mesh)
                     printf("\t\t [%ld]", i);
                     print_long(mesh->neighbors.rank, i);
                     print_long_pair(mesh->neighbors.recv_off, i);
-                    print_graph(&mesh->neighbors.send, i);
+                    print_graph(mesh->neighbors.send, i);
                     printf("\n");
                 }
                 printf("\t ]\n");

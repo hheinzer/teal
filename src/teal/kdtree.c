@@ -5,8 +5,9 @@
 #include <string.h>
 
 #include "arena.h"
-#include "teal/vector.h"
+#include "assert.h"
 #include "utils.h"
+#include "vector.h"
 
 Kdtree *kdtree_create(long size_val)
 {
@@ -61,7 +62,6 @@ void *kdtree_insert(Kdtree *self, vector key, const void *val)
     self->num += 1;
     *self->end = *item;
     self->end = &(*item)->next;
-
     return 0;
 }
 
@@ -79,29 +79,6 @@ void *kdtree_lookup(const Kdtree *self, vector key)
         depth += 1;
     }
     return 0;
-}
-
-typedef struct Stack Stack;
-struct Stack {
-    KdtreeItem *item;
-    long depth;
-    Stack *prev;
-};
-
-static void push(Stack **top, KdtreeItem *item, long depth)
-{
-    Stack *new = arena_malloc(1, sizeof(*new));
-    new->item = item;
-    new->depth = depth;
-    new->prev = *top;
-    *top = new;
-}
-
-static Stack *pop(Stack **top)
-{
-    Stack *cur = *top;
-    *top = cur->prev;
-    return cur;
 }
 
 static scalar squared_distance(vector lhs, vector rhs)
@@ -151,12 +128,14 @@ static scalar delta(vector lhs, vector rhs, long depth)
     }
 }
 
+typedef struct {
+    KdtreeItem *item;
+    long depth;
+} Stack;
+
 void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
 {
-    assert(self && (val ? (num > 0 && self->size_val > 0) : num == 0));
-    if (num == 0) {
-        return;
-    }
+    assert(self && self->beg && self->size_val > 0 && val && 0 < num && num <= self->num);
 
     Arena save = arena_save();
 
@@ -165,25 +144,28 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
         metric[i] = INFINITY;
     }
 
-    Stack *top = 0;
-    push(&top, self->beg, 0);
+    Stack *stack = arena_malloc(self->num, sizeof(*stack));
+    long top = 0;
+
+    stack[top++] = (Stack){self->beg, 0};
     while (top) {
-        Stack *cur = pop(&top);
-        KdtreeItem *item = cur->item;
-        long depth = cur->depth;
-        if (!item) {
-            continue;
-        }
+        Stack cur = stack[--top];
 
-        scalar item_metric = squared_distance(key, item->key);
+        scalar item_metric = squared_distance(key, cur.item->key);
         if (item_metric < metric[0]) {
-            heap_replace(item->val, item_metric, val, metric, num, self->size_val);
+            heap_replace(cur.item->val, item_metric, val, metric, num, self->size_val);
         }
 
-        scalar del = delta(key, item->key, depth);
-        push(&top, (del < 0) ? item->left : item->right, depth + 1);
-        if (sq(del) <= metric[0]) {
-            push(&top, (del < 0) ? item->right : item->left, depth + 1);
+        scalar del = delta(key, cur.item->key, cur.depth);
+        KdtreeItem *near = (del < 0) ? cur.item->left : cur.item->right;
+        KdtreeItem *far = (del < 0) ? cur.item->right : cur.item->left;
+
+        // push far first so near is popped next (improve pruning)
+        if (far && sq(del) <= metric[0]) {
+            stack[top++] = (Stack){far, cur.depth + 1};
+        }
+        if (near) {
+            stack[top++] = (Stack){near, cur.depth + 1};
         }
     }
 
@@ -192,10 +174,7 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
 
 long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, scalar radius)
 {
-    assert(self && (val ? (cap > 0 && self->size_val > 0) : cap == 0) && radius >= 0);
-    if (cap == 0) {
-        return 0;
-    }
+    assert(self && self->beg && self->size_val > 0 && val && 0 < cap && radius >= 0);
 
     Arena save = arena_save();
 
@@ -203,25 +182,28 @@ long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, scalar r
     scalar metric = sq(radius);
     long num = 0;
 
-    Stack *top = 0;
-    push(&top, self->beg, 0);
+    Stack *stack = arena_malloc(self->num, sizeof(*stack));
+    long top = 0;
+
+    stack[top++] = (Stack){self->beg, 0};
     while (top && num < cap) {
-        Stack *cur = pop(&top);
-        KdtreeItem *item = cur->item;
-        long depth = cur->depth;
-        if (!item) {
-            continue;
-        }
+        Stack cur = stack[--top];
 
-        scalar item_metric = squared_distance(key, item->key);
+        scalar item_metric = squared_distance(key, cur.item->key);
         if (item_metric <= metric) {
-            memcpy(_val[num++], item->val, self->size_val);
+            memcpy(_val[num++], cur.item->val, self->size_val);
         }
 
-        scalar del = delta(key, item->key, depth);
-        push(&top, (del < 0) ? item->left : item->right, depth + 1);
-        if (sq(del) <= metric) {
-            push(&top, (del < 0) ? item->right : item->left, depth + 1);
+        scalar del = delta(key, cur.item->key, cur.depth);
+        KdtreeItem *near = (del < 0) ? cur.item->left : cur.item->right;
+        KdtreeItem *far = (del < 0) ? cur.item->right : cur.item->left;
+
+        // push far first so near is popped next (improve pruning)
+        if (far && sq(del) <= metric) {
+            stack[top++] = (Stack){far, cur.depth + 1};
+        }
+        if (near) {
+            stack[top++] = (Stack){near, cur.depth + 1};
         }
     }
 
