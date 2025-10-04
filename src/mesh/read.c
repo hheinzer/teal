@@ -1031,51 +1031,117 @@ static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
     cells->num_periodic = num_periodic;
 }
 
+static void _collect_coords(const MeshNodes *nodes, const long *global, vector *coord, long num)
+{
+    Arena save = arena_save();
+
+    long *num_nodes = arena_malloc(sync.size + 1, sizeof(*num_nodes));
+    num_nodes[0] = 0;
+    MPI_Allgather(&nodes->num, 1, MPI_LONG, &num_nodes[1], 1, MPI_LONG, sync.comm);
+    for (long i = 0; i < sync.size; i++) {
+        num_nodes[i + 1] += num_nodes[i];
+    }
+
+    int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
+    for (long i = 0; i < num; i++) {
+        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
+        num_recv[rank] += 1;
+    }
+
+    int *off_recv = arena_malloc(sync.size + 1, sizeof(*off_recv));
+    off_recv[0] = 0;
+    for (long i = 0; i < sync.size; i++) {
+        off_recv[i + 1] = off_recv[i] + num_recv[i];
+    }
+
+    long *idx_recv = arena_malloc(num, sizeof(*idx_recv));
+    for (long i = 0; i < sync.size; i++) {
+        off_recv[i + 1] -= num_recv[i];
+    }
+    for (long i = 0; i < num; i++) {
+        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
+        idx_recv[off_recv[rank + 1]++] = global[i] - num_nodes[rank];
+    }
+    for (long i = 0; i < sync.size; i++) {
+        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
+    }
+
+    int *num_send = arena_malloc(sync.size, sizeof(*num_send));
+    MPI_Alltoall(num_recv, 1, MPI_INT, num_send, 1, MPI_INT, sync.comm);
+
+    int *off_send = arena_malloc(sync.size + 1, sizeof(*off_send));
+    off_send[0] = 0;
+    for (long i = 0; i < sync.size; i++) {
+        off_send[i + 1] = off_send[i] + num_send[i];
+    }
+
+    long tot_send = off_send[sync.size];
+    long *idx_send = arena_malloc(tot_send, sizeof(*idx_send));
+    MPI_Alltoallv(idx_recv, num_recv, off_recv, MPI_LONG, idx_send, num_send, off_send, MPI_LONG,
+                  sync.comm);
+
+    vector *coord_send = arena_malloc(tot_send, sizeof(*coord_send));
+    for (long i = 0; i < tot_send; i++) {
+        coord_send[i] = nodes->coord[idx_send[i]];
+    }
+
+    vector *coord_recv = arena_malloc(num, sizeof(*coord_recv));
+    MPI_Alltoallv(coord_send, num_send, off_send, vector_type, coord_recv, num_recv, off_recv,
+                  vector_type, sync.comm);
+
+    for (long i = 0; i < sync.size; i++) {
+        off_recv[i + 1] -= num_recv[i];
+    }
+    for (long i = 0; i < num; i++) {
+        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
+        coord[i] = coord_recv[off_recv[rank + 1]++];
+    }
+    for (long i = 0; i < sync.size; i++) {
+        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
+    }
+
+    arena_load(save);
+}
+
 /* Redistribute nodes to match current cells and renumber connectivity. */
 static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
 
-    Dict *global2coord = dict_create(sizeof(long), sizeof(vector));
+    long *global = arena_malloc(cells->node.off[cells->num], sizeof(*global));
+    long num = 0;
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            dict_insert(global2coord, &cells->node.idx[j], &(vector){0});
+            global[num++] = cells->node.idx[j];
         }
     }
-    collect_coords(nodes, global2coord);
+    array_lunique(global, &num);
+
+    vector *coord = arena_malloc(num, sizeof(*coord));
+    _collect_coords(nodes, global, coord, num);
 
     typedef struct {
         long rank;
         long old;
-        vector coord;
         long new;
     } Node;
 
-    long cap = sync_lmax(global2coord->num);
+    long cap = sync_lmax(num);
     Node *node = arena_calloc(cap, sizeof(*node));
-
-    long num = 0;
-    for (DictItem *item = global2coord->beg; item; item = item->next) {
-        long *global = item->key;
-        vector *coord = item->val;
-        node[num].rank = sync.rank;
-        node[num].old = *global;
-        node[num].coord = *coord;
-        node[num].new = -1;
-        num += 1;
+    for (long i = 0; i < num; i++) {
+        node[i].rank = sync.rank;
+        node[i].old = global[i];
+        node[i].new = -1;
     }
-    assert(num == global2coord->num);
-
     for (long i = num; i < cap; i++) {
         node[i].old = node[i].new = -1;
     }
 
     MPI_Datatype tmp;
-    int len[4] = {1, 1, 1, 1};
-    MPI_Aint dis[4] = {offsetof(Node, rank), offsetof(Node, old), offsetof(Node, coord),
-                       offsetof(Node, new)};
-    MPI_Datatype typ[4] = {MPI_LONG, MPI_LONG, vector_type, MPI_LONG};
-    MPI_Type_create_struct(4, len, dis, typ, &tmp);
+    int len[3] = {1, 1, 1};
+    MPI_Aint dis[3] = {offsetof(Node, rank), offsetof(Node, old), offsetof(Node, new)};
+    MPI_Datatype typ[3] = {MPI_LONG, MPI_LONG, MPI_LONG};
+    MPI_Type_create_struct(3, len, dis, typ, &tmp);
     MPI_Datatype type;
     MPI_Type_create_resized(tmp, 0, sizeof(Node), &type);
     MPI_Type_commit(&type);
@@ -1087,7 +1153,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            if (node[i].old != -1 && dict_lookup(global2coord, &node[i].old)) {
+            if (node[i].old != -1 && bsearch(&node[i].old, global, num, sizeof(*global), lcmp)) {
                 node[i].rank = lmin(node[i].rank, sync.rank);
             }
         }
@@ -1102,23 +1168,28 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
     qsort(node, num, sizeof(*node), lcmp);
 
-    Dict *old2new = dict_create(sizeof(long), sizeof(long));
+    long (*old2new)[2] = arena_malloc(num_inner, sizeof(*old2new));
     long off_nodes = sync_lexsum(num_inner);
+    long idx = 0;
     for (long i = 0; i < num; i++) {
         if (node[i].rank == -sync.rank) {
             node[i].new = i + off_nodes;
-            dict_insert(old2new, &node[i].old, &node[i].new);
+            old2new[idx][0] = node[i].old;
+            old2new[idx][1] = node[i].new;
+            idx += 1;
         }
     }
+    assert(idx == num_inner);
+    qsort(old2new, num_inner, sizeof(*old2new), lcmp);
 
     tag = sync_tag();
     for (long step = 0; step < sync.size; step++) {
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
             if (node[i].new == -1) {
-                long *new = dict_lookup(old2new, &node[i].old);
-                if (new) {
-                    node[i].new = *new;
+                long *hit = bsearch(&node[i].old, old2new, num_inner, sizeof(*old2new), lcmp);
+                if (hit) {
+                    node[i].new = hit[1];
                 }
             }
         }
@@ -1129,28 +1200,34 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     assert(nodes->num > 0);
     nodes->num_inner = num_inner;
 
-    long *global = arena_malloc(nodes->num, sizeof(*global));
-
     free(nodes->coord);
     nodes->coord = malloc(nodes->num * sizeof(*nodes->coord));
     assert(nodes->coord);
 
     for (long i = 0; i < nodes->num; i++) {
-        assert(node[i].new != -1);
-        global[i] = node[i].new;
-        nodes->coord[i] = node[i].coord;
+        long *hit = bsearch(&node[i].old, global, num, sizeof(*global), lcmp);
+        assert(hit);
+        nodes->coord[i] = coord[hit - global];
     }
 
-    Dict *old2local = dict_create(sizeof(long), sizeof(long));
     for (long i = 0; i < nodes->num; i++) {
-        dict_insert(old2local, &node[i].old, &i);
+        assert(node[i].new != -1);
+        global[i] = node[i].new;
     }
+
+    long (*old2local)[2] = arena_malloc(nodes->num, sizeof(*old2local));
+    for (long i = 0; i < nodes->num; i++) {
+        old2local[i][0] = node[i].old;
+        old2local[i][1] = i;
+    }
+    qsort(old2local, nodes->num, sizeof(*old2local), lcmp);
 
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            long *local = dict_lookup(old2local, &cells->node.idx[j]);
-            assert(local);
-            cells->node.idx[j] = *local;
+            long *hit =
+                bsearch(&cells->node.idx[j], old2local, nodes->num, sizeof(*old2local), lcmp);
+            assert(hit);
+            cells->node.idx[j] = hit[1];
         }
     }
 

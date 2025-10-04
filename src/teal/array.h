@@ -14,5 +14,7 @@ vector array_vmin(const vector *arr, long num);
 vector array_vmax(const vector *arr, long num);
 vector array_vsum(const vector *arr, long num);
 
+void array_lunique(long *arr, long *num);
+
 /* Return index of first `arr[i] > val` in sorted array; if beyond bounds return `0` or `num`. */
 long array_ldigitize(const long *arr, long val, long num);

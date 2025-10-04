@@ -37,7 +37,7 @@ static bool append(char *str, long *pos, const char *fmt, ...)
     return true;
 }
 
-void assert_fail(const char *file, long line, const char *func, const char *expr)
+void x__assert_fail(const char *file, long line, const char *func, const char *expr)
 {
     char buf[BUFLEN];
     long pos = 0;

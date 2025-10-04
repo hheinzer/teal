@@ -2,6 +2,7 @@
 
 #include <limits.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "assert.h"
 #include "utils.h"
@@ -95,6 +96,22 @@ vector array_vsum(const vector *arr, long num)
         sum = vector_add(sum, arr[i]);
     }
     return sum;
+}
+
+void array_lunique(long *arr, long *num)
+{
+    assert(arr ? *num >= 0 : *num == 0);
+    if (*num <= 1) {
+        return;
+    }
+    qsort(arr, *num, sizeof(*arr), lcmp);
+    long unique = 1;
+    for (long i = 1; i < *num; i++) {
+        if (arr[i] != arr[unique - 1]) {
+            arr[unique++] = arr[i];
+        }
+    }
+    *num = unique;
 }
 
 long array_ldigitize(const long *arr, long val, long num)
