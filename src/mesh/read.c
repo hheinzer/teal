@@ -41,7 +41,7 @@ static long count_inner_cells(const MeshEntities *entities)
 }
 
 /* Gather coordinates for requested global node ids to their owning ranks. */
-static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
+static void collect_coords(const MeshNodes *nodes, const long *global, vector *coord, long num)
 {
     Arena save = arena_save();
 
@@ -53,9 +53,8 @@ static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
     }
 
     int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
-    for (DictItem *item = global2coord->beg; item; item = item->next) {
-        long *global = item->key;
-        long rank = array_ldigitize(&num_nodes[1], *global, sync.size);
+    for (long i = 0; i < num; i++) {
+        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
         num_recv[rank] += 1;
     }
 
@@ -65,14 +64,13 @@ static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
         off_recv[i + 1] = off_recv[i] + num_recv[i];
     }
 
-    long *idx_recv = arena_malloc(global2coord->num, sizeof(*idx_recv));
+    long *idx_recv = arena_malloc(num, sizeof(*idx_recv));
     for (long i = 0; i < sync.size; i++) {
         off_recv[i + 1] -= num_recv[i];
     }
-    for (DictItem *item = global2coord->beg; item; item = item->next) {
-        long *global = item->key;
-        long rank = array_ldigitize(&num_nodes[1], *global, sync.size);
-        idx_recv[off_recv[rank + 1]++] = *global - num_nodes[rank];
+    for (long i = 0; i < num; i++) {
+        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
+        idx_recv[off_recv[rank + 1]++] = global[i] - num_nodes[rank];
     }
     for (long i = 0; i < sync.size; i++) {
         assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
@@ -97,17 +95,16 @@ static void collect_coords(const MeshNodes *nodes, Dict *global2coord)
         coord_send[i] = nodes->coord[idx_send[i]];
     }
 
-    vector *coord_recv = arena_malloc(global2coord->num, sizeof(*coord_recv));
+    vector *coord_recv = arena_malloc(num, sizeof(*coord_recv));
     MPI_Alltoallv(coord_send, num_send, off_send, vector_type, coord_recv, num_recv, off_recv,
                   vector_type, sync.comm);
 
     for (long i = 0; i < sync.size; i++) {
         off_recv[i + 1] -= num_recv[i];
     }
-    for (DictItem *item = global2coord->beg; item; item = item->next) {
-        long *global = item->key;
-        long rank = array_ldigitize(&num_nodes[1], *global, sync.size);
-        *(vector *)item->val = coord_recv[off_recv[rank + 1]++];
+    for (long i = 0; i < num; i++) {
+        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
+        coord[i] = coord_recv[off_recv[rank + 1]++];
     }
     for (long i = 0; i < sync.size; i++) {
         assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
@@ -188,13 +185,15 @@ static void collect_links(const vector *mean, Kdtree *center2link)
     arena_load(save);
 }
 
+typedef struct {
+    long cell;
+    long peer;
+} Edge;
+
 /* For each periodic link, request the peer cell's global id from its owner. */
-static void collect_edges(const MeshCells *cells, const Kdtree *center2link, Dict *local2global)
+static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, long *num_edges)
 {
-    typedef struct {
-        long cell;
-        long peer;
-    } Edge;
+    Arena save = arena_save();
 
     long tot_send = center2link->num;
     Edge *send = arena_malloc(tot_send, sizeof(*send));
@@ -247,10 +246,15 @@ static void collect_edges(const MeshCells *cells, const Kdtree *center2link, Dic
 
     long off_cells = sync_lexsum(cells->num);
     for (long i = 0; i < tot_recv; i++) {
-        long local = recv[i].cell - off_cells;
-        long global = recv[i].peer;
-        dict_insert(local2global, &local, &global);
+        recv[i].cell -= off_cells;
     }
+
+    qsort(recv, tot_recv, sizeof(*recv), lcmp);
+    *num_edges = tot_recv;
+
+    arena_load(save);
+
+    return arena_smuggle(recv, *num_edges, sizeof(*recv));
 }
 
 typedef struct {
@@ -263,20 +267,27 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
 {
     Arena save = arena_save();
 
-    Dict *global2coord = dict_create(sizeof(long), sizeof(vector));
+    long num_lhs = entities->cell_off[lhs + 1] - entities->cell_off[lhs];
+    long num_rhs = entities->cell_off[rhs + 1] - entities->cell_off[rhs];
+
+    long *global = arena_malloc((num_lhs + num_rhs) * MAX_CELL_NODES, sizeof(*global));
     long num_cells[2] = {0};
+    long num = 0;
     for (long i = 0; i < entities->num; i++) {
         if (i == lhs || i == rhs) {
             for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
-                    dict_insert(global2coord, &cells->node.idx[k], &(vector){0});
+                    global[num++] = cells->node.idx[k];
                 }
                 int side = (i == lhs) ? LHS : RHS;
                 num_cells[side] += 1;
             }
         }
     }
-    collect_coords(nodes, global2coord);
+    array_lunique(global, &num);
+
+    vector *coord = arena_malloc(num, sizeof(*coord));
+    collect_coords(nodes, global, coord, num);
 
     num_cells[LHS] = sync_lsum(num_cells[LHS]);
     num_cells[RHS] = sync_lsum(num_cells[RHS]);
@@ -291,9 +302,9 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
                 vector center = {0};
                 long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
-                    vector *coord = dict_lookup(global2coord, &cells->node.idx[k]);
-                    assert(coord);
-                    center = vector_add(center, vector_div(*coord, num_nodes));
+                    long *hit = bsearch(&cells->node.idx[k], global, num, sizeof(*global), lcmp);
+                    assert(hit);
+                    center = vector_add(center, vector_div(coord[hit - global], num_nodes));
                 }
                 int side = (i == lhs) ? LHS : RHS;
                 long cell = j + off_cells;
@@ -307,13 +318,13 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
     mean[RHS] = vector_div(sync_vsum(mean[RHS]), num_cells[RHS]);
     collect_links(mean, center2link);
 
-    Dict *local2global = dict_create(sizeof(long), sizeof(long));
-    collect_edges(cells, center2link, local2global);
+    long num_edges;
+    Edge *edge = collect_edges(cells, center2link, &num_edges);
 
     idx_t *xadj = malloc((cells->num + 1) * sizeof(*xadj));
     assert(xadj);
 
-    idx_t *adjncy = malloc((dual->xadj[cells->num] + local2global->num) * sizeof(*adjncy));
+    idx_t *adjncy = malloc((dual->xadj[cells->num] + num_edges) * sizeof(*adjncy));
     assert(adjncy);
 
     xadj[0] = 0;
@@ -323,9 +334,9 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
         for (long j = dual->xadj[i]; j < dual->xadj[i + 1]; j++) {
             adjncy[xadj[i + 1]++] = dual->adjncy[j];
         }
-        long *global = dict_lookup(local2global, &i);
-        if (global) {
-            adjncy[xadj[i + 1]++] = *global;
+        Edge *hit = bsearch(&i, edge, num_edges, sizeof(*edge), lcmp);
+        if (hit) {
+            adjncy[xadj[i + 1]++] = hit->peer;
         }
     }
     free(dual->xadj);
@@ -1031,78 +1042,6 @@ static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
     cells->num_periodic = num_periodic;
 }
 
-static void _collect_coords(const MeshNodes *nodes, const long *global, vector *coord, long num)
-{
-    Arena save = arena_save();
-
-    long *num_nodes = arena_malloc(sync.size + 1, sizeof(*num_nodes));
-    num_nodes[0] = 0;
-    MPI_Allgather(&nodes->num, 1, MPI_LONG, &num_nodes[1], 1, MPI_LONG, sync.comm);
-    for (long i = 0; i < sync.size; i++) {
-        num_nodes[i + 1] += num_nodes[i];
-    }
-
-    int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
-    for (long i = 0; i < num; i++) {
-        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
-        num_recv[rank] += 1;
-    }
-
-    int *off_recv = arena_malloc(sync.size + 1, sizeof(*off_recv));
-    off_recv[0] = 0;
-    for (long i = 0; i < sync.size; i++) {
-        off_recv[i + 1] = off_recv[i] + num_recv[i];
-    }
-
-    long *idx_recv = arena_malloc(num, sizeof(*idx_recv));
-    for (long i = 0; i < sync.size; i++) {
-        off_recv[i + 1] -= num_recv[i];
-    }
-    for (long i = 0; i < num; i++) {
-        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
-        idx_recv[off_recv[rank + 1]++] = global[i] - num_nodes[rank];
-    }
-    for (long i = 0; i < sync.size; i++) {
-        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
-    }
-
-    int *num_send = arena_malloc(sync.size, sizeof(*num_send));
-    MPI_Alltoall(num_recv, 1, MPI_INT, num_send, 1, MPI_INT, sync.comm);
-
-    int *off_send = arena_malloc(sync.size + 1, sizeof(*off_send));
-    off_send[0] = 0;
-    for (long i = 0; i < sync.size; i++) {
-        off_send[i + 1] = off_send[i] + num_send[i];
-    }
-
-    long tot_send = off_send[sync.size];
-    long *idx_send = arena_malloc(tot_send, sizeof(*idx_send));
-    MPI_Alltoallv(idx_recv, num_recv, off_recv, MPI_LONG, idx_send, num_send, off_send, MPI_LONG,
-                  sync.comm);
-
-    vector *coord_send = arena_malloc(tot_send, sizeof(*coord_send));
-    for (long i = 0; i < tot_send; i++) {
-        coord_send[i] = nodes->coord[idx_send[i]];
-    }
-
-    vector *coord_recv = arena_malloc(num, sizeof(*coord_recv));
-    MPI_Alltoallv(coord_send, num_send, off_send, vector_type, coord_recv, num_recv, off_recv,
-                  vector_type, sync.comm);
-
-    for (long i = 0; i < sync.size; i++) {
-        off_recv[i + 1] -= num_recv[i];
-    }
-    for (long i = 0; i < num; i++) {
-        long rank = array_ldigitize(&num_nodes[1], global[i], sync.size);
-        coord[i] = coord_recv[off_recv[rank + 1]++];
-    }
-    for (long i = 0; i < sync.size; i++) {
-        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
-    }
-
-    arena_load(save);
-}
-
 /* Redistribute nodes to match current cells and renumber connectivity. */
 static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
 {
@@ -1118,7 +1057,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     array_lunique(global, &num);
 
     vector *coord = arena_malloc(num, sizeof(*coord));
-    _collect_coords(nodes, global, coord, num);
+    collect_coords(nodes, global, coord, num);
 
     typedef struct {
         long rank;
