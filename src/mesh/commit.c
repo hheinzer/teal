@@ -229,17 +229,24 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     Arena save = arena_save();
 
     Kdtree *center2local = kdtree_create(sizeof(long));
-    for (long i = 0; i < cells->num; i++) {
-        if (cells->num_inner <= i && i < cells->num_inner + cells->num_ghost) {
-            continue;  // skip ghost cells
-        }
+    for (long i = cells->num_inner + cells->num_ghost; i < cells->num; i++) {
         vector center = {0};
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
             center = vector_add(center, vector_div(coord, num_nodes));
         }
-        long local = (i < cells->num_inner) ? i : cells->cell.idx[cells->cell.off[i]];
+        long local = cells->cell.idx[cells->cell.off[i]];
+        kdtree_insert(center2local, center, &local);
+    }
+    for (long i = cells->num_inner + cells->num_ghost + cells->num_periodic; i < cells->num; i++) {
+        long local = cells->cell.idx[cells->cell.off[i]];
+        vector center = {0};
+        long num_nodes = cells->node.off[local + 1] - cells->node.off[local];
+        for (long j = cells->node.off[local]; j < cells->node.off[local + 1]; j++) {
+            vector coord = nodes->coord[cells->node.idx[j]];
+            center = vector_add(center, vector_div(coord, num_nodes));
+        }
         kdtree_insert(center2local, center, &local);
     }
 
