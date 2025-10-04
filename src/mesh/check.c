@@ -1,12 +1,13 @@
 #include "teal/check.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "mesh.h"
 #include "teal/arena.h"
+#include "teal/array.h"
 #include "teal/assert.h"
-#include "teal/dict.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
@@ -20,12 +21,16 @@ static void test_nodes(const MeshNodes *nodes)
     check(nodes->num_inner <= nodes->num);
 
     if (nodes->global) {
-        Dict *global = dict_create(sizeof(long), 0);
+        long *global = arena_malloc(nodes->num, sizeof(*global));
         for (long i = 0; i < nodes->num; i++) {
             check(nodes->global[i] >= 0);
-            dict_insert(global, &nodes->global[i], 0);
+            global[i] = nodes->global[i];
         }
-        check(global->num == nodes->num);
+
+        qsort(global, nodes->num, sizeof(*global), lcmp);
+        for (long i = 1; i < nodes->num; i++) {
+            check(global[i - 1] != global[i]);
+        }
     }
 
     if (nodes->coord) {
@@ -90,15 +95,15 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
     if (cells->cell.off && cells->cell.idx) {
         test_graph(cells->cell, cells->num, 1, MAX_CELL_FACES, 0, cells->num - 1);
 
-        Dict *local = dict_create(sizeof(long), 0);
+        long *local = arena_calloc(cells->num, sizeof(*local));
         for (long i = 0; i < cells->num; i++) {
             for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
                 check(cells->cell.idx[j] != i);
                 check(has_neighbor(cells->cell, cells->cell.idx[j], i));
-                dict_insert(local, &cells->cell.idx[j], 0);
+                local[cells->cell.idx[j]] = 1;
             }
         }
-        check(local->num == cells->num);
+        check(array_lsum(local, cells->num) == cells->num);
     }
 
     if (cells->volume) {
@@ -157,8 +162,8 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     }
 
     if (faces->cell) {
-        Dict *left = dict_create(sizeof(long), 0);
-        Dict *right = dict_create(sizeof(long), 0);
+        long *left = arena_calloc(cells->num_inner, sizeof(*left));
+        long *right = arena_calloc(cells->num, sizeof(*right));
         for (long i = 0; i < faces->num; i++) {
             check(faces->cell[i].left >= 0);
             check(faces->cell[i].left < cells->num_inner);
@@ -175,11 +180,11 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
                 check(faces->cell[i].right < cells->num);
             }
             check(faces->cell[i].left != faces->cell[i].right);
-            dict_insert(left, &faces->cell[i].left, 0);
-            dict_insert(right, &faces->cell[i].right, 0);
+            left[faces->cell[i].left] = 1;
+            right[faces->cell[i].right] = 1;
         }
-        check(left->num <= cells->num_inner);
-        check(right->num >= cells->num - cells->num_inner);
+        check(array_lsum(left, cells->num_inner) <= cells->num_inner);
+        check(array_lsum(right, cells->num) >= cells->num - cells->num_inner);
     }
 
     if (faces->area) {
