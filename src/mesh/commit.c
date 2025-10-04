@@ -7,7 +7,6 @@
 #include "teal/arena.h"
 #include "teal/array.h"
 #include "teal/assert.h"
-#include "teal/dict.h"
 #include "teal/kdtree.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
@@ -124,72 +123,70 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
 
-    typedef struct {
+    long cap = cells->num_inner * MAX_CELL_FACES;
+    struct {
         long left;
         long right;
-    } Pair;
-
-    typedef struct {
         long num;
         long node[MAX_FACE_NODES];
-    } Face;
+    } *face = arena_malloc(cap, sizeof(*face));
 
-    Dict *pair2face = dict_create(sizeof(Pair), sizeof(Face));
-    for (long i = 0; i < cells->num; i++) {
+    long num = 0;
+    for (long i = 0; i < cells->num_inner; i++) {
         for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
-            long min = lmin(i, cells->cell.idx[j]);
-            long max = lmax(i, cells->cell.idx[j]);
-            Face face = {0};
-            for (long ii = cells->node.off[min]; ii < cells->node.off[min + 1]; ii++) {
-                for (long jj = cells->node.off[max]; jj < cells->node.off[max + 1]; jj++) {
-                    if (cells->node.idx[ii] == cells->node.idx[jj]) {
-                        face.node[face.num++] = cells->node.idx[ii];  // intersection of cell nodes
+            long left = i;
+            long right = cells->cell.idx[j];
+            if (left < right) {
+                assert(num < cap);
+                face[num].left = left;
+                face[num].right = right;
+                face[num].num = 0;
+                for (long ii = cells->node.off[left]; ii < cells->node.off[left + 1]; ii++) {
+                    for (long jj = cells->node.off[right]; jj < cells->node.off[right + 1]; jj++) {
+                        if (cells->node.idx[ii] == cells->node.idx[jj]) {
+                            assert(face[num].num < MAX_FACE_NODES);
+                            face[num].node[face[num].num++] = cells->node.idx[ii];
+                        }
                     }
                 }
+                num += 1;
             }
-            dict_insert(pair2face, &(Pair){min, max}, &face);
         }
     }
 
-    long num_faces = pair2face->num;
-    long *off = arena_malloc(num_faces + 1, sizeof(*off));
-    long *idx = arena_malloc(num_faces * MAX_FACE_NODES, sizeof(*idx));
-    Adjacent *cell = arena_malloc(num_faces, sizeof(*cell));
+    long *off = arena_malloc(num + 1, sizeof(*off));
+    long *idx = arena_malloc(num * MAX_FACE_NODES, sizeof(*idx));
+    Adjacent *cell = arena_malloc(num, sizeof(*cell));
 
     off[0] = 0;
 
-    long num = 0;
     long num_inner = 0;
     long num_ghost = 0;
-    for (DictItem *item = pair2face->beg; item; item = item->next) {
-        Pair *pair = item->key;
-        Face *face = item->val;
-        assert(pair->left < cells->num_inner);
-        if (pair->right < cells->num_inner) {
+    for (long i = 0; i < num; i++) {
+        assert(face[i].left < cells->num_inner);
+        if (face[i].right < cells->num_inner) {
             num_inner += 1;
         }
-        else if (pair->right < cells->num_inner + cells->num_ghost) {
+        else if (face[i].right < cells->num_inner + cells->num_ghost) {
             num_ghost += 1;
         }
-        off[num + 1] = off[num] + face->num;
-        for (long j = 0, i = off[num]; i < off[num + 1]; i++, j++) {
-            idx[i] = face->node[j];
+        off[i + 1] = off[i] + face[i].num;
+        for (long k = 0, j = off[i]; j < off[i + 1]; j++, k++) {
+            idx[j] = face[i].node[k];
         }
-        cell[num].left = pair->left;
-        cell[num].right = pair->right;
-        num += 1;
+        cell[i].left = face[i].left;
+        cell[i].right = face[i].right;
     }
-    assert(num == num_faces);
     assert(num_ghost == cells->num_ghost);
 
     arena_load(save);
 
-    faces->num = num_faces;
+    faces->num = num;
     faces->num_inner = num_inner;
     faces->num_ghost = num_ghost;
-    faces->node.off = arena_smuggle(off, num_faces + 1, sizeof(*off));
+    faces->node.off = arena_smuggle(off, num + 1, sizeof(*off));
     faces->node.idx = arena_smuggle(idx, faces->node.off[faces->num], sizeof(*idx));
-    faces->cell = arena_smuggle(cell, num_faces, sizeof(*cell));
+    faces->cell = arena_smuggle(cell, num, sizeof(*cell));
 }
 
 /* Reorder faces: inner first (by left), then outer (by right). */
