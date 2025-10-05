@@ -10,7 +10,6 @@
 #include "teal/arena.h"
 #include "teal/array.h"
 #include "teal/assert.h"
-#include "teal/dict.h"
 #include "teal/kdtree.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
@@ -250,10 +249,10 @@ static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, lo
     }
 
     qsort(recv, tot_recv, sizeof(*recv), lcmp);
-    *num_edges = tot_recv;
 
     arena_load(save);
 
+    *num_edges = tot_recv;
     return arena_smuggle(recv, *num_edges, sizeof(*recv));
 }
 
@@ -529,9 +528,11 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
 }
 
 /* Gather remote adjacency ids, grouped by destination partition. */
-static void collect_adjncys(const MeshCells *cells, const Dual *dual, const idx_t *part,
-                            Dict *adjncy2part)
+static long *collect_adjncys(const MeshCells *cells, const Dual *dual, const idx_t *part,
+                             long *num_adjncy)
 {
+    Arena save = arena_save();
+
     long tot_send = 0;
     int *num_send = arena_calloc(sync.size, sizeof(*num_send));
     for (long i = 0; i < cells->num; i++) {
@@ -573,13 +574,17 @@ static void collect_adjncys(const MeshCells *cells, const Dual *dual, const idx_
     MPI_Alltoallv(idx_send, num_send, off_send, MPI_LONG, idx_recv, num_recv, off_recv, MPI_LONG,
                   sync.comm);
 
-    for (long i = 0; i < tot_recv; i++) {
-        dict_insert(adjncy2part, &idx_recv[i], &(long){-1});
-    }
+    array_lunique(idx_recv, &tot_recv);
+
+    arena_load(save);
+
+    *num_adjncy = tot_recv;
+    return arena_smuggle(idx_recv, *num_adjncy, sizeof(*idx_recv));
 }
 
 /* Resolve partitions for unique remote adjacency ids. */
-static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjncy2part)
+static void collect_parts(const MeshCells *cells, const idx_t *part, const long *adjncy,
+                          long *adjncy_part, long num_adjncy)
 {
     Arena save = arena_save();
 
@@ -591,9 +596,8 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
     }
 
     int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *adjncy = item->key;
-        long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
+    for (long i = 0; i < num_adjncy; i++) {
+        long rank = array_ldigitize(&num_cells[1], adjncy[i], sync.size);
         num_recv[rank] += 1;
     }
 
@@ -603,14 +607,13 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
         off_recv[i + 1] = off_recv[i] + num_recv[i];
     }
 
-    long *idx_recv = arena_malloc(adjncy2part->num, sizeof(*idx_recv));
+    long *idx_recv = arena_malloc(num_adjncy, sizeof(*idx_recv));
     for (long i = 0; i < sync.size; i++) {
         off_recv[i + 1] -= num_recv[i];
     }
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *adjncy = item->key;
-        long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
-        idx_recv[off_recv[rank + 1]++] = *adjncy - num_cells[rank];
+    for (long i = 0; i < num_adjncy; i++) {
+        long rank = array_ldigitize(&num_cells[1], adjncy[i], sync.size);
+        idx_recv[off_recv[rank + 1]++] = adjncy[i] - num_cells[rank];
     }
     for (long i = 0; i < sync.size; i++) {
         assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
@@ -635,51 +638,22 @@ static void collect_parts(const MeshCells *cells, const idx_t *part, Dict *adjnc
         part_send[i] = part[idx_send[i]];
     }
 
-    long *part_recv = arena_malloc(adjncy2part->num, sizeof(*part_recv));
+    long *part_recv = arena_malloc(num_adjncy, sizeof(*part_recv));
     MPI_Alltoallv(part_send, num_send, off_send, MPI_LONG, part_recv, num_recv, off_recv, MPI_LONG,
                   sync.comm);
 
     for (long i = 0; i < sync.size; i++) {
         off_recv[i + 1] -= num_recv[i];
     }
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *adjncy = item->key;
-        long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
-        *(long *)item->val = part_recv[off_recv[rank + 1]++];
+    for (long i = 0; i < num_adjncy; i++) {
+        long rank = array_ldigitize(&num_cells[1], adjncy[i], sync.size);
+        adjncy_part[i] = part_recv[off_recv[rank + 1]++];
     }
-
-    arena_load(save);
-}
-
-/* Count remote inner neighbors (nonlocal and inner on peer). */
-static long count_neighbor_cells(const MeshCells *cells, const Dict *adjncy2part)
-{
-    Arena save = arena_save();
-
-    long *num_cells = arena_malloc(sync.size + 1, sizeof(*num_cells));
-    num_cells[0] = 0;
-    MPI_Allgather(&cells->num, 1, MPI_LONG, &num_cells[1], 1, MPI_LONG, sync.comm);
     for (long i = 0; i < sync.size; i++) {
-        num_cells[i + 1] += num_cells[i];
-    }
-
-    long *num_inner = arena_malloc(sync.size, sizeof(*num_inner));
-    MPI_Allgather(&cells->num_inner, 1, MPI_LONG, num_inner, 1, MPI_LONG, sync.comm);
-
-    long count = 0;
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *adjncy = item->key;
-        long *part = item->val;
-        if (*part != sync.rank) {
-            long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
-            if (*adjncy < num_cells[rank] + num_inner[rank]) {
-                count += 1;
-            }
-        }
+        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
     }
 
     arena_load(save);
-    return count;
 }
 
 typedef struct {
@@ -702,8 +676,9 @@ static MPI_Datatype create_neighbor_type(void)
 }
 
 /* Fetch node lists for remote inner neighbors. */
-static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2part,
-                                   Neighbor *neighbor)
+static Neighbor *collect_neighbor_cells(const MeshCells *cells, const long *adjncy,
+                                        const long *adjncy_part, long num_adjncy,
+                                        long *num_neighbors)
 {
     Arena save = arena_save();
 
@@ -718,12 +693,10 @@ static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2pa
     MPI_Allgather(&cells->num_inner, 1, MPI_LONG, num_inner, 1, MPI_LONG, sync.comm);
 
     int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *adjncy = item->key;
-        long *part = item->val;
-        if (*part != sync.rank) {
-            long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
-            if (*adjncy < num_cells[rank] + num_inner[rank]) {
+    for (long i = 0; i < num_adjncy; i++) {
+        if (adjncy_part[i] != sync.rank) {
+            long rank = array_ldigitize(&num_cells[1], adjncy[i], sync.size);
+            if (adjncy[i] < num_cells[rank] + num_inner[rank]) {
                 num_recv[rank] += 1;
             }
         }
@@ -740,13 +713,11 @@ static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2pa
     for (long i = 0; i < sync.size; i++) {
         off_recv[i + 1] -= num_recv[i];
     }
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *adjncy = item->key;
-        long *part = item->val;
-        if (*part != sync.rank) {
-            long rank = array_ldigitize(&num_cells[1], *adjncy, sync.size);
-            if (*adjncy < num_cells[rank] + num_inner[rank]) {
-                idx_recv[off_recv[rank + 1]++] = *adjncy - num_cells[rank];
+    for (long i = 0; i < num_adjncy; i++) {
+        if (adjncy_part[i] != sync.rank) {
+            long rank = array_ldigitize(&num_cells[1], adjncy[i], sync.size);
+            if (adjncy[i] < num_cells[rank] + num_inner[rank]) {
+                idx_recv[off_recv[rank + 1]++] = adjncy[i] - num_cells[rank];
             }
         }
     }
@@ -777,39 +748,45 @@ static void collect_neighbor_cells(const MeshCells *cells, const Dict *adjncy2pa
         }
     }
 
+    Neighbor *recv = arena_malloc(tot_recv, sizeof(*recv));
     MPI_Datatype type = create_neighbor_type();
-    MPI_Alltoallv(send, num_send, off_send, type, neighbor, num_recv, off_recv, type, sync.comm);
+    MPI_Alltoallv(send, num_send, off_send, type, recv, num_recv, off_recv, type, sync.comm);
     MPI_Type_free(&type);
 
     arena_load(save);
+
+    *num_neighbors = tot_recv;
+    return arena_smuggle(recv, sync_lmax(*num_neighbors), sizeof(*recv));
 }
 
 /* Rebuild communicator as a dist-graph over adjacent partitions. */
-static void decompose_comm(const Dict *adjncy2part)
+static void decompose_comm(const long *adjncy_part, long num_adjncy)
 {
     Arena save = arena_save();
 
-    Dict *part2count = dict_create(sizeof(long), sizeof(long));
-    for (DictItem *item = adjncy2part->beg; item; item = item->next) {
-        long *part = item->val;
-        if (*part != sync.rank) {
-            long *count = dict_insert(part2count, part, &(long){1});
-            if (count) {
-                *count += 1;
-            }
+    long *count = arena_calloc(sync.size, sizeof(*count));
+    for (long i = 0; i < num_adjncy; i++) {
+        if (adjncy_part[i] != sync.rank) {
+            count[adjncy_part[i]] += 1;
         }
     }
 
-    int deg = part2count->num;
+    long deg = 0;
+    for (long i = 0; i < sync.size; i++) {
+        if (count[i] > 0) {
+            deg += 1;
+        }
+    }
+
     int *rank = arena_malloc(deg, sizeof(*rank));
     int *weight = arena_malloc(deg, sizeof(*weight));
-    int num = 0;
-    for (DictItem *item = part2count->beg; item; item = item->next) {
-        long *part = item->key;
-        long *count = item->val;
-        rank[num] = *part;
-        weight[num] = *count;
-        num += 1;
+    long num = 0;
+    for (long i = 0; i < sync.size; i++) {
+        if (count[i] > 0) {
+            rank[num] = i;
+            weight[num] = count[i];
+            num += 1;
+        }
     }
     assert(num == deg);
 
@@ -997,16 +974,18 @@ static void partition_cells(MeshNodes *nodes, MeshCells *cells, MeshEntities *en
     idx_t *part = arena_malloc(cells->num, sizeof(*part));
     compute_partitioning(cells, &dual, part);
 
-    Dict *adjncy2part = dict_create(sizeof(long), sizeof(long));
-    collect_adjncys(cells, &dual, part, adjncy2part);
-    collect_parts(cells, part, adjncy2part);
+    long num_adjncy;
+    long *adjncy = collect_adjncys(cells, &dual, part, &num_adjncy);
 
-    long num_neighbors = count_neighbor_cells(cells, adjncy2part);
-    Neighbor *neighbor = arena_malloc(sync_lmax(num_neighbors), sizeof(*neighbor));
-    collect_neighbor_cells(cells, adjncy2part, neighbor);
+    long *adjncy_part = arena_malloc(num_adjncy, sizeof(*adjncy_part));
+    collect_parts(cells, part, adjncy, adjncy_part, num_adjncy);
+
+    long num_neighbors;
+    Neighbor *neighbor =
+        collect_neighbor_cells(cells, adjncy, adjncy_part, num_adjncy, &num_neighbors);
 
     int dst = sync.rank;
-    decompose_comm(adjncy2part);
+    decompose_comm(adjncy_part, num_adjncy);
     free(dual.xadj);
     free(dual.adjncy);
 
