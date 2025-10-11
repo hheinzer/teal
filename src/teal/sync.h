@@ -14,8 +14,6 @@ typedef struct {
 
 extern Sync sync;
 
-extern MPI_Datatype vector_type;
-
 void sync_init(int *argc, char ***argv);
 void sync_reinit(MPI_Comm comm);
 

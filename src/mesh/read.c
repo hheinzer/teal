@@ -94,9 +94,14 @@ static void collect_coords(const MeshNodes *nodes, const long *global, vector *c
         coord_send[i] = nodes->coord[idx_send[i]];
     }
 
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(vector), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     vector *coord_recv = arena_malloc(num, sizeof(*coord_recv));
-    MPI_Alltoallv(coord_send, num_send, off_send, vector_type, coord_recv, num_recv, off_recv,
-                  vector_type, sync.comm);
+    MPI_Alltoallv(coord_send, num_send, off_send, type, coord_recv, num_recv, off_recv, type,
+                  sync.comm);
+    MPI_Type_free(&type);
 
     for (long i = 0; i < sync.size; i++) {
         off_recv[i + 1] -= num_recv[i];
@@ -146,15 +151,9 @@ static void collect_links(const vector *mean, Kdtree *center2link)
     }
     assert(num == center2link->num);
 
-    MPI_Datatype tmp;
-    int len[2] = {1, 1};
-    MPI_Aint dis[2] = {offsetof(Center, coord), offsetof(Center, global)};
-    MPI_Datatype typ[2] = {vector_type, MPI_LONG};
-    MPI_Type_create_struct(2, len, dis, typ, &tmp);
     MPI_Datatype type;
-    MPI_Type_create_resized(tmp, 0, sizeof(Center), &type);
+    MPI_Type_contiguous(sizeof(Center), MPI_BYTE, &type);
     MPI_Type_commit(&type);
-    MPI_Type_free(&tmp);
 
     int dst = (sync.rank + 1) % sync.size;
     int src = (sync.rank - 1 + sync.size) % sync.size;
@@ -235,7 +234,7 @@ static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, lo
     }
 
     MPI_Datatype type;
-    MPI_Type_contiguous(2, MPI_LONG, &type);
+    MPI_Type_contiguous(sizeof(Edge), MPI_BYTE, &type);
     MPI_Type_commit(&type);
 
     long tot_recv = off_recv[sync.size];
@@ -661,20 +660,6 @@ typedef struct {
     long node[MAX_CELL_NODES];
 } Neighbor;
 
-static MPI_Datatype create_neighbor_type(void)
-{
-    MPI_Datatype tmp;
-    int len[2] = {1, MAX_CELL_NODES};
-    MPI_Aint dis[2] = {offsetof(Neighbor, num), offsetof(Neighbor, node)};
-    MPI_Datatype typ[2] = {MPI_LONG, MPI_LONG};
-    MPI_Type_create_struct(2, len, dis, typ, &tmp);
-    MPI_Datatype type;
-    MPI_Type_create_resized(tmp, 0, sizeof(Neighbor), &type);
-    MPI_Type_commit(&type);
-    MPI_Type_free(&tmp);
-    return type;
-}
-
 /* Fetch node lists for remote inner neighbors. */
 static Neighbor *collect_neighbor_cells(const MeshCells *cells, const long *adjncy,
                                         const long *adjncy_part, long num_adjncy,
@@ -748,8 +733,11 @@ static Neighbor *collect_neighbor_cells(const MeshCells *cells, const long *adjn
         }
     }
 
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(Neighbor), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     Neighbor *recv = arena_malloc(tot_recv, sizeof(*recv));
-    MPI_Datatype type = create_neighbor_type();
     MPI_Alltoallv(send, num_send, off_send, type, recv, num_recv, off_recv, type, sync.comm);
     MPI_Type_free(&type);
 
@@ -820,17 +808,23 @@ static void resolve_comm_reorder(MeshNodes *nodes, Neighbor *neighbor, long *num
     MPI_Sendrecv(&nodes->num, 1, MPI_LONG, dst, tag, &num_nodes, 1, MPI_LONG, src, tag, sync.comm,
                  MPI_STATUS_IGNORE);
 
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(vector), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     vector *coord = malloc(num_nodes * sizeof(*coord));
     tag = sync_tag();
-    MPI_Sendrecv(nodes->coord, nodes->num, vector_type, dst, tag, coord, num_nodes, vector_type,
-                 src, tag, sync.comm, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(nodes->coord, nodes->num, type, dst, tag, coord, num_nodes, type, src, tag,
+                 sync.comm, MPI_STATUS_IGNORE);
 
     nodes->num = num_nodes;
     free(nodes->coord);
     nodes->coord = coord;
 
+    MPI_Type_contiguous(sizeof(Neighbor), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     int count = sync_lmax(*num_neighbors);
-    MPI_Datatype type = create_neighbor_type();
     tag = sync_tag();
     MPI_Sendrecv_replace(neighbor, count, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     MPI_Type_free(&type);
@@ -891,15 +885,9 @@ static void redistribute_cells(MeshCells *cells, MeshEntities *entities, const i
         off_recv[i + 1] = off_recv[i] + num_recv[i];
     }
 
-    MPI_Datatype tmp;
-    int len[3] = {1, 1, MAX_CELL_NODES};
-    MPI_Aint dis[3] = {offsetof(Cell, entity), offsetof(Cell, num), offsetof(Cell, node)};
-    MPI_Datatype typ[3] = {MPI_LONG, MPI_LONG, MPI_LONG};
-    MPI_Type_create_struct(3, len, dis, typ, &tmp);
     MPI_Datatype type;
-    MPI_Type_create_resized(tmp, 0, sizeof(Cell), &type);
+    MPI_Type_contiguous(sizeof(Cell), MPI_BYTE, &type);
     MPI_Type_commit(&type);
-    MPI_Type_free(&tmp);
 
     cells->num = off_recv[sync.size];
     assert(cells->num > 0);
@@ -1055,15 +1043,9 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         node[i].old = node[i].new = -1;
     }
 
-    MPI_Datatype tmp;
-    int len[3] = {1, 1, 1};
-    MPI_Aint dis[3] = {offsetof(Node, rank), offsetof(Node, old), offsetof(Node, new)};
-    MPI_Datatype typ[3] = {MPI_LONG, MPI_LONG, MPI_LONG};
-    MPI_Type_create_struct(3, len, dis, typ, &tmp);
     MPI_Datatype type;
-    MPI_Type_create_resized(tmp, 0, sizeof(Node), &type);
+    MPI_Type_contiguous(sizeof(Node), MPI_BYTE, &type);
     MPI_Type_commit(&type);
-    MPI_Type_free(&tmp);
 
     int dst = (sync.rank + 1) % sync.size;
     int src = (sync.rank - 1 + sync.size) % sync.size;
@@ -1210,20 +1192,6 @@ typedef struct {
     long rank;
 } Recv;
 
-static MPI_Datatype create_recv_type(void)
-{
-    MPI_Datatype tmp;
-    int len[3] = {1, 1, 1};
-    MPI_Aint dis[3] = {offsetof(Recv, center), offsetof(Recv, entity), offsetof(Recv, rank)};
-    MPI_Datatype typ[3] = {vector_type, MPI_LONG, MPI_LONG};
-    MPI_Type_create_struct(3, len, dis, typ, &tmp);
-    MPI_Datatype type;
-    MPI_Type_create_resized(tmp, 0, sizeof(Recv), &type);
-    MPI_Type_commit(&type);
-    MPI_Type_free(&tmp);
-    return type;
-}
-
 /* Identify owner ranks of periodic outers by matching shifted centers. */
 static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *entities, Recv *recv,
                                    long cap)
@@ -1244,7 +1212,10 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
         recv[i].rank = -1;
     }
 
-    MPI_Datatype type = create_recv_type();
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(Recv), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     int dst = (sync.rank + 1) % sync.size;
     int src = (sync.rank - 1 + sync.size) % sync.size;
     int tag = sync_tag();
@@ -1286,7 +1257,10 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
         recv[i].rank = -1;
     }
 
-    MPI_Datatype type = create_recv_type();
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(Recv), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     int dst = (sync.rank + 1) % sync.size;
     int src = (sync.rank - 1 + sync.size) % sync.size;
     int tag = sync_tag();

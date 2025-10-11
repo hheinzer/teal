@@ -2,8 +2,6 @@
 
 Sync sync = {0};
 
-MPI_Datatype vector_type;
-
 enum { MPI_TAG_UB_MIN = 32767 };
 static int tag_ub;
 
@@ -14,9 +12,6 @@ void sync_init(int *argc, char ***argv)
     MPI_Comm_dup(MPI_COMM_WORLD, &sync.comm);
     MPI_Comm_rank(sync.comm, &sync.rank);
     MPI_Comm_size(sync.comm, &sync.size);
-
-    MPI_Type_contiguous(3, MPI_SCALAR, &vector_type);
-    MPI_Type_commit(&vector_type);
 
     int *attr = 0;
     int flag = 0;
@@ -110,7 +105,6 @@ long sync_lexsum(long val)
 
 void sync_finalize(void)
 {
-    MPI_Type_free(&vector_type);
     MPI_Comm_free(&sync.comm);
     MPI_Finalize();
 }

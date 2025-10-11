@@ -285,6 +285,10 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
         off[i + 1] += off[i];
     }
 
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(vector), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     long tot_send = off[neighbors->num];
     vector *send = arena_malloc(tot_send, sizeof(*send));
     tag = sync_tag();
@@ -292,13 +296,13 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     for (long i = 0; i < neighbors->num; i++) {
         long num_recv = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
         long num_send = off[i + 1] - off[i];
-        MPI_Isendrecv(&recv[off_recv], num_recv, vector_type, neighbors->rank[i], tag,
-                      &send[off[i]], num_send, vector_type, neighbors->rank[i], tag, sync.comm,
-                      &req[i]);
+        MPI_Isendrecv(&recv[off_recv], num_recv, type, neighbors->rank[i], tag, &send[off[i]],
+                      num_send, type, neighbors->rank[i], tag, sync.comm, &req[i]);
         off_recv += num_recv;
     }
     MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
     assert(off_recv == tot_recv);
+    MPI_Type_free(&type);
 
     long *idx = arena_malloc(tot_send, sizeof(*idx));
     for (long i = 0; i < tot_send; i++) {
@@ -514,6 +518,10 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
 {
     Arena save = arena_save();
 
+    MPI_Datatype type;
+    MPI_Type_contiguous(sizeof(vector), MPI_BYTE, &type);
+    MPI_Type_commit(&type);
+
     vector *send = arena_malloc(neighbors->send.off[neighbors->num], sizeof(*send));
     int tag = sync_tag();
     MPI_Request *req = arena_malloc(neighbors->num, sizeof(*req));
@@ -523,11 +531,12 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
         }
         int sendcount = neighbors->send.off[i + 1] - neighbors->send.off[i];
         int recvcount = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
-        MPI_Isendrecv(&send[neighbors->send.off[i]], sendcount, vector_type, neighbors->rank[i],
-                      tag, &center[neighbors->recv_off[i]], recvcount, vector_type,
-                      neighbors->rank[i], tag, sync.comm, &req[i]);
+        MPI_Isendrecv(&send[neighbors->send.off[i]], sendcount, type, neighbors->rank[i], tag,
+                      &center[neighbors->recv_off[i]], recvcount, type, neighbors->rank[i], tag,
+                      sync.comm, &req[i]);
     }
     MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
+    MPI_Type_free(&type);
 
     arena_load(save);
 }
