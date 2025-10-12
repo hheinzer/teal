@@ -11,6 +11,7 @@
 #include "teal/array.h"
 #include "teal/assert.h"
 #include "teal/kdtree.h"
+#include "teal/option.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
@@ -510,9 +511,12 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
                              &nparts, tpwgts, ubvec, options, &edgecut, part, &sync.comm);
     assert(ret == METIS_OK);
 
-    ret = ParMETIS_V3_RefineKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag, &numflag, &ncon,
-                                 &nparts, tpwgts, ubvec, options, &edgecut, part, &sync.comm);
-    assert(ret == METIS_OK);
+    for (long i = 0; i < option.num_refine; i++) {
+        ret = ParMETIS_V3_RefineKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag, &numflag,
+                                     &ncon, &nparts, tpwgts, ubvec, options, &edgecut, part,
+                                     &sync.comm);
+        assert(ret == METIS_OK);
+    }
 
     long *num_cells = arena_calloc(sync.size, sizeof(*num_cells));
     for (long i = 0; i < cells->num_inner; i++) {

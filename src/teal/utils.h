@@ -28,5 +28,5 @@ void memswap(void *lhs, void *rhs, long size);
 
 bool fexists(const char *fname);
 
-long str2size(const char *str);
+scalar str2size(const char *str);
 strbuf size2str(scalar size);

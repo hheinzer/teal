@@ -124,7 +124,7 @@ bool fexists(const char *fname)
 static const char suffix[] = "\0KMGTPE";  // ready for exascale computing
 static const long base = 1000;
 
-long str2size(const char *str)
+scalar str2size(const char *str)
 {
     assert(str);
     char *end;
@@ -135,7 +135,7 @@ long str2size(const char *str)
             size *= pow(base, pos - suffix);
         }
     }
-    return ceil(size);
+    return size;
 }
 
 strbuf size2str(scalar size)
