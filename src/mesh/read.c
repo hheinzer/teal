@@ -511,7 +511,7 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
                              &nparts, tpwgts, ubvec, options, &edgecut, part, &sync.comm);
     assert(ret == METIS_OK);
 
-    for (long i = 0; i < option.num_refine; i++) {
+    for (long i = 0; i < option.num_refines; i++) {
         ret = ParMETIS_V3_RefineKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag, &numflag,
                                      &ncon, &nparts, tpwgts, ubvec, options, &edgecut, part,
                                      &sync.comm);

@@ -5,7 +5,7 @@
 typedef struct {
     bool quiet;
     long capacity;
-    long num_refine;
+    long num_refines;
     strbuf restart;
 } Option;
 

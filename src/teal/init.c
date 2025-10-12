@@ -18,8 +18,9 @@ void teal_init(int *argc, char ***argv)
     arena_init(capacity);
 
     print("Hello, World! This is teal!\n");
-    print("\t start time:      %s\n", now.buf);
-    print("\t number of ranks: %d\n", sync.size);
-    print("\t arena capacity:  %s\n", size2str(capacity).buf);
-    print("\t restart file:    %s\n", *option.restart.buf ? option.restart.buf : "-");
+    print("\t start time:        %s\n", now.buf);
+    print("\t number of ranks:   %d\n", sync.size);
+    print("\t arena capacity:    %s\n", size2str(capacity).buf);
+    print("\t number of refines: %ld\n", option.num_refines);
+    print("\t restart file:      %s\n", *option.restart.buf ? option.restart.buf : "-");
 }

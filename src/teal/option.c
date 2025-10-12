@@ -24,7 +24,7 @@ void option_init(int *argc, char ***argv)
                     " [-h]"
                     " [-q]"
                     " [-c | -C capacity]"
-                    " [-n num_refine]"
+                    " [-n num_refines]"
                     " [-r restart]"
                     " ...\n",
                     (*argv)[0]);
@@ -33,7 +33,7 @@ void option_init(int *argc, char ***argv)
             case 'q': option.quiet = true; break;
             case 'c': option.capacity = str2size(optarg); break;
             case 'C': option.capacity = str2size(optarg) / sync.size; break;
-            case 'n': option.num_refine = strtol(optarg, 0, 0); break;
+            case 'n': option.num_refines = strtol(optarg, 0, 10); break;
             case 'r': strcpy(option.restart.buf, optarg); break;
             default: assert(false);
         }
