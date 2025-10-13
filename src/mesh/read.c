@@ -504,18 +504,42 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
         ubvec[i] = 1.05;  // NOLINT(readability-magic-numbers)
     }
 
-    idx_t options[3] = {0};
+    idx_t options[4] = {0};
     idx_t edgecut;
     int ret =
         ParMETIS_V3_PartKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag, &numflag, &ncon,
                              &nparts, tpwgts, ubvec, options, &edgecut, part, &sync.comm);
     assert(ret == METIS_OK);
 
-    for (long i = 0; i < option.num_refines; i++) {
-        ret = ParMETIS_V3_RefineKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag, &numflag,
-                                     &ncon, &nparts, tpwgts, ubvec, options, &edgecut, part,
-                                     &sync.comm);
-        assert(ret == METIS_OK);
+    if (option.num_refines > 0) {
+        print("Partition refinement:\n");
+        print("\t %4s %12s %10s %s\n", "iter", "edgecut", "delta", "note");
+        print("\t %4d %12ld %10d %s\n", 0, edgecut, 0, "initial");
+
+        idx_t last_edgecut = edgecut;
+        idx_t best_edgecut = edgecut;
+        idx_t *best_part = arena_memdup(part, cells->num, sizeof(*best_part));
+        for (long i = 0; i < option.num_refines; i++) {
+            ret = ParMETIS_V3_RefineKway(vtxdist, dual->xadj, dual->adjncy, 0, 0, &wgtflag,
+                                         &numflag, &ncon, &nparts, tpwgts, ubvec, options, &edgecut,
+                                         part, &sync.comm);
+            assert(ret == METIS_OK);
+
+            char *note = "same";
+            if (edgecut < best_edgecut) {
+                best_edgecut = edgecut;
+                memcpy(best_part, part, cells->num * sizeof(*part));
+                note = "improved";
+            }
+            else if (edgecut > best_edgecut) {
+                edgecut = best_edgecut;
+                memcpy(part, best_part, cells->num * sizeof(*part));
+                note = "restored";
+            }
+
+            print("\t %4ld %12ld %+10ld %s\n", i + 1, edgecut, edgecut - last_edgecut, note);
+            last_edgecut = edgecut;
+        }
     }
 
     long *num_cells = arena_calloc(sync.size, sizeof(*num_cells));
