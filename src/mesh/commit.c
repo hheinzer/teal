@@ -64,22 +64,25 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     assert(cells->cell.idx);
 }
 
-static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells)
+static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const long *map)
 {
-    long seed = 0;
+    long seed = -1;
     vector min_center = {INFINITY, INFINITY, INFINITY};
     for (long i = 0; i < cells->num_inner; i++) {
-        vector center = {0};
-        long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
-        for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            vector coord = nodes->coord[cells->node.idx[j]];
-            center = vector_add(center, vector_div(coord, num_nodes));
-        }
-        if (vcmp(&center, &min_center) < 0) {
-            seed = i;
-            min_center = center;
+        if (map[i] == -1) {
+            vector center = {0};
+            long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+            for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
+                vector coord = nodes->coord[cells->node.idx[j]];
+                center = vector_add(center, vector_div(coord, num_nodes));
+            }
+            if (vcmp(&center, &min_center) < 0) {
+                seed = i;
+                min_center = center;
+            }
         }
     }
+    assert(seed != -1);
     return seed;
 }
 
@@ -93,21 +96,23 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
         map[i] = -1;
     }
 
-    long seed = find_seed_cell(nodes, cells);
-
     long *queue = arena_malloc(cells->num_inner, sizeof(*queue));
-    long beg = 0;
-    long end = 0;
+
     long num = 0;
-    queue[end++] = seed;
-    map[seed] = num++;
-    while (beg < end) {
-        long cur = queue[beg++];
-        for (long i = cells->cell.off[cur]; i < cells->cell.off[cur + 1]; i++) {
-            long idx = cells->cell.idx[i];
-            if (idx < cells->num_inner && map[idx] == -1) {
-                queue[end++] = idx;
-                map[idx] = num++;
+    while (num < cells->num_inner) {
+        long seed = find_seed_cell(nodes, cells, map);
+        long beg = 0;
+        long end = 0;
+        queue[end++] = seed;
+        map[seed] = num++;
+        while (beg < end) {
+            long cur = queue[beg++];
+            for (long i = cells->cell.off[cur]; i < cells->cell.off[cur + 1]; i++) {
+                long idx = cells->cell.idx[i];
+                if (idx < cells->num_inner && map[idx] == -1) {
+                    queue[end++] = idx;
+                    map[idx] = num++;
+                }
             }
         }
     }
