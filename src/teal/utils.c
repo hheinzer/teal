@@ -38,6 +38,12 @@ long lmax(long lhs, long rhs)
 
 bool isclose(scalar lhs, scalar rhs)
 {
+    if (lhs == rhs) {
+        return true;
+    }
+    if (!isfinite(lhs) || !isfinite(rhs)) {
+        return false;
+    }
     static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
     static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
     return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
