@@ -39,10 +39,10 @@ static void print_scalar(const scalar *arr, long idx)
     }
 }
 
-static void print_strbuf(const strbuf *arr, long idx)
+static void print_name(const Name *arr, long idx)
 {
     if (arr) {
-        printf(" %s |", arr[idx].buf);
+        printf(" %s |", arr[idx]);
     }
     else {
         print_null();
@@ -156,7 +156,7 @@ void mesh_print(const Mesh *mesh)
                 printf("\t mesh->entities.{name|cell|face|translation} = [\n");
                 for (long i = 0; i < mesh->entities.num; i++) {
                     printf("\t\t [%ld]", i);
-                    print_strbuf(mesh->entities.name, i);
+                    print_name(mesh->entities.name, i);
                     print_long_pair(mesh->entities.cell_off, i);
                     print_long_pair(mesh->entities.face_off, i);
                     print_vector(mesh->entities.translation, i);

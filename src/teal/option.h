@@ -1,12 +1,12 @@
 #pragma once
 
-#include "teal.h"
+#include <stdbool.h>
 
 typedef struct {
     bool quiet;
     long capacity;
     long num_refines;
-    strbuf restart;
+    char *restart;
 } Option;
 
 extern Option option;

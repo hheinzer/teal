@@ -10,7 +10,7 @@
 static long find_entity(const MeshEntities *entities, const char *entity)
 {
     for (long i = 0; i < entities->num; i++) {
-        if (!strcmp(entities->name[i].buf, entity)) {
+        if (!strcmp(entities->name[i], entity)) {
             return i;
         }
     }
@@ -28,7 +28,7 @@ static void grow_entities(MeshEntities *entities, long idx)
     }
     entities->num += 1;
 
-    strbuf *name = arena_calloc(entities->num, sizeof(*name));
+    Name *name = arena_calloc(entities->num, sizeof(*name));
     entities->name = memcpy(name, entities->name, (entities->num - 1) * sizeof(*name));
 
     long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
@@ -81,12 +81,12 @@ static long reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities
 static void split_entities(MeshEntities *entities, long idx, long cell_off)
 {
     for (long i = entities->num - 1; i > idx; i--) {
-        strcpy(entities->name[i].buf, entities->name[i - 1].buf);
+        strcpy(entities->name[i], entities->name[i - 1]);
         entities->cell_off[i + 1] = entities->cell_off[i];
         entities->translation[i] = entities->translation[i - 1];
     }
-    strcat(entities->name[idx].buf, "-a");
-    strcat(entities->name[idx + 1].buf, "-b");
+    strcat(entities->name[idx], "-a");
+    strcat(entities->name[idx + 1], "-b");
     entities->cell_off[idx + 1] = cell_off;
     entities->translation[idx + 1] = entities->translation[idx];
 }

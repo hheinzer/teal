@@ -350,11 +350,11 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     entities->num_inner = 1;
     entities->num = entities->num_inner + 2 * ndims;
 
-    strbuf *name = arena_calloc(entities->num, sizeof(*name));
+    Name *name = arena_calloc(entities->num, sizeof(*name));
     long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
     vector *translation = arena_calloc(entities->num, sizeof(*translation));
 
-    strcpy(name[0].buf, "domain");
+    strcpy(name[0], "domain");
     cell_off[0] = 0;
     cell_off[1] = num_cells.x * num_cells.y * num_cells.z;
 
@@ -363,7 +363,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     long num_ghost = 0;
     for (long i = 0; i < 2 * ndims; i++) {
         if (!periods[i / 2]) {
-            strcpy(name[num].buf, side[i]);
+            strcpy(name[num], side[i]);
             cell_off[num + 1] = cell_off[num];
             if (neighbor[i] == MPI_PROC_NULL) {
                 cell_off[num + 1] += num_cells_side(num_cells, i);
@@ -374,7 +374,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     }
     for (long i = 0; i < 2 * ndims; i++) {
         if (periods[i / 2]) {
-            sprintf(name[num].buf, "%s:%s", side[i], side[(i % 2 == 0) ? i + 1 : i - 1]);
+            sprintf(name[num], "%s:%s", side[i], side[(i % 2 == 0) ? i + 1 : i - 1]);
             cell_off[num + 1] = cell_off[num];
             if (is_edge_side(dims, coords, i)) {
                 cell_off[num + 1] += num_cells_side(num_cells, i);

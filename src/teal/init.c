@@ -11,16 +11,19 @@ void teal_init(int *argc, char ***argv)
     sync_init(argc, argv);
     option_init(argc, argv);
 
-    strbuf now;
-    strftime(now.buf, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
+    char now[128];
+    strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
     long capacity = option.capacity ? option.capacity : str2size("1G");
     arena_init(capacity);
 
+    char cap[128];
+    size2str(cap, capacity);
+
     print("Hello, World! This is teal!\n");
-    print("\t start time:        %s\n", now.buf);
+    print("\t start time:        %s\n", now);
     print("\t number of ranks:   %d\n", sync.size);
-    print("\t arena capacity:    %s\n", size2str(capacity).buf);
+    print("\t arena capacity:    %s\n", cap);
     print("\t number of refines: %ld\n", option.num_refines);
-    print("\t restart file:      %s\n", *option.restart.buf ? option.restart.buf : "-");
+    print("\t restart file:      %s\n", option.restart);
 }

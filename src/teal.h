@@ -20,10 +20,6 @@ typedef struct {
     bool x, y, z;
 } flags;
 
-typedef struct {
-    char buf[128];
-} strbuf;
-
 /* Call exactly once at program start, before any teal API. */
 void teal_init(int *argc, char ***argv);
 

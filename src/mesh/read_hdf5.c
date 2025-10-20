@@ -81,7 +81,8 @@ static void read_entities(MeshEntities *entities, hid_t loc)
     entities->name = arena_malloc(entities->num, sizeof(*entities->name));
 
     long num_entities = (sync.rank == 0) ? entities->num : 0;
-    h5io_dataset_read("name", entities->name, (hsize_t[]){num_entities}, 1, H5IO_STRING, group);
+    h5io_dataset_read("name", entities->name, (hsize_t[]){num_entities, sizeof(*entities->name)}, 2,
+                      H5IO_STRING, group);
 
     MPI_Bcast(entities->name, entities->num * sizeof(*entities->name), MPI_CHAR, 0, sync.comm);
 

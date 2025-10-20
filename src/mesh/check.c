@@ -255,7 +255,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
 
     if (entities->name) {
         for (long i = 0; i < entities->num; i++) {
-            check(strlen(entities->name[i].buf) > 0);
+            check(strlen(entities->name[i]) > 0);
         }
     }
 
@@ -302,7 +302,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
             else {
                 check(!isclose(vector_len(entities->translation[i]), 0));
                 if (entities->name) {
-                    check(strchr(entities->name[i].buf, ':'));
+                    check(strchr(entities->name[i], ':'));
                 }
             }
         }

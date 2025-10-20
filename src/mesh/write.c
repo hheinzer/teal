@@ -118,7 +118,8 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
     h5io_attribute_write(0, "num_ghost", &entities->num_ghost, 1, H5IO_LONG, group);
 
     long num_entities = (sync.rank == 0) ? entities->num : 0;
-    h5io_dataset_write("name", entities->name, (hsize_t[]){num_entities}, 1, H5IO_STRING, group);
+    h5io_dataset_write("name", entities->name, (hsize_t[]){num_entities, sizeof(*entities->name)},
+                       2, H5IO_STRING, group);
 
     h5io_group_close(group);
 }

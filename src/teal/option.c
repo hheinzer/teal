@@ -3,7 +3,6 @@
 #include <getopt.h>
 #include <mpi.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "assert.h"
 #include "teal/sync.h"
@@ -34,7 +33,7 @@ void option_init(int *argc, char ***argv)
             case 'c': option.capacity = str2size(optarg); break;
             case 'C': option.capacity = str2size(optarg) / sync.size; break;
             case 'n': option.num_refines = strtol(optarg, 0, 10); break;
-            case 'r': strcpy(option.restart.buf, optarg); break;
+            case 'r': option.restart = optarg; break;
             default: assert(false);
         }
     }

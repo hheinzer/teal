@@ -79,11 +79,13 @@ typedef struct {
     vector *weight;  // least-squares weights for gradient reconstruction
 } MeshFaces;
 
+typedef char Name[128];
+
 typedef struct {
     long num;
     long num_inner;
     long num_ghost;
-    strbuf *name;
+    Name *name;
     long *cell_off;       // entity-to-cell offsets
     long *face_off;       // entity-to-face offsets
     vector *translation;  // entity translation (zero for non-periodic)

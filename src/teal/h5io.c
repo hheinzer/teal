@@ -63,13 +63,11 @@ void h5io_attribute_write(const char *object, const char *name, const void *buf,
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
-        long size = strlen(buf);
-        assert(dims == 1 && size > 0);
-
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, size);
+        H5Tset_size(type, dims);
         H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
+        dims = 1;
     }
 
     hid_t space = (dims == 1) ? H5Screate(H5S_SCALAR) : H5Screate_simple(1, &dims, 0);
@@ -113,11 +111,11 @@ void h5io_attribute_read(const char *object, const char *name, void *buf, hsize_
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
-        assert(dims == 1);
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, sizeof(strbuf));
+        H5Tset_size(type, dims);
         H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
+        dims = 1;
     }
 
     hid_t attr = object ? H5Aopen_by_name(loc, object, name, H5P_DEFAULT, H5P_DEFAULT)
@@ -139,17 +137,19 @@ void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count,
 
     hsize_t dims[H5S_MAX_RANK];
     memcpy(dims, count, rank * sizeof(*count));
-    MPI_Allreduce(count, dims, 1, MPI_UINT64_T, MPI_SUM, sync.comm);
+    MPI_Allreduce(count, dims, 1, HSIZE_AS_MPI_TYPE, MPI_SUM, sync.comm);
 
     hsize_t offset[H5S_MAX_RANK] = {0};
-    MPI_Exscan(count, offset, 1, MPI_UINT64_T, MPI_SUM, sync.comm);
+    MPI_Exscan(count, offset, 1, HSIZE_AS_MPI_TYPE, MPI_SUM, sync.comm);
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
+        assert(rank == 2);
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, sizeof(strbuf));
+        H5Tset_size(type, count[1]);
         H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
+        rank = 1;
     }
 
     hid_t file_space = H5Screate_simple(rank, dims, 0);
@@ -175,7 +175,7 @@ static bool dataset_dims_match(hid_t dset, const hsize_t *count, int rank)
 {
     hsize_t dims[H5S_MAX_RANK];
     memcpy(dims, count, rank * sizeof(*count));
-    MPI_Allreduce(count, dims, 1, MPI_UINT64_T, MPI_SUM, sync.comm);
+    MPI_Allreduce(count, dims, 1, HSIZE_AS_MPI_TYPE, MPI_SUM, sync.comm);
 
     hsize_t dset_dims[H5S_MAX_RANK];
     hid_t space = H5Dget_space(dset);
@@ -196,14 +196,16 @@ void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, int ra
     assert(name && buf && count && (0 < rank && rank <= H5S_MAX_RANK));
 
     hsize_t offset[H5S_MAX_RANK] = {0};
-    MPI_Exscan(count, offset, 1, MPI_UINT64_T, MPI_SUM, sync.comm);
+    MPI_Exscan(count, offset, 1, HSIZE_AS_MPI_TYPE, MPI_SUM, sync.comm);
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
+        assert(rank == 2);
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, sizeof(strbuf));
+        H5Tset_size(type, count[1]);
         H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
+        rank = 1;
     }
 
     hid_t dset = H5Dopen(loc, name, H5P_DEFAULT);

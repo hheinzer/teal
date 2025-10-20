@@ -347,14 +347,12 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
     arena_load(save);
 }
 
-static strbuf rotate_at_char(const char *src, char sep)
+static void rotate_at_char(char *dst, const char *src, char sep)
 {
-    strbuf dst = {0};
     char *pos = strchr(src, sep);
     if (pos) {
-        sprintf(dst.buf, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src);
+        sprintf(dst, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src);
     }
-    return dst;
 }
 
 /* Build the dual graph (ParMETIS) and add edges for periodic entity pairs. */
@@ -388,9 +386,10 @@ static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
     assert(ret == METIS_OK);
 
     for (long lhs = 0; lhs < entities->num; lhs++) {
-        strbuf name = rotate_at_char(entities->name[lhs].buf, ':');
+        Name name;
+        rotate_at_char(name, entities->name[lhs], ':');
         for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
-            if (!strcmp(entities->name[rhs].buf, name.buf)) {
+            if (!strcmp(entities->name[rhs], name)) {
                 connect_periodic(nodes, cells, entities, &dual, lhs, rhs);
             }
         }
@@ -1204,9 +1203,10 @@ static void compute_translations(const MeshNodes *nodes, const MeshCells *cells,
 {
     vector *translation = arena_calloc(entities->num, sizeof(*translation));
     for (long lhs = 0; lhs < entities->num; lhs++) {
-        strbuf name = rotate_at_char(entities->name[lhs].buf, ':');
+        Name name;
+        rotate_at_char(name, entities->name[lhs], ':');
         for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
-            if (!strcmp(entities->name[rhs].buf, name.buf)) {
+            if (!strcmp(entities->name[rhs], name)) {
                 compute_translation(nodes, cells, entities, translation, lhs, rhs);
             }
         }

@@ -144,7 +144,7 @@ scalar str2size(const char *str)
     return size;
 }
 
-strbuf size2str(scalar size)
+void size2str(char *str, scalar size)
 {
     assert(size >= 0);
     long idx = 0;
@@ -152,7 +152,5 @@ strbuf size2str(scalar size)
         size /= base;
         idx += 1;
     }
-    strbuf str;
-    sprintf(str.buf, "%.4g%c", size, suffix[idx]);
-    return str;
+    sprintf(str, "%.4g%c", size, suffix[idx]);
 }

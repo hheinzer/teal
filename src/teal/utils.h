@@ -29,4 +29,4 @@ void memswap(void *lhs, void *rhs, long size);
 bool fexists(const char *fname);
 
 scalar str2size(const char *str);
-strbuf size2str(scalar size);
+void size2str(char *str, scalar size);
