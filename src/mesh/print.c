@@ -156,7 +156,7 @@ void mesh_print(const Mesh *mesh)
                 printf("\t mesh->entities.{name|cell|face|translation} = [\n");
                 for (long i = 0; i < mesh->entities.num; i++) {
                     printf("\t\t [%ld]", i);
-                    print_name(mesh->entities.name, i);
+                    print_name((const Name *)mesh->entities.name, i);
                     print_long_pair(mesh->entities.cell_off, i);
                     print_long_pair(mesh->entities.face_off, i);
                     print_vector(mesh->entities.translation, i);

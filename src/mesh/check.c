@@ -27,7 +27,7 @@ static void test_nodes(const MeshNodes *nodes)
             global[i] = nodes->global[i];
         }
 
-        qsort(global, nodes->num, sizeof(*global), lcmp);
+        qsort(global, nodes->num, sizeof(*global), cmp_long);
         for (long i = 1; i < nodes->num; i++) {
             check(global[i - 1] != global[i]);
         }

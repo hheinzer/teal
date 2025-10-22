@@ -104,7 +104,7 @@ void array_lunique(long *arr, long *num)
     if (*num <= 1) {
         return;
     }
-    qsort(arr, *num, sizeof(*arr), lcmp);
+    qsort(arr, *num, sizeof(*arr), cmp_long);
     long unique = 1;
     for (long i = 1; i < *num; i++) {
         if (arr[i] != arr[unique - 1]) {

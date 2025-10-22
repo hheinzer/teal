@@ -16,13 +16,13 @@ void option_init(int *argc, char ***argv)
     int opt;
     while ((opt = getopt(*argc, *argv, "hqc:C:n:r:")) != -1) {
         switch (opt) {
-            case '?':
+            case '?': print("invalid option -- '%c'\n", optopt);
             case 'h':
                 print(
                     "usage: %s"
                     " [-h]"
                     " [-q]"
-                    " [-c | -C capacity]"
+                    " [(-c | -C) capacity]"
                     " [-n num_refines]"
                     " [-r restart]"
                     " ...\n",
@@ -30,8 +30,8 @@ void option_init(int *argc, char ***argv)
                 MPI_Finalize();
                 exit(EXIT_SUCCESS);
             case 'q': option.quiet = true; break;
-            case 'c': option.capacity = str2size(optarg); break;
-            case 'C': option.capacity = str2size(optarg) / sync.size; break;
+            case 'c': option.capacity = str_to_size(optarg); break;
+            case 'C': option.capacity = str_to_size(optarg) / sync.size; break;
             case 'n': option.num_refines = strtol(optarg, 0, 10); break;
             case 'r': option.restart = optarg; break;
             default: assert(false);

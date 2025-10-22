@@ -10,40 +10,39 @@
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
-enum { BUFLEN = 4096 };
-
-static bool append(char *str, long *pos, const char *fmt, ...)
+static bool append(char *buf, long size, long *pos, const char *fmt, ...)
 {
-    if (*pos >= BUFLEN) {
-        str[BUFLEN - 1] = 0;
+    if (*pos >= size) {
+        buf[size - 1] = 0;
         return false;
     }
 
     va_list args;
     va_start(args, fmt);
-    long rem = BUFLEN - *pos;
-    long num = vsnprintf(&str[*pos], rem, fmt, args);
+    long rem = size - *pos;
+    long num = vsnprintf(&buf[*pos], rem, fmt, args);
     va_end(args);
 
     if (num < 0) {
         return false;
     }
+
     if (num >= rem) {
-        *pos = BUFLEN - 1;
-        str[*pos] = 0;
+        *pos = size - 1;
+        buf[*pos] = 0;
         return false;
     }
+
     *pos += num;
     return true;
 }
 
 void x__assert_fail(const char *file, long line, const char *func, const char *expr)
 {
-    char buf[BUFLEN];
+    char buf[4096];
     long pos = 0;
-
-    if (!append(buf, &pos, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank, file, line, func,
-                expr)) {
+    if (!append(buf, sizeof(buf), &pos, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank,
+                file, line, func, expr)) {
         goto out;
     }
 
@@ -52,7 +51,7 @@ void x__assert_fail(const char *file, long line, const char *func, const char *e
     if (!unw_getcontext(&ctx) && !unw_init_local(&cur, &ctx)) {
         long frame = 0;
         while (unw_step(&cur) > 0) {
-            char name[32];
+            char name[128];
             unw_word_t off = 0;
             if (unw_get_proc_name(&cur, name, sizeof(name), &off)) {
                 strcpy(name, "???");
@@ -60,7 +59,8 @@ void x__assert_fail(const char *file, long line, const char *func, const char *e
             }
             unw_word_t iptr = 0;
             unw_get_reg(&cur, UNW_REG_IP, &iptr);
-            if (!append(buf, &pos, "\t %2ld. %-30s (+0x%lx) [0x%lx]\n", frame++, name, off, iptr)) {
+            if (!append(buf, sizeof(buf), &pos, "\t %2ld. %-30s (+0x%lx) [0x%lx]\n", frame++, name,
+                        off, iptr)) {
                 break;
             }
         }
@@ -72,6 +72,10 @@ out:
         fflush(stderr);
     }
 
-    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-    exit(EXIT_FAILURE);
+    int flag;
+    MPI_Initialized(&flag);
+    if (flag) {
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+    }
+    abort();
 }

@@ -49,35 +49,35 @@ bool isclose(scalar lhs, scalar rhs)
     return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
 }
 
-int lcmp(const void *lhs, const void *rhs)
+int cmp_long(const void *lhs_, const void *rhs_)
 {
-    assert(lhs && rhs);
-    const long *_lhs = lhs;
-    const long *_rhs = rhs;
-    return (*_lhs > *_rhs) - (*_lhs < *_rhs);
+    assert(lhs_ && rhs_);
+    const long *lhs = lhs_;
+    const long *rhs = rhs_;
+    return cmp_asc(*lhs, *rhs);
 }
 
-int fcmp(const void *lhs, const void *rhs)
+int cmp_scalar(const void *lhs_, const void *rhs_)
 {
-    assert(lhs && rhs);
-    const scalar *_lhs = lhs;
-    const scalar *_rhs = rhs;
-    return isclose(*_lhs, *_rhs) ? 0 : (*_lhs > *_rhs) - (*_lhs < *_rhs);
+    assert(lhs_ && rhs_);
+    const scalar *lhs = lhs_;
+    const scalar *rhs = rhs_;
+    return isclose(*lhs, *rhs) ? 0 : cmp_asc(*lhs, *rhs);
 }
 
-int vcmp(const void *lhs, const void *rhs)
+int cmp_vector(const void *lhs_, const void *rhs_)
 {
-    assert(lhs && rhs);
-    const vector *_lhs = lhs;
-    const vector *_rhs = rhs;
-    int cmp = fcmp(&_lhs->x, &_rhs->x);
+    assert(lhs_ && rhs_);
+    const vector *lhs = lhs_;
+    const vector *rhs = rhs_;
+    int cmp = cmp_scalar(&lhs->x, &rhs->x);
     if (cmp) {
         return cmp;
     }
-    if ((cmp = fcmp(&_lhs->y, &_rhs->y))) {
+    if ((cmp = cmp_scalar(&lhs->y, &rhs->y))) {
         return cmp;
     }
-    return fcmp(&_lhs->z, &_rhs->z);
+    return cmp_scalar(&lhs->z, &rhs->z);
 }
 
 void lswap(long *lhs, long *rhs)
@@ -104,33 +104,22 @@ void vswap(vector *lhs, vector *rhs)
     *rhs = swap;
 }
 
-void memswap(void *lhs, void *rhs, long size)
+void swap_bytes(void *lhs_, void *rhs_, long size)
 {
-    assert((lhs || rhs) ? (lhs && rhs && size >= 0) : size == 0);
-    char *_lhs = lhs;
-    char *_rhs = rhs;
+    assert((lhs_ || rhs_) ? (lhs_ && rhs_ && size >= 0) : size == 0);
+    char *lhs = lhs_;
+    char *rhs = rhs_;
     for (long i = 0; i < size; i++) {
-        char swap = _lhs[i];
-        _lhs[i] = _rhs[i];
-        _rhs[i] = swap;
+        char swap = lhs[i];
+        lhs[i] = rhs[i];
+        rhs[i] = swap;
     }
-}
-
-bool fexists(const char *fname)
-{
-    assert(fname);
-    FILE *file = fopen(fname, "r");
-    if (!file) {
-        return false;
-    }
-    fclose(file);
-    return true;
 }
 
 static const char suffix[] = "\0KMGTPE";  // ready for exascale computing
 static const long base = 1000;
 
-scalar str2size(const char *str)
+scalar str_to_size(const char *str)
 {
     assert(str);
     char *end;
@@ -144,9 +133,9 @@ scalar str2size(const char *str)
     return size;
 }
 
-void size2str(char *str, scalar size)
+void size_to_str(char *str, scalar size)
 {
-    assert(size >= 0);
+    assert(str && size >= 0);
     long idx = 0;
     while (size >= base && suffix[idx + 1]) {
         size /= base;

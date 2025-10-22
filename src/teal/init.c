@@ -14,11 +14,11 @@ void teal_init(int *argc, char ***argv)
     char now[128];
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
-    long capacity = option.capacity ? option.capacity : str2size("1G");
+    long capacity = option.capacity ? option.capacity : str_to_size("1G");
     arena_init(capacity);
 
     char cap[128];
-    size2str(cap, capacity);
+    size_to_str(cap, capacity);
 
     print("Hello, World! This is teal!\n");
     print("\t start time:        %s\n", now);

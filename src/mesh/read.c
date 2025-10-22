@@ -118,8 +118,10 @@ static void collect_coords(const MeshNodes *nodes, const long *global, vector *c
     arena_load(save);
 }
 
+typedef enum { LHS, RHS } Side;
+
 typedef struct {
-    enum { LHS, RHS } side;
+    Side side;
     long cell;
     long peer;
 } Link;
@@ -160,7 +162,6 @@ static void collect_links(const vector *mean, Kdtree *center2link)
     int src = (sync.rank - 1 + sync.size) % sync.size;
     int tag = sync_tag();
     for (long step = 0; step < sync.size; step++) {
-        MPI_Sendrecv_replace(center, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
             if (center[i].global == -1) {
                 Link *link = kdtree_lookup(center2link, center[i].coord);
@@ -169,6 +170,7 @@ static void collect_links(const vector *mean, Kdtree *center2link)
                 }
             }
         }
+        MPI_Sendrecv_replace(center, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     }
     MPI_Type_free(&type);
 
@@ -189,6 +191,13 @@ typedef struct {
     long peer;
 } Edge;
 
+static int cmp_edge(const void *lhs_, const void *rhs_)
+{
+    const Edge *lhs = lhs_;
+    const Edge *rhs = rhs_;
+    return cmp_asc(lhs->cell, rhs->cell);
+}
+
 /* For each periodic link, request the peer cell's global id from its owner. */
 static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, long *num_edges)
 {
@@ -204,7 +213,7 @@ static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, lo
         num += 1;
     }
     assert(num == tot_send);
-    qsort(send, tot_send, sizeof(*send), lcmp);
+    qsort(send, tot_send, sizeof(*send), cmp_edge);
 
     long *num_cells = arena_malloc(sync.size + 1, sizeof(*num_cells));
     num_cells[0] = 0;
@@ -247,8 +256,7 @@ static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, lo
     for (long i = 0; i < tot_recv; i++) {
         recv[i].cell -= off_cells;
     }
-
-    qsort(recv, tot_recv, sizeof(*recv), lcmp);
+    qsort(recv, tot_recv, sizeof(*recv), cmp_edge);
 
     arena_load(save);
 
@@ -278,7 +286,7 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
                     global[num++] = cells->node.idx[k];
                 }
-                int side = (i == lhs) ? LHS : RHS;
+                Side side = (i == lhs) ? LHS : RHS;
                 num_cells[side] += 1;
             }
         }
@@ -301,11 +309,12 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
                 vector center = {0};
                 long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
-                    long *hit = bsearch(&cells->node.idx[k], global, num, sizeof(*global), lcmp);
-                    assert(hit);
-                    center = vector_add(center, vector_div(coord[hit - global], num_nodes));
+                    long key = cells->node.idx[k];
+                    long *val = bsearch(&key, global, num, sizeof(*global), cmp_long);
+                    assert(val);
+                    center = vector_add(center, vector_div(coord[val - global], num_nodes));
                 }
-                int side = (i == lhs) ? LHS : RHS;
+                Side side = (i == lhs) ? LHS : RHS;
                 long cell = j + off_cells;
                 kdtree_insert(center2link, center, &(Link){side, cell, -1});
                 mean[side] = vector_add(mean[side], center);
@@ -333,9 +342,10 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
         for (long j = dual->xadj[i]; j < dual->xadj[i + 1]; j++) {
             adjncy[xadj[i + 1]++] = dual->adjncy[j];
         }
-        Edge *hit = bsearch(&i, edge, num_edges, sizeof(*edge), lcmp);
-        if (hit) {
-            adjncy[xadj[i + 1]++] = hit->peer;
+        Edge key = {.cell = i};
+        Edge *val = bsearch(&key, edge, num_edges, sizeof(*edge), cmp_edge);
+        if (val) {
+            adjncy[xadj[i + 1]++] = val->peer;
         }
     }
     free(dual->xadj);
@@ -524,7 +534,7 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
                                          part, &sync.comm);
             assert(ret == METIS_OK);
 
-            char *note = "same";
+            const char *note = "same";
             if (edgecut < best_edgecut) {
                 best_edgecut = edgecut;
                 memcpy(best_part, part, cells->num * sizeof(*part));
@@ -863,6 +873,19 @@ static void resolve_comm_reorder(MeshNodes *nodes, Neighbor *neighbor, long *num
     arena_load(save);
 }
 
+typedef struct {
+    long entity;
+    long num;
+    long node[MAX_CELL_NODES];
+} Cell;
+
+static int cmp_cell(const void *lhs_, const void *rhs_)
+{
+    const Cell *lhs = lhs_;
+    const Cell *rhs = rhs_;
+    return cmp_asc(lhs->entity, rhs->entity);
+}
+
 /* Move cells to their target partitions and rebuild entity offsets. */
 static void redistribute_cells(MeshCells *cells, MeshEntities *entities, const idx_t *part)
 {
@@ -878,12 +901,6 @@ static void redistribute_cells(MeshCells *cells, MeshEntities *entities, const i
     for (long i = 0; i < sync.size; i++) {
         off_send[i + 1] = off_send[i] + num_send[i];
     }
-
-    typedef struct {
-        long entity;
-        long num;
-        long node[MAX_CELL_NODES];
-    } Cell;
 
     Cell *send = arena_calloc(cells->num, sizeof(*send));
     for (long i = 0; i < sync.size; i++) {
@@ -923,12 +940,12 @@ static void redistribute_cells(MeshCells *cells, MeshEntities *entities, const i
     MPI_Alltoallv(send, num_send, off_send, type, recv, num_recv, off_recv, type, sync.comm);
     MPI_Type_free(&type);
 
-    qsort(recv, cells->num, sizeof(*recv), lcmp);
+    qsort(recv, cells->num, sizeof(*recv), cmp_cell);
 
     long *off = realloc(cells->node.off, (cells->num + 1) * sizeof(*off));
     assert(off);
 
-    long *idx = realloc(cells->node.idx, cells->num * MAX_CELL_NODES * sizeof(*idx));
+    long *idx = realloc(cells->node.idx, (cells->num * MAX_CELL_NODES) * sizeof(*idx));
     assert(idx);
 
     memset(entities->cell_off, 0, (entities->num + 1) * sizeof(*entities->cell_off));
@@ -1036,6 +1053,19 @@ static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
     cells->num_periodic = num_periodic;
 }
 
+typedef struct {
+    long rank;
+    long old;
+    long new;
+} Node;
+
+static int cmp_node(const void *lhs_, const void *rhs_)
+{
+    const Node *lhs = lhs_;
+    const Node *rhs = rhs_;
+    return cmp_asc(lhs->rank, rhs->rank);
+}
+
 /* Redistribute nodes to match current cells and renumber connectivity. */
 static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
 {
@@ -1052,12 +1082,6 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
 
     vector *coord = arena_malloc(num, sizeof(*coord));
     collect_coords(nodes, global, coord, num);
-
-    typedef struct {
-        long rank;
-        long old;
-        long new;
-    } Node;
 
     long cap = sync_lmax(num);
     Node *node = arena_calloc(cap, sizeof(*node));
@@ -1078,12 +1102,13 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     int src = (sync.rank - 1 + sync.size) % sync.size;
     int tag = sync_tag();
     for (long step = 0; step < sync.size; step++) {
-        MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
-            if (node[i].old != -1 && bsearch(&node[i].old, global, num, sizeof(*global), lcmp)) {
+            long key = node[i].old;
+            if (key != -1 && bsearch(&key, global, num, sizeof(*global), cmp_long)) {
                 node[i].rank = lmin(node[i].rank, sync.rank);
             }
         }
+        MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     }
 
     long num_inner = 0;
@@ -1093,7 +1118,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
             num_inner += 1;
         }
     }
-    qsort(node, num, sizeof(*node), lcmp);
+    qsort(node, num, sizeof(*node), cmp_node);
 
     long (*old2new)[2] = arena_malloc(num_inner, sizeof(*old2new));
     long off_nodes = sync_lexsum(num_inner);
@@ -1107,19 +1132,20 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         }
     }
     assert(idx == num_inner);
-    qsort(old2new, num_inner, sizeof(*old2new), lcmp);
+    qsort(old2new, num_inner, sizeof(*old2new), cmp_long);
 
     tag = sync_tag();
     for (long step = 0; step < sync.size; step++) {
-        MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
             if (node[i].new == -1) {
-                long *hit = bsearch(&node[i].old, old2new, num_inner, sizeof(*old2new), lcmp);
-                if (hit) {
-                    node[i].new = hit[1];
+                long key = node[i].old;
+                long *val = bsearch(&key, old2new, num_inner, sizeof(*old2new), cmp_long);
+                if (val) {
+                    node[i].new = val[1];
                 }
             }
         }
+        MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     }
     MPI_Type_free(&type);
 
@@ -1132,9 +1158,10 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     assert(nodes->coord);
 
     for (long i = 0; i < nodes->num; i++) {
-        long *hit = bsearch(&node[i].old, global, num, sizeof(*global), lcmp);
-        assert(hit);
-        nodes->coord[i] = coord[hit - global];
+        long key = node[i].old;
+        long *val = bsearch(&key, global, num, sizeof(*global), cmp_long);
+        assert(val);
+        nodes->coord[i] = coord[val - global];
     }
 
     for (long i = 0; i < nodes->num; i++) {
@@ -1147,14 +1174,14 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         old2local[i][0] = node[i].old;
         old2local[i][1] = i;
     }
-    qsort(old2local, nodes->num, sizeof(*old2local), lcmp);
+    qsort(old2local, nodes->num, sizeof(*old2local), cmp_long);
 
     for (long i = 0; i < cells->num; i++) {
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
-            long *hit =
-                bsearch(&cells->node.idx[j], old2local, nodes->num, sizeof(*old2local), lcmp);
-            assert(hit);
-            cells->node.idx[j] = hit[1];
+            long key = cells->node.idx[j];
+            long *val = bsearch(&key, old2local, nodes->num, sizeof(*old2local), cmp_long);
+            assert(val);
+            cells->node.idx[j] = val[1];
         }
     }
 
@@ -1179,7 +1206,7 @@ static void compute_translation(const MeshNodes *nodes, const MeshCells *cells,
                     vector coord = nodes->coord[cells->node.idx[k]];
                     center = vector_add(center, vector_div(coord, num_nodes));
                 }
-                int side = (i == lhs) ? LHS : RHS;
+                Side side = (i == lhs) ? LHS : RHS;
                 num_cells[side] += 1;
                 mean[side] = vector_add(mean[side], center);
             }
@@ -1248,12 +1275,12 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
     int src = (sync.rank - 1 + sync.size) % sync.size;
     int tag = sync_tag();
     for (long step = 0; step < sync.size; step++) {
-        MPI_Sendrecv_replace(recv, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
             if (recv[i].rank == -1 && kdtree_lookup(centers, recv[i].center)) {
                 recv[i].rank = sync.rank;
             }
         }
+        MPI_Sendrecv_replace(recv, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     }
     MPI_Type_free(&type);
 
@@ -1293,12 +1320,12 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
     int src = (sync.rank - 1 + sync.size) % sync.size;
     int tag = sync_tag();
     for (long step = 0; step < sync.size; step++) {
-        MPI_Sendrecv_replace(recv, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         for (long i = 0; i < cap; i++) {
             if (recv[i].rank == -1 && kdtree_lookup(centers, recv[i].center)) {
                 recv[i].rank = sync.rank;
             }
         }
+        MPI_Sendrecv_replace(recv, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     }
     MPI_Type_free(&type);
 
@@ -1376,13 +1403,13 @@ static void reorder(MeshCells *cells, const MeshEntities *entities, Recv *recv, 
 static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
                              MeshNeighbors *neighbors)
 {
+    Arena save = arena_save();
+
     long beg = cells->num_inner + cells->num_ghost;
     long end = cells->num;
     if (beg == end) {
         return;
     }
-
-    Arena save = arena_save();
 
     long tot = end - beg;
     long cap = sync_lmax(tot);
@@ -1438,7 +1465,7 @@ static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const Mes
 }
 
 /* Convert heap-backed arrays to arena-owned arrays. */
-static void convert_allocations(MeshNodes *nodes, MeshCells *cells)
+static void convert_allocations(MeshNodes *nodes, MeshCells *cells, MeshEntities *entities)
 {
     vector *coord = arena_memdup(nodes->coord, nodes->num, sizeof(*coord));
     free(nodes->coord);
@@ -1451,11 +1478,19 @@ static void convert_allocations(MeshNodes *nodes, MeshCells *cells)
     long *idx = arena_memdup(cells->node.idx, off[cells->num], sizeof(*idx));
     free(cells->node.idx);
     cells->node.idx = idx;
+
+    Name *name = arena_memdup(entities->name, entities->num, sizeof(*name));
+    free(entities->name);
+    entities->name = name;
+
+    long *cell_off = arena_memdup(entities->cell_off, entities->num + 1, sizeof(*cell_off));
+    free(entities->cell_off);
+    entities->cell_off = cell_off;
 }
 
 Mesh *mesh_read(const char *fname)
 {
-    assert(fexists(fname));
+    assert(fname);
 
     Mesh *mesh = arena_calloc(1, sizeof(*mesh));
 
@@ -1472,7 +1507,7 @@ Mesh *mesh_read(const char *fname)
     compute_translations(&mesh->nodes, &mesh->cells, &mesh->entities);
     create_neighbors(&mesh->nodes, &mesh->cells, &mesh->entities, &mesh->neighbors);
 
-    convert_allocations(&mesh->nodes, &mesh->cells);
+    convert_allocations(&mesh->nodes, &mesh->cells, &mesh->entities);
 
     return mesh;
 }

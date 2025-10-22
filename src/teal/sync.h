@@ -6,6 +6,9 @@
 
 #define MPI_SCALAR (sizeof(scalar) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE)
 
+enum { MPI_TAG_UB_MIN = 32767 };
+#define sync_tag() ((__LINE__ % MPI_TAG_UB_MIN) + 1)
+
 typedef struct {
     MPI_Comm comm;
     int rank;
@@ -16,8 +19,6 @@ extern Sync sync;
 
 void sync_init(int *argc, char ***argv);
 void sync_reinit(MPI_Comm comm);
-
-int sync_tag(void);
 
 long sync_lmin(long val);
 long sync_lmax(long val);

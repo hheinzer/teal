@@ -68,8 +68,8 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
             long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
             if (i < entities->num_inner) {
+                enum { VTK_TETRA = 10, VTK_PYRAMID = 14, VTK_WEDGE = 13, VTK_HEXAHEDRON = 12 };
                 switch (num_nodes) {
-                    enum { VTK_TETRA = 10, VTK_PYRAMID = 14, VTK_WEDGE = 13, VTK_HEXAHEDRON = 12 };
                     case 4: type[num] = VTK_TETRA; break;
                     case 5: type[num] = VTK_PYRAMID; break;
                     case 6: type[num] = VTK_WEDGE; break;
@@ -78,8 +78,8 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                 }
             }
             else {
+                enum { VTK_TRIANGLE = 5, VTK_QUAD = 9 };
                 switch (num_nodes) {
-                    enum { VTK_TRIANGLE = 5, VTK_QUAD = 9 };
                     case 3: type[num] = VTK_TRIANGLE; break;
                     case 4: type[num] = VTK_QUAD; break;
                     default: assert(false);

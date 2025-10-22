@@ -15,6 +15,7 @@ hid_t h5io_file_create(const char *name)
     H5Pset_coll_metadata_write(plist, true);
 
     hid_t file = H5Fcreate(name, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
+    assert(file != H5I_INVALID_HID);
 
     H5Pclose(plist);
     return file;
@@ -29,6 +30,7 @@ hid_t h5io_file_open(const char *name)
     H5Pset_all_coll_metadata_ops(plist, true);
 
     hid_t file = H5Fopen(name, H5F_ACC_RDONLY, plist);
+    assert(file != H5I_INVALID_HID);
 
     H5Pclose(plist);
     return file;

@@ -11,17 +11,17 @@ static bool is_valid(const long *map, long num)
 {
     Arena save = arena_save();
 
-    long *cnt = arena_calloc(num, sizeof(*cnt));
+    long *count = arena_calloc(num, sizeof(*count));
     for (long i = 0; i < num; i++) {
         if (0 <= map[i] && map[i] < num) {
-            cnt[map[i]] += 1;
+            count[map[i]] += 1;
         }
     }
 
     bool ret = true;
-    ret &= array_lmin(cnt, num) == 1;
-    ret &= array_lmax(cnt, num) == 1;
-    ret &= array_lsum(cnt, num) == num;
+    ret &= array_lmin(count, num) == 1;
+    ret &= array_lmax(count, num) == 1;
+    ret &= array_lsum(count, num) == num;
 
     arena_load(save);
     return num > 0 ? ret : true;
@@ -30,22 +30,21 @@ static bool is_valid(const long *map, long num)
 void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *map)
 {
     assert(is_valid(map, nodes->num));
-
     Arena save = arena_save();
 
     struct {
         long global;
         vector coord;
-    } *buf = arena_malloc(nodes->num, sizeof(*buf));
+    } *node = arena_malloc(nodes->num, sizeof(*node));
 
     for (long i = 0; i < nodes->num; i++) {
-        buf[map[i]].global = nodes->global[i];
-        buf[map[i]].coord = nodes->coord[i];
+        node[map[i]].global = nodes->global[i];
+        node[map[i]].coord = nodes->coord[i];
     }
 
     for (long i = 0; i < nodes->num; i++) {
-        nodes->global[i] = buf[i].global;
-        nodes->coord[i] = buf[i].coord;
+        nodes->global[i] = node[i].global;
+        nodes->coord[i] = node[i].coord;
     }
 
     if (cells) {
@@ -62,7 +61,6 @@ void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *map)
 void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, const long *map)
 {
     assert(is_valid(map, end - beg));
-
     Arena save = arena_save();
 
     long tot = end - beg;
@@ -71,30 +69,30 @@ void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, 
         long node[MAX_CELL_NODES];
         long num_cells;
         long cell[MAX_CELL_FACES];
-    } *buf = arena_malloc(tot, sizeof(*buf));
+    } *cell = arena_malloc(tot, sizeof(*cell));
 
     for (long num = 0, i = beg; i < end; i++, num++) {
-        buf[map[num]].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+        cell[map[num]].num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            buf[map[num]].node[k] = cells->node.idx[j];
+            cell[map[num]].node[k] = cells->node.idx[j];
         }
         if (cells->cell.off && cells->cell.idx) {
-            buf[map[num]].num_cells = cells->cell.off[i + 1] - cells->cell.off[i];
+            cell[map[num]].num_cells = cells->cell.off[i + 1] - cells->cell.off[i];
             for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
-                buf[map[num]].cell[k] = cells->cell.idx[j];
+                cell[map[num]].cell[k] = cells->cell.idx[j];
             }
         }
     }
 
     for (long num = 0, i = beg; i < end; i++, num++) {
-        cells->node.off[i + 1] = cells->node.off[i] + buf[num].num_nodes;
+        cells->node.off[i + 1] = cells->node.off[i] + cell[num].num_nodes;
         for (long k = 0, j = cells->node.off[i]; j < cells->node.off[i + 1]; j++, k++) {
-            cells->node.idx[j] = buf[num].node[k];
+            cells->node.idx[j] = cell[num].node[k];
         }
         if (cells->cell.off && cells->cell.idx) {
-            cells->cell.off[i + 1] = cells->cell.off[i] + buf[num].num_cells;
+            cells->cell.off[i + 1] = cells->cell.off[i] + cell[num].num_cells;
             for (long k = 0, j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++, k++) {
-                cells->cell.idx[j] = buf[num].cell[k];
+                cells->cell.idx[j] = cell[num].cell[k];
             }
         }
     }
@@ -126,33 +124,41 @@ void mesh_reorder_cells(MeshCells *cells, MeshFaces *faces, long beg, long end, 
     arena_load(save);
 }
 
+typedef struct {
+    long key;
+    long num;
+    long node[MAX_FACE_NODES];
+    Adjacent cell;
+} Face;
+
+static int cmp_face(const void *lhs_, const void *rhs_)
+{
+    const Face *lhs = lhs_;
+    const Face *rhs = rhs_;
+    return cmp_asc(lhs->key, rhs->key);
+}
+
 void mesh_reorder_faces(MeshFaces *faces, const long *key)
 {
     Arena save = arena_save();
 
-    struct {
-        long key;
-        long num;
-        long node[MAX_FACE_NODES];
-        Adjacent cell;
-    } *buf = arena_malloc(faces->num, sizeof(*buf));
-
+    Face *face = arena_malloc(faces->num, sizeof(*face));
     for (long i = 0; i < faces->num; i++) {
-        buf[i].key = key[i];
-        buf[i].num = faces->node.off[i + 1] - faces->node.off[i];
+        face[i].key = key[i];
+        face[i].num = faces->node.off[i + 1] - faces->node.off[i];
         for (long k = 0, j = faces->node.off[i]; j < faces->node.off[i + 1]; j++, k++) {
-            buf[i].node[k] = faces->node.idx[j];
+            face[i].node[k] = faces->node.idx[j];
         }
-        buf[i].cell = faces->cell[i];
+        face[i].cell = faces->cell[i];
     }
-    qsort(buf, faces->num, sizeof(*buf), lcmp);
+    qsort(face, faces->num, sizeof(*face), cmp_face);
 
     for (long i = 0; i < faces->num; i++) {
-        faces->node.off[i + 1] = faces->node.off[i] + buf[i].num;
+        faces->node.off[i + 1] = faces->node.off[i] + face[i].num;
         for (long k = 0, j = faces->node.off[i]; j < faces->node.off[i + 1]; j++, k++) {
-            faces->node.idx[j] = buf[i].node[k];
+            faces->node.idx[j] = face[i].node[k];
         }
-        faces->cell[i] = buf[i].cell;
+        faces->cell[i] = face[i].cell;
     }
 
     arena_load(save);

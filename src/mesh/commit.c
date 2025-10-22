@@ -22,7 +22,9 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
 
     idx_t *eptr = arena_malloc(num_elems + 1, sizeof(*eptr));
     idx_t *eind = arena_malloc(num_elems * (MAX_CELL_NODES + 1), sizeof(*eind));
+
     eptr[0] = 0;
+
     for (long i = 0; i < cells->num; i++) {
         eptr[i + 1] = eptr[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
@@ -42,11 +44,11 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
         METIS_MeshToDual(&num_elems, &num_nodes, eptr, eind, &ncommon, &numflag, &xadj, &adjncy);
     assert(ret == METIS_OK);
 
-    arena_load(save);
-
     long *off = arena_malloc(cells->num + 1, sizeof(*off));
     long *idx = arena_malloc(cells->num * MAX_CELL_FACES, sizeof(*idx));
+
     off[0] = 0;
+
     for (long i = 0; i < cells->num; i++) {
         off[i + 1] = off[i];
         for (long j = xadj[i]; j < xadj[i + 1]; j++) {
@@ -59,9 +61,10 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     free(xadj);
     free(adjncy);
 
-    cells->cell.off = off;
-    cells->cell.idx = arena_resize(idx, off[cells->num], sizeof(*idx));
-    assert(cells->cell.idx);
+    arena_load(save);
+
+    cells->cell.off = arena_smuggle(off, cells->num + 1, sizeof(*off));
+    cells->cell.idx = arena_smuggle(idx, cells->cell.off[cells->num], sizeof(*idx));
 }
 
 static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const long *map)
@@ -76,7 +79,7 @@ static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const
                 vector coord = nodes->coord[cells->node.idx[j]];
                 center = vector_add(center, vector_div(coord, num_nodes));
             }
-            if (vcmp(&center, &min_center) < 0) {
+            if (cmp_vector(&center, &min_center) < 0) {
                 seed = i;
                 min_center = center;
             }
@@ -307,8 +310,8 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
                       num_send, type, neighbors->rank[i], tag, sync.comm, &req[i]);
         off_recv += num_recv;
     }
-    MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
     assert(off_recv == tot_recv);
+    MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
     MPI_Type_free(&type);
 
     long *idx = arena_malloc(tot_send, sizeof(*idx));

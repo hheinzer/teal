@@ -55,6 +55,7 @@ void *dict_insert(Dict *self, const void *key, const void *val)
     self->num += 1;
     *self->end = *item;
     self->end = &(*item)->next;
+
     return 0;
 }
 

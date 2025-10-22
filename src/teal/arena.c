@@ -10,22 +10,33 @@
 enum { ALIGN = 64 };
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+
 #include <sanitizer/asan_interface.h>
+
 #define MAKE_REGION_NOACCESS(addr, size) __asan_poison_memory_region(addr, size)
 #define MAKE_REGION_ADDRESSABLE(addr, size) __asan_unpoison_memory_region(addr, size)
 #define MAKE_REGION_DEFINED(addr, size) MAKE_REGION_ADDRESSABLE(addr, size)
+
 enum { REDZONE = 64 };
+
 #elif defined(ENABLE_VALGRIND)
+
 #include <valgrind/memcheck.h>
+
 #define MAKE_REGION_NOACCESS(addr, size) VALGRIND_MAKE_MEM_NOACCESS(addr, size)
 #define MAKE_REGION_ADDRESSABLE(addr, size) VALGRIND_MAKE_MEM_UNDEFINED(addr, size)
 #define MAKE_REGION_DEFINED(addr, size) VALGRIND_MAKE_MEM_DEFINED(addr, size)
+
 enum { REDZONE = 64 };
+
 #else
+
 #define MAKE_REGION_NOACCESS(addr, size) ((void)(addr), (void)(size))
 #define MAKE_REGION_ADDRESSABLE(addr, size) ((void)(addr), (void)(size))
 #define MAKE_REGION_DEFINED(addr, size) ((void)(addr), (void)(size))
+
 enum { REDZONE = 0 };
+
 #endif
 
 STATIC_ASSERT(REDZONE == 0 || REDZONE % ALIGN == 0);
@@ -72,8 +83,19 @@ void *arena_calloc(long num, long size)
 void *arena_memdup(const void *ptr, long num, long size)
 {
     assert(ptr);
-    void *new = arena_malloc(num, size);
-    return memcpy(new, ptr, num * size);
+    void *dup = arena_malloc(num, size);
+    return memcpy(dup, ptr, num * size);
+}
+
+char *arena_strdup(const char *str, long len)
+{
+    if (len < 0) {
+        len = strlen(str);
+    }
+    char *dup = arena_malloc(len + 1, sizeof(*dup));
+    memcpy(dup, str, len);
+    dup[len] = 0;
+    return dup;
 }
 
 void *arena_resize(const void *ptr, long num, long size)

@@ -78,7 +78,8 @@ static void read_entities(MeshEntities *entities, hid_t loc)
     h5io_attribute_read(0, "num_inner", &entities->num_inner, 1, H5IO_LONG, group);
     h5io_attribute_read(0, "num_ghost", &entities->num_ghost, 1, H5IO_LONG, group);
 
-    entities->name = arena_malloc(entities->num, sizeof(*entities->name));
+    entities->name = malloc(entities->num * sizeof(*entities->name));
+    assert(entities->name);
 
     long num_entities = (sync.rank == 0) ? entities->num : 0;
     h5io_dataset_read("name", entities->name, (hsize_t[]){num_entities, sizeof(*entities->name)}, 2,
@@ -101,7 +102,9 @@ static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
         num_cells[entity[i]] += 1;
     }
 
-    long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
+    long *cell_off = malloc((entities->num + 1) * sizeof(*cell_off));
+    assert(cell_off);
+
     cell_off[0] = 0;
     for (long i = 0; i < entities->num; i++) {
         cell_off[i + 1] = cell_off[i] + num_cells[i];
@@ -116,9 +119,9 @@ static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
     }
     mesh_reorder_cells(cells, 0, 0, cells->num, map);
 
-    arena_load(save);
+    entities->cell_off = cell_off;
 
-    entities->cell_off = arena_smuggle(cell_off, entities->num + 1, sizeof(*cell_off));
+    arena_load(save);
 }
 
 void mesh_read_hdf5(Mesh *mesh, const char *fname)

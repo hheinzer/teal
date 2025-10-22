@@ -8,13 +8,13 @@
 void teal_finalize(void)
 {
     char min[128];
-    size2str(min, sync_lmin(arena_size()));
+    size_to_str(min, sync_lmin(arena_size()));
 
     char max[128];
-    size2str(max, sync_lmax(arena_size_max()));
+    size_to_str(max, sync_lmax(arena_size_max()));
 
     char sum[128];
-    size2str(sum, sync_lsum(arena_size()));
+    size_to_str(sum, sync_lsum(arena_size()));
 
     char now[128];
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));

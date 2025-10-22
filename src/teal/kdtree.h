@@ -33,4 +33,4 @@ void *kdtree_lookup(const Kdtree *self, vector key);
 void kdtree_nearest(const Kdtree *self, vector key, void *val, long num);
 
 /* Writes up to `cap` values within `radius` to `key` into `val` (unsorted); returns count. */
-long kdtree_radius(const Kdtree *self, vector key, void *val, long cap, scalar radius);
+long kdtree_radius(const Kdtree *self, vector key, void *val_, long cap, scalar radius);

@@ -2,21 +2,12 @@
 
 Sync sync = {0};
 
-enum { MPI_TAG_UB_MIN = 32767 };
-static int tag_ub;
-
 void sync_init(int *argc, char ***argv)
 {
     MPI_Init(argc, argv);
-
     MPI_Comm_dup(MPI_COMM_WORLD, &sync.comm);
     MPI_Comm_rank(sync.comm, &sync.rank);
     MPI_Comm_size(sync.comm, &sync.size);
-
-    int *attr = 0;
-    int flag = 0;
-    MPI_Comm_get_attr(sync.comm, MPI_TAG_UB, &attr, &flag);
-    tag_ub = (flag && attr) ? *attr : MPI_TAG_UB_MIN;
 }
 
 void sync_reinit(MPI_Comm comm)
@@ -25,12 +16,6 @@ void sync_reinit(MPI_Comm comm)
     sync.comm = comm;
     MPI_Comm_rank(sync.comm, &sync.rank);
     MPI_Comm_size(sync.comm, &sync.size);
-}
-
-int sync_tag(void)
-{
-    static int tag = 0;
-    return tag = (tag % tag_ub) + 1;
 }
 
 long sync_lmin(long val)

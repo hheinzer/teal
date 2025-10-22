@@ -8,6 +8,9 @@
 
 #define countof(a) (sizeof(a) / sizeof(*(a)))
 
+#define cmp_asc(l, r) (((l) > (r)) - ((l) < (r)))
+#define cmp_dsc(l, r) cmp_asc(r, l)
+
 void print(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 
 scalar sq(scalar val);
@@ -17,16 +20,14 @@ long lmax(long lhs, long rhs);
 
 bool isclose(scalar lhs, scalar rhs);
 
-int lcmp(const void *lhs, const void *rhs);
-int fcmp(const void *lhs, const void *rhs);
-int vcmp(const void *lhs, const void *rhs);
+int cmp_long(const void *lhs_, const void *rhs_);
+int cmp_scalar(const void *lhs_, const void *rhs_);
+int cmp_vector(const void *lhs_, const void *rhs_);
 
 void lswap(long *lhs, long *rhs);
 void fswap(scalar *lhs, scalar *rhs);
 void vswap(vector *lhs, vector *rhs);
-void memswap(void *lhs, void *rhs, long size);
+void swap_bytes(void *lhs_, void *rhs_, long size);
 
-bool fexists(const char *fname);
-
-scalar str2size(const char *str);
-void size2str(char *str, scalar size);
+scalar str_to_size(const char *str);
+void size_to_str(char *str, scalar size);

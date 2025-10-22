@@ -1,11 +1,11 @@
 # compiler, default flags, and libraries
 CC = clang
-CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Isrc
+CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Isrc
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 
 # debug flags
-CFLAGS += -Og -fno-omit-frame-pointer -fsanitize-trap -fsanitize=undefined
+CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=undefined
 CFLAGS += -fsanitize=address
 #CFLAGS += -D ENABLE_VALGRIND
 
