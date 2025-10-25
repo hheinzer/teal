@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
     teal_init(&argc, &argv);
 
-    Mesh *mesh = mesh_read("run/test_mesh_large.h5");
+    Mesh *mesh = mesh_read("run/test_mesh.h5");
 
     for (long i = 0; i < mesh->nodes.num; i++) {
         vector *coord = &mesh->nodes.coord[i];

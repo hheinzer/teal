@@ -94,9 +94,9 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
                 if (!(i == 0 && coords[0]) && !(j == 0 && coords[1]) && !(k == 0 && coords[2])) {
                     num_inner += 1;
                 }
-                coord[num].x = min_coord.x + i * (max_coord.x - min_coord.x) / num_cells.x;
-                coord[num].y = min_coord.y + j * (max_coord.y - min_coord.y) / num_cells.y;
-                coord[num].z = min_coord.z + k * (max_coord.z - min_coord.z) / num_cells.z;
+                coord[num].x = min_coord.x + (i * (max_coord.x - min_coord.x) / num_cells.x);
+                coord[num].y = min_coord.y + (j * (max_coord.y - min_coord.y) / num_cells.y);
+                coord[num].z = min_coord.z + (k * (max_coord.z - min_coord.z) / num_cells.z);
                 num += 1;
             }
         }
@@ -194,14 +194,14 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
         for (long j = 0; j < num_cells.y; j++) {
             for (long i = 0; i < num_cells.x; i++) {
                 off[num + 1] = off[num];
-                idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 0));
-                idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 0));
-                idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 1));
-                idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 1));
-                idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 1));
-                idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 1));
+                idx[off[num + 1]++] = (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                idx[off[num + 1]++] = (i + 1) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                idx[off[num + 1]++] = (i + 1) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 0)));
+                idx[off[num + 1]++] = (i + 0) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 0)));
+                idx[off[num + 1]++] = (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 1)));
+                idx[off[num + 1]++] = (i + 1) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 1)));
+                idx[off[num + 1]++] = (i + 1) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 1)));
+                idx[off[num + 1]++] = (i + 0) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 1)));
                 num += 1;
             }
         }
@@ -211,10 +211,14 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
             for (long j = 0; j < num_cells.y; j++) {
                 for (long k = 0; k < num_cells.z; k++) {
                     off[num + 1] = off[num];
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 1));
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 1));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 1)));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 1)));
                     num += 1;
                 }
             }
@@ -225,10 +229,14 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
             for (long k = 0; k < num_cells.z; k++) {
                 for (long i = 0; i < num_cells.x; i++) {
                     off[num + 1] = off[num];
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 1));
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 1));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 1) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 1) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 1)));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 1)));
                     num += 1;
                 }
             }
@@ -239,10 +247,14 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
             for (long i = 0; i < num_cells.x; i++) {
                 for (long j = 0; j < num_cells.y; j++) {
                     off[num + 1] = off[num];
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 0) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 1) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 0));
-                    idx[off[num + 1]++] = (i + 0) + num_nodes.x * ((j + 1) + num_nodes.y * (k + 0));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 1) + (num_nodes.x * ((j + 0) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 1) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 0)));
+                    idx[off[num + 1]++] =
+                        (i + 0) + (num_nodes.x * ((j + 1) + num_nodes.y * (k + 0)));
                     num += 1;
                 }
             }
@@ -348,7 +360,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
                             const int *neighbor)
 {
     entities->num_inner = 1;
-    entities->num = entities->num_inner + 2 * ndims;
+    entities->num = entities->num_inner + (2 * ndims);
 
     Name *name = arena_calloc(entities->num, sizeof(*name));
     long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));

@@ -9,7 +9,9 @@ parser.add_argument("field", nargs="?", default=None, help="Field to plot")
 parser.add_argument("-l", "--list", action=BooleanOptionalAction, help="List all plottable fields")
 parser.add_argument("-x", "--explode", action=BooleanOptionalAction, help="Explode cells")
 parser.add_argument("-e", "--edges", action=BooleanOptionalAction, help="Show edges")
-parser.add_argument("-c", "--cmap", default="coolwarm", help="Colormap")
+parser.add_argument("-c", "--clip", action=BooleanOptionalAction, help="Add clip plane")
+parser.add_argument("--crinkle", action=BooleanOptionalAction, help="Crinkle clip")
+parser.add_argument("--cmap", default="coolwarm", help="Colormap")
 args = parser.parse_args()
 
 with h5py.File(args.fname, "r") as file:
@@ -48,7 +50,11 @@ else:
     keep = np.where(np.isin(types, vol_types))[0]
     mesh = mesh.extract_cells(keep).clean()
 
-pvp.add_mesh(mesh, show_edges=args.edges, cmap=args.cmap)
+if args.clip:
+    pvp.add_mesh_clip_plane(mesh, show_edges=args.edges, cmap=args.cmap, crinkle=args.crinkle)
+else:
+    pvp.add_mesh(mesh, show_edges=args.edges, cmap=args.cmap)
+
 pvp.show_bounds()
 pvp.view_xy()
 pvp.show()

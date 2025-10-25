@@ -351,18 +351,16 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
     free(dual->xadj);
     free(dual->adjncy);
 
+    arena_load(save);
+
     dual->xadj = xadj;
     dual->adjncy = adjncy;
-
-    arena_load(save);
 }
 
-static void rotate_at_char(char *dst, const char *src, char sep)
+static int rotate_at_char(char *dst, const char *src, char sep)
 {
     char *pos = strchr(src, sep);
-    if (pos) {
-        sprintf(dst, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src);
-    }
+    return pos ? sprintf(dst, "%s%c%.*s", pos + 1, sep, (int)(pos - src), src) : 0;
 }
 
 /* Build the dual graph (ParMETIS) and add edges for periodic entity pairs. */
@@ -397,10 +395,11 @@ static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     for (long lhs = 0; lhs < entities->num; lhs++) {
         Name name;
-        rotate_at_char(name, entities->name[lhs], ':');
-        for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
-            if (!strcmp(entities->name[rhs], name)) {
-                connect_periodic(nodes, cells, entities, &dual, lhs, rhs);
+        if (rotate_at_char(name, entities->name[lhs], ':') > 0) {
+            for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
+                if (!strcmp(entities->name[rhs], name)) {
+                    connect_periodic(nodes, cells, entities, &dual, lhs, rhs);
+                }
             }
         }
     }
@@ -1231,10 +1230,11 @@ static void compute_translations(const MeshNodes *nodes, const MeshCells *cells,
     vector *translation = arena_calloc(entities->num, sizeof(*translation));
     for (long lhs = 0; lhs < entities->num; lhs++) {
         Name name;
-        rotate_at_char(name, entities->name[lhs], ':');
-        for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
-            if (!strcmp(entities->name[rhs], name)) {
-                compute_translation(nodes, cells, entities, translation, lhs, rhs);
+        if (rotate_at_char(name, entities->name[lhs], ':') > 0) {
+            for (long rhs = lhs + 1; rhs < entities->num; rhs++) {
+                if (!strcmp(entities->name[rhs], name)) {
+                    compute_translation(nodes, cells, entities, translation, lhs, rhs);
+                }
             }
         }
     }

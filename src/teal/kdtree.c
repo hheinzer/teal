@@ -111,7 +111,7 @@ static void heap_replace(const void *item_val, scalar item_metric, void *val_, s
             swap_bytes(val[idx], val[max], size);
             fswap(&metric[idx], &metric[max]);
             idx = max;
-            left = 2 * idx + 1;
+            left = (2 * idx) + 1;
         }
         else {
             break;

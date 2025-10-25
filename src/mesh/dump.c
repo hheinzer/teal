@@ -177,8 +177,9 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
                 }
                 fprintf(stream, "\t ]\n");
             }
+
+            fflush(stream);
         }
         MPI_Barrier(sync.comm);
     }
-    MPI_Barrier(sync.comm);
 }

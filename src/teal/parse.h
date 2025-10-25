@@ -32,23 +32,25 @@ void parse_binary(Type type, void *data, long num, bool swap, File file);
 /* Dispatch `parse_ascii()` or `parse_binary()` based on mode; `swap` is ignored for ASCII. */
 void parse(Mode mode, Type type, void *data, long num, bool swap, File file);
 
-/* Parse `num` groups of `len` ASCII tokens separated by `gap` tokens into data. Set file position
- * to `beg + len` if `gap > 0`, else to end of the full block excluding the last `gap` tokens.
- * Return that end offset. Data is read on rank `0` and then sent to the destination rank. */
-long parse_split_ascii(Type type, void *data, long num, long len, long gap, File file);
+/* Parse `num` groups of `len` ASCII tokens with a stride of `stride` tokens into data. Set file
+ * position to `beg + len` if `stride > len`, else to end of the full block excluding the last
+ * `stride - len` tokens. Return that end offset. Data is read on rank `0` and then sent to the
+ * destination rank. */
+long parse_split_ascii(Type type, void *data, long num, long len, long stride, File file);
 
-/* Parse `num` groups of `len` binary items separated by `gap` bytes into data; optionally perform a
- * byte swap. Set the file position to `beg + len * sizeof(type)` if `gap > 0`, else to end of the
- * full block excluding the last `gap` bytes. Return that end offset. Data is read independently by
- * all ranks. */
-long parse_split_binary(Type type, void *data, long num, long len, long gap, bool swap, File file);
+/* Parse `num` groups of `len` binary items with a stride of `stride` bytes into data; optionally
+ * perform a byte swap. Set the file position to `beg + len * sizeof(type)` if `stride > len *
+ * sizeof(type)`, else to end of the full block excluding the last `stride - len * sizeof(type)`
+ * bytes. Return that end offset. Data is read independently by all ranks. */
+long parse_split_binary(Type type, void *data, long num, long len, long stride, bool swap,
+                        File file);
 
 /* Dispatch `parse_split_ascii()` or `parse_split_binary()` based on mode; `swap` is ignored for
- * ASCII. In ASCII `gap` counts tokens, in BINARY `gap` counts bytes. */
-long parse_split(Mode mode, Type type, void *data, long num, long len, long gap, bool swap,
+ * ASCII. In ASCII `stride` counts tokens, in BINARY `stride` counts bytes. */
+long parse_split(Mode mode, Type type, void *data, long num, long len, long stride, bool swap,
                  File file);
 
 /* Return value at `idx` from data interpreted as type, cast to long (rounded for `F32/F64`). */
-long parse_type_to_long(Type type, const void *data, long idx);
+long parse_data_to_long(Type type, const void *data, long idx);
 
 void parse_close(File file);

@@ -11,7 +11,6 @@ void *arena_malloc(long num, long size) __attribute((malloc));
 void *arena_calloc(long num, long size) __attribute((malloc));
 
 void *arena_memdup(const void *ptr, long num, long size) __attribute((malloc));
-char *arena_strdup(const char *str, long len) __attribute((malloc));
 
 /* Duplicate a string of length `len`; call `strlen()` if `len < 0`. */
 char *arena_strdup(const char *str, long len) __attribute((malloc));

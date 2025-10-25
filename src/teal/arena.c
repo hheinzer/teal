@@ -67,7 +67,7 @@ void *arena_malloc(long num, long size)
     assert(num <= (available - padding - REDZONE) / size);
 
     arena.last = arena.beg + padding + REDZONE;
-    arena.beg = arena.last + num * size;
+    arena.beg = arena.last + (num * size);
     MAKE_REGION_ADDRESSABLE(arena.last, num * size);
 
     size_max = lmax(size_max, arena_size());

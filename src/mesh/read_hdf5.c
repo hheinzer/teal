@@ -119,9 +119,9 @@ static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
     }
     mesh_reorder_cells(cells, 0, 0, cells->num, map);
 
-    entities->cell_off = cell_off;
-
     arena_load(save);
+
+    entities->cell_off = cell_off;
 }
 
 void mesh_read_hdf5(Mesh *mesh, const char *fname)

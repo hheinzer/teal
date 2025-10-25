@@ -19,6 +19,7 @@ Checks:
   - -misc-include-cleaner
   - -misc-no-recursion
   - -modernize-use-nullptr
+  - -portability-avoid-pragma-once
   - -readability-avoid-nested-conditional-operator
   - -readability-function-cognitive-complexity
   - -readability-implicit-bool-conversion
