@@ -1,12 +1,13 @@
 #pragma once
 
+#include <mpi.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 typedef struct {
-    const char *fname;
     FILE *stream;
+    MPI_File handle;
 } File;
 
 typedef enum { ASCII, BINARY } Mode;

@@ -29,8 +29,12 @@ static const long size_of[] = {
 File parse_open(const char *fname)
 {
     assert(fname);
-    File file = {fname, fopen(fname, "rb")};
-    assert(file.stream);
+    File file = {0};
+    if (sync.rank == 0) {
+        file.stream = fopen(fname, "rb");
+        assert(file.stream);
+    }
+    MPI_File_open(sync.comm, fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &file.handle);
     return file;
 }
 
@@ -136,38 +140,31 @@ void parse_ascii(Type type, void *data, long num, File file)
 /* Perform byte swap for data based on the item size. */
 static void swap_data(void *data, long num, long size)
 {
-    Arena save = arena_save();
-
     switch (size) {
         case 1: break;
         case 2: {
-            uint16_t *u16 = arena_memdup(data, num, size);
+            uint16_t *u16 = data;
             for (long i = 0; i < num; i++) {
                 u16[i] = bswap_16(u16[i]);
             }
-            memcpy(data, u16, num * size);
             break;
         }
         case 4: {
-            uint32_t *u32 = arena_memdup(data, num, size);
+            uint32_t *u32 = data;
             for (long i = 0; i < num; i++) {
                 u32[i] = bswap_32(u32[i]);
             }
-            memcpy(data, u32, num * size);
             break;
         }
         case 8: {
-            uint64_t *u64 = arena_memdup(data, num, size);
+            uint64_t *u64 = data;
             for (long i = 0; i < num; i++) {
                 u64[i] = bswap_64(u64[i]);
             }
-            memcpy(data, u64, num * size);
             break;
         }
         default: assert(false);
     }
-
-    arena_load(save);
 }
 
 void parse_binary(Type type, void *data, long num, bool swap, File file)
@@ -208,8 +205,8 @@ long parse_split_ascii(Type type, void *data, long num, long len, long stride, F
 
     long end;
     if (sync.rank == 0) {
-        long beg = parse_get_offset(file);
         long gap = stride - len;
+        long pos = -1;
 
         char token[MAX_TOKEN];
         long cnt = 0;
@@ -228,8 +225,10 @@ long parse_split_ascii(Type type, void *data, long num, long len, long stride, F
                     next(type, token, sizeof(token), file.stream);
                     token_to_data(type, data_rank, (i * len) + j, token);
                 }
-                cnt += 1;
-                if (cnt < tot) {  // only skip internal gaps
+                if (pos < 0) {
+                    pos = ftell(file.stream);
+                }
+                if (++cnt < tot) {  // only skip internal gaps
                     for (long j = 0; j < gap; j++) {
                         next(type, token, sizeof(token), file.stream);
                     }
@@ -246,10 +245,8 @@ long parse_split_ascii(Type type, void *data, long num, long len, long stride, F
         end = parse_get_offset(file);
 
         if (tot > 0 && gap > 0) {
-            parse_set_offset(file, beg);
-            for (long j = 0; j < len; j++) {
-                next(type, token, sizeof(token), file.stream);
-            }
+            assert(pos >= 0);
+            parse_set_offset(file, pos);
         }
     }
 
@@ -265,37 +262,24 @@ long parse_split_binary(Type type, void *data, long num, long len, long stride, 
     long beg = parse_get_offset(file);
     MPI_Bcast(&beg, 1, MPI_LONG, 0, sync.comm);
 
-    MPI_File handle;
-    MPI_File_open(sync.comm, file.fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &handle);
-
     long gap = stride - (len * size_of[type]);
     MPI_Offset disp = beg + (sync_lexsum(num) * stride);
     if (gap == 0) {
-        MPI_File_read_at_all(handle, disp, data, num * len, datatype_of[type], MPI_STATUS_IGNORE);
-    }
-    else if (gap % size_of[type] == 0) {
-        MPI_Datatype block;
-        MPI_Type_contiguous(len, datatype_of[type], &block);
-
-        MPI_Datatype filetype;
-        MPI_Type_create_resized(block, 0, stride, &filetype);
-        MPI_Type_commit(&filetype);
-        MPI_Type_free(&block);
-
-        MPI_File_set_view(handle, disp, datatype_of[type], filetype, "native", MPI_INFO_NULL);
-        MPI_File_read_all(handle, data, num * len, datatype_of[type], MPI_STATUS_IGNORE);
-        MPI_Type_free(&filetype);
+        MPI_File_read_at(file.handle, disp, data, num * len, datatype_of[type], MPI_STATUS_IGNORE);
     }
     else {
-        MPI_Datatype filetype;
-        MPI_Type_create_hvector(num, len, stride, datatype_of[type], &filetype);
-        MPI_Type_commit(&filetype);
+        Arena save = arena_save();
 
-        MPI_File_set_view(handle, disp, datatype_of[type], filetype, "native", MPI_INFO_NULL);
-        MPI_File_read_all(handle, data, num * len, datatype_of[type], MPI_STATUS_IGNORE);
-        MPI_Type_free(&filetype);
+        char (*src)[stride] = arena_malloc(num, sizeof(*src));
+        MPI_File_read_at(file.handle, disp, src, num * stride, MPI_BYTE, MPI_STATUS_IGNORE);
+
+        char (*dst)[len * size_of[type]] = data;
+        for (long i = 0; i < num; i++) {
+            memcpy(&dst[i], &src[i], sizeof(*dst));
+        }
+
+        arena_load(save);
     }
-    MPI_File_close(&handle);
 
     if (swap) {
         swap_data(data, num * len, size_of[type]);
@@ -342,4 +326,5 @@ void parse_close(File file)
         assert(file.stream);
         fclose(file.stream);
     }
+    MPI_File_close(&file.handle);
 }
