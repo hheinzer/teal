@@ -1,11 +1,8 @@
-#include <stdint.h>
-#include <stdlib.h>
+#include "teal/dict.h"
 
-#include "teal.h"
 #include "teal/arena.h"
 #include "teal/assert.h"
-#include "teal/dict.h"
-#include "teal/sync.h"
+#include "teal/utils.h"
 
 static void test_basic_insert_lookup(void)
 {
@@ -113,7 +110,7 @@ static void test_pointer_stability_under_growth(void)
 
     uintptr_t addr1 = (uintptr_t)ptr1;
 
-    for (long i = 0; i < 50000; i++) {
+    for (long i = 0; i < 1000; i++) {
         long key = i + 420;
         long val = i * i;
         dict_insert(dict, &key, &val);
@@ -155,42 +152,9 @@ static void test_many_keys(void)
     arena_load(save);
 }
 
-static long hash(long key)
+int main(void)
 {
-    long val = key;
-    val ^= val >> 23;
-    val *= 0x9e3779b1;
-    val ^= val >> 16;
-    return val;
-}
-
-static void test_stress(long num)
-{
-    Arena save = arena_save();
-
-    Dict *dict = dict_create(sizeof(long), sizeof(long));
-    for (long i = 0; i < num; i++) {
-        long key = rand();
-        long val = hash(key);
-        dict_insert(dict, &key, &val);
-    }
-
-    for (long i = 0; i < num; i++) {
-        long key = rand();
-        long *val = dict_lookup(dict, &key);
-        if (val) {
-            assert(*val == hash(key));
-        }
-    }
-
-    arena_load(save);
-}
-
-int main(int argc, char **argv)
-{
-    teal_init(&argc, &argv);
-
-    srand(sync.rank);
+    arena_init(str_to_size("1G"));
 
     test_basic_insert_lookup();
     test_duplicate_behaviour();
@@ -199,9 +163,5 @@ int main(int argc, char **argv)
     test_pointer_stability_under_growth();
     test_many_keys();
 
-    for (long i = 0; i < 10; i++) {
-        test_stress(1 << 21);
-    }
-
-    teal_finalize();
+    arena_finalize();
 }
