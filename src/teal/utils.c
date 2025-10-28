@@ -51,9 +51,14 @@ void error(const char *fmt, ...)
     sync_abort();
 }
 
-scalar sq(scalar val)
+scalar pow2(scalar val)
 {
     return val * val;
+}
+
+scalar pow3(scalar val)
+{
+    return val * val * val;
 }
 
 long lmin(long lhs, long rhs)

@@ -161,7 +161,7 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
         KdtreeItem *far = (del < 0) ? cur.item->right : cur.item->left;
 
         // push far first so near is popped next (improve pruning)
-        if (far && sq(del) <= metric[0]) {
+        if (far && pow2(del) <= metric[0]) {
             stack[top++] = (Stack){far, cur.depth + 1};
         }
         if (near) {
@@ -178,7 +178,7 @@ long kdtree_radius(const Kdtree *self, vector key, void *val_, long cap, scalar 
     Arena save = arena_save();
 
     char (*val)[self->size_val] = val_;
-    scalar metric = sq(radius);
+    scalar metric = pow2(radius);
     long num = 0;
 
     Stack *stack = arena_malloc(self->num, sizeof(*stack));
@@ -198,7 +198,7 @@ long kdtree_radius(const Kdtree *self, vector key, void *val_, long cap, scalar 
         KdtreeItem *far = (del < 0) ? cur.item->right : cur.item->left;
 
         // push far first so near is popped next (improve pruning)
-        if (far && sq(del) <= metric) {
+        if (far && pow2(del) <= metric) {
             stack[top++] = (Stack){far, cur.depth + 1};
         }
         if (near) {

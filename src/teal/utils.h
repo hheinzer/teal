@@ -15,7 +15,8 @@ void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
 
-scalar sq(scalar val);
+scalar pow2(scalar val);
+scalar pow3(scalar val);
 
 long lmin(long lhs, long rhs);
 long lmax(long lhs, long rhs);
