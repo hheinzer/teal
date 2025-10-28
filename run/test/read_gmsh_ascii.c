@@ -24,9 +24,7 @@ int main(int argc, char **argv)
     mesh_check(mesh);
     mesh_summary(mesh);
 
-    char fname[128];
-    sprintf(fname, "%s_mesh.h5", argv[0]);
-    mesh_write(mesh, fname);
+    mesh_write(mesh, argv[0]);
 
     teal_finalize();
 }

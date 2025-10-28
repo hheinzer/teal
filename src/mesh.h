@@ -130,4 +130,4 @@ void mesh_check(const Mesh *mesh);
 void mesh_summary(const Mesh *mesh);
 
 /* Create HDF5 file `fname` and write nodes, cells, and entities groups. */
-void mesh_write(const Mesh *mesh, const char *fname);
+void mesh_write(const Mesh *mesh, const char *prefix);

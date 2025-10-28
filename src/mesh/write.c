@@ -124,9 +124,12 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
     h5io_group_close(group);
 }
 
-void mesh_write(const Mesh *mesh, const char *fname)
+void mesh_write(const Mesh *mesh, const char *prefix)
 {
-    assert(mesh && fname);
+    assert(mesh && prefix);
+
+    char fname[128];
+    sprintf(fname, "%s_mesh.h5", prefix);
 
     hid_t file = h5io_file_create(fname);
 
