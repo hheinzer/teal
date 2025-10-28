@@ -10,15 +10,45 @@
 #include "option.h"
 #include "sync.h"
 
-void print(const char *fmt, ...)
+void println(const char *fmt, ...)
 {
     assert(fmt);
     if (sync.rank == 0 && !option.quiet) {
         va_list args;
         va_start(args, fmt);
-        vprintf(fmt, args);
+        vfprintf(stdout, fmt, args);
         va_end(args);
+        fputc('\n', stdout);
+        fflush(stdout);
     }
+}
+
+void verbose(const char *fmt, ...)
+{
+    assert(fmt);
+    if (sync.rank == 0 && !option.quiet && option.verbose) {
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(stdout, fmt, args);
+        va_end(args);
+        fputc('\n', stdout);
+        fflush(stdout);
+    }
+}
+
+void error(const char *fmt, ...)
+{
+    assert(fmt);
+    if (sync.rank == 0) {
+        fputs("ERROR: ", stderr);
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fputc('\n', stderr);
+        fflush(stderr);
+    }
+    sync_abort();
 }
 
 scalar sq(scalar val)

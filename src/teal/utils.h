@@ -11,7 +11,9 @@
 #define cmp_asc(l, r) (((l) > (r)) - ((l) < (r)))
 #define cmp_dsc(l, r) cmp_asc(r, l)
 
-void print(const char *fmt, ...) __attribute((format(printf, 1, 2)));
+void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
+void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));
+void error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
 
 scalar sq(scalar val);
 

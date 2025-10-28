@@ -4,6 +4,7 @@
 
 typedef struct {
     bool quiet;
+    bool verbose;
     long capacity;
     long num_refines;
     char *restart;

@@ -2,7 +2,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "sync.h"
@@ -71,11 +70,5 @@ out:
         fwrite(buf, sizeof(*buf), pos, stderr);
         fflush(stderr);
     }
-
-    int flag;
-    MPI_Initialized(&flag);
-    if (flag) {
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-    }
-    abort();
+    sync_abort();
 }

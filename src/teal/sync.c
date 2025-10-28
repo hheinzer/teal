@@ -1,9 +1,14 @@
 #include "sync.h"
 
+#include <stdlib.h>
+
+#include "assert.h"
+
 Sync sync = {0};
 
 void sync_init(int *argc, char ***argv)
 {
+    assert(argc && argv);
     MPI_Init(argc, argv);
     MPI_Comm_dup(MPI_COMM_WORLD, &sync.comm);
     MPI_Comm_rank(sync.comm, &sync.rank);
@@ -12,10 +17,31 @@ void sync_init(int *argc, char ***argv)
 
 void sync_reinit(MPI_Comm comm)
 {
+    assert(comm != MPI_COMM_NULL);
     MPI_Comm_free(&sync.comm);
     sync.comm = comm;
     MPI_Comm_rank(sync.comm, &sync.rank);
     MPI_Comm_size(sync.comm, &sync.size);
+}
+
+void sync_exit(int status)
+{
+    int flag;
+    MPI_Initialized(&flag);
+    if (flag) {
+        MPI_Finalize();
+    }
+    exit(status);
+}
+
+void sync_abort(void)
+{
+    int flag;
+    MPI_Initialized(&flag);
+    if (flag) {
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+    }
+    abort();
 }
 
 long sync_lmin(long val)

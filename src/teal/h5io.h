@@ -23,9 +23,9 @@ void h5io_attribute_read(const char *object, const char *name, void *buf, hsize_
                          hid_t loc);
 
 /* Dataset I/O assumes decomposition along the leading dimension only. */
-void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count, int rank,
+void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count, long rank,
                         hid_t type, hid_t loc);
-void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, int rank, hid_t type,
+void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, long rank, hid_t type,
                        hid_t loc);
 
 void h5io_link_create(const char *file, const char *object, const char *name, hid_t loc);

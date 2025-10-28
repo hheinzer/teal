@@ -19,9 +19,9 @@ void teal_finalize(void)
     char now[128];
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
-    print("Goodbye, World!\n");
-    print("\t arena min/max/sum size: %s / %s / %s\n", min, max, sum);
-    print("\t stop time:              %s\n", now);
+    println("Goodbye, World!");
+    println("\t arena min/max/sum size: %s / %s / %s", min, max, sum);
+    println("\t stop time:              %s", now);
 
     arena_finalize();
     sync_finalize();

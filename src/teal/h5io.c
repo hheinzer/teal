@@ -87,7 +87,7 @@ void h5io_attribute_write(const char *object, const char *name, const void *buf,
 static bool attribute_dims_match(hid_t attr, hsize_t dims)
 {
     hid_t space = H5Aget_space(attr);
-    int ndims = H5Sget_simple_extent_ndims(space);
+    long ndims = H5Sget_simple_extent_ndims(space);
 
     if (ndims == 0) {
         H5Sclose(space);
@@ -132,7 +132,7 @@ void h5io_attribute_read(const char *object, const char *name, void *buf, hsize_
     }
 }
 
-void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count, int rank,
+void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count, long rank,
                         hid_t type, hid_t loc)
 {
     assert(name && buf && count && (0 < rank && rank <= H5S_MAX_RANK));
@@ -173,7 +173,7 @@ void h5io_dataset_write(const char *name, const void *buf, const hsize_t *count,
     }
 }
 
-static bool dataset_dims_match(hid_t dset, const hsize_t *count, int rank)
+static bool dataset_dims_match(hid_t dset, const hsize_t *count, long rank)
 {
     hsize_t dims[H5S_MAX_RANK];
     memcpy(dims, count, rank * sizeof(*count));
@@ -192,7 +192,7 @@ static bool dataset_dims_match(hid_t dset, const hsize_t *count, int rank)
     return true;
 }
 
-void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, int rank, hid_t type,
+void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, long rank, hid_t type,
                        hid_t loc)
 {
     assert(name && buf && count && (0 < rank && rank <= H5S_MAX_RANK));

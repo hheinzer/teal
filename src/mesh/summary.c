@@ -37,16 +37,16 @@ void mesh_summary(const Mesh *mesh)
     scalar max_volume = sync_fmax(array_fmax(mesh->cells.volume, mesh->cells.num_inner));
     scalar sum_volume = sync_fsum(array_fsum(mesh->cells.volume, mesh->cells.num_inner));
 
-    print("Mesh summary:\n");
-    print("\t number of inner nodes:    %ld\n", inner_nodes);
-    print("\t number of inner cells:    %ld\n", inner_cells);
-    print("\t number of inner faces:    %ld\n", inner_faces);
-    print("\t number of ghost faces:    %ld\n", ghost_faces);
-    print("\t number of outer faces:    %ld\n", outer_faces);
-    print("\t number of periodic cells: %ld\n", periodic_cells);
-    print("\t number of neighbor cells: %ld\n", neighbor_cells);
-    print("\t number of exchange cells: %ld\n", exchange_cells);
-    print("\t min/max coord:            %g %g %g / %g %g %g\n", min_coord.x, min_coord.y,
-          min_coord.z, max_coord.x, max_coord.y, max_coord.z);
-    print("\t min/max/sum volume:       %g / %g / %g\n", min_volume, max_volume, sum_volume);
+    println("Mesh summary:");
+    println("\t number of inner nodes:    %ld", inner_nodes);
+    println("\t number of inner cells:    %ld", inner_cells);
+    println("\t number of inner faces:    %ld", inner_faces);
+    println("\t number of ghost faces:    %ld", ghost_faces);
+    println("\t number of outer faces:    %ld", outer_faces);
+    println("\t number of periodic cells: %ld", periodic_cells);
+    println("\t number of neighbor cells: %ld", neighbor_cells);
+    println("\t number of exchange cells: %ld", exchange_cells);
+    println("\t min/max coord:            %g %g %g / %g %g %g", min_coord.x, min_coord.y,
+            min_coord.z, max_coord.x, max_coord.y, max_coord.z);
+    println("\t min/max/sum volume:       %g / %g / %g", min_volume, max_volume, sum_volume);
 }
