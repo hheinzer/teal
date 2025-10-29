@@ -370,7 +370,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     cell_off[0] = 0;
     cell_off[1] = num_cells.x * num_cells.y * num_cells.z;
 
-    Name side[] = {"left", "right", "bottom", "top", "back", "front"};
+    Name side[6] = {"left", "right", "bottom", "top", "back", "front"};
     long num = 1;
     long num_ghost = 0;
     for (long i = 0; i < 2 * ndims; i++) {

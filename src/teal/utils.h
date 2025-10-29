@@ -8,6 +8,8 @@
 
 #define countof(a) (sizeof(a) / sizeof(*(a)))
 
+#define opt(s) (((s) && (s)[0]) ? (s) : "-")
+
 #define cmp_asc(l, r) (((l) > (r)) - ((l) < (r)))
 #define cmp_dsc(l, r) cmp_asc(r, l)
 

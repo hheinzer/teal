@@ -151,7 +151,7 @@ void swap_bytes(void *lhs_, void *rhs_, long size)
     }
 }
 
-static const char suffix[] = "\0KMGTPE";  // ready for exascale computing
+static const char *suffix = "\0KMGTPE";  // ready for exascale computing
 static const long base = 1000;
 
 scalar str_to_size(const char *str)
