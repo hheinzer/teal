@@ -23,19 +23,21 @@ static void write_node_graph(Graph node, const long *global, long num_cells, hid
 
     hid_t group = h5io_group_create("node", loc);
 
-    long num = num_cells + (sync.rank == 0);
-    long *off = arena_malloc(num, sizeof(*off));
-    long offset = sync_lexsum(node.off[num_cells]);
-    for (long i = 0; i < num; i++) {
+    long num_off = num_cells + (sync.rank == 0);
+    long num_idx = node.off[num_cells];
+
+    long *off = arena_malloc(num_off, sizeof(*off));
+    long offset = sync_lexsum(num_idx);
+    for (long i = 0; i < num_off; i++) {
         off[i] = offset + node.off[i + (sync.rank != 0)];  // globalize offsets
     }
-    h5io_dataset_write("off", off, (hsize_t[]){num}, 1, H5IO_LONG, group);
+    h5io_dataset_write("off", off, (hsize_t[]){num_off}, 1, H5IO_LONG, group);
 
-    long *idx = arena_malloc(node.off[num_cells], sizeof(*idx));
-    for (long i = 0; i < node.off[num_cells]; i++) {
+    long *idx = arena_malloc(num_idx, sizeof(*idx));
+    for (long i = 0; i < num_idx; i++) {
         idx[i] = global[node.idx[i]];  // remap indices
     }
-    h5io_dataset_write("idx", idx, (hsize_t[]){node.off[num_cells]}, 1, H5IO_LONG, group);
+    h5io_dataset_write("idx", idx, (hsize_t[]){num_idx}, 1, H5IO_LONG, group);
 
     h5io_group_close(group);
 
@@ -60,7 +62,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     unsigned char *type = arena_malloc(num_cells, sizeof(*type));
     long *entity = arena_malloc(num_cells, sizeof(*entity));
 
-    long *local = arena_malloc(num_cells, sizeof(*local));
+    long *index = arena_malloc(num_cells, sizeof(*index));
     int *rank = arena_malloc(num_cells, sizeof(*rank));
 
     long num = 0;
@@ -86,7 +88,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                 }
             }
             entity[num] = i;
-            local[num] = j;
+            index[num] = j;
             rank[num] = sync.rank;
             num += 1;
         }
@@ -96,7 +98,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     h5io_dataset_write("type", type, (hsize_t[]){num_cells}, 1, H5IO_UCHAR, group);
     h5io_dataset_write("entity", entity, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
 
-    h5io_dataset_write("local", local, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
+    h5io_dataset_write("index", index, (hsize_t[]){num_cells}, 1, H5IO_LONG, group);
     h5io_dataset_write("rank", rank, (hsize_t[]){num_cells}, 1, H5IO_INT, group);
 
     h5io_dataset_write("volume", cells->volume, (hsize_t[]){num_cells}, 1, H5IO_SCALAR, group);

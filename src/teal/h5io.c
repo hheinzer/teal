@@ -65,11 +65,11 @@ void h5io_attribute_write(const char *object, const char *name, const void *buf,
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
+        assert(dims == 1);
         type = H5Tcopy(H5T_C_S1);
-        H5Tset_size(type, dims);
+        H5Tset_size(type, strlen(buf));
         H5Tset_strpad(type, H5T_STR_NULLPAD);
         close_type = true;
-        dims = 1;
     }
 
     hid_t space = (dims == 1) ? H5Screate(H5S_SCALAR) : H5Screate_simple(1, &dims, 0);
