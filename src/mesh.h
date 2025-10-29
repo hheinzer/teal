@@ -23,8 +23,8 @@
  * Neighbor meta data describes MPI ranks adjacent to the own rank and contains send/recv graphs
  * that define which cells are exchanged during communication.
  *
- * All geometry information is computed by `mesh_commit()` after mesh creation or reading. The mesh
- * may be modified before, but not after, as derived data could be invalidated.
+ * All geometry information is computed by `mesh_generate()` after mesh creation or reading. The
+ * mesh may be modified before, but not after, as derived data could be invalidated.
  *
  * Supported cell types are:
  * - 2D: triangle (3 nodes), quadrangle (4 nodes)
@@ -118,7 +118,7 @@ Mesh *mesh_read(const char *fname);
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 
 /* Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights. */
-void mesh_commit(Mesh *mesh);
+void mesh_generate(Mesh *mesh);
 
 /* Write a per-rank, human-readable mesh dump to `stream`. */
 void mesh_dump(FILE *stream, const Mesh *mesh);

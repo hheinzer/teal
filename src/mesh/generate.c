@@ -670,7 +670,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
     faces->weight = arena_smuggle(weight, faces->num, sizeof(*weight));
 }
 
-void mesh_commit(Mesh *mesh)
+void mesh_generate(Mesh *mesh)
 {
     assert(mesh);
 

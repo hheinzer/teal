@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     vector normal = {1, 0, 0};
     mesh_split(mesh, "bottom", root, normal);
 
-    mesh_commit(mesh);
+    mesh_generate(mesh);
 
     mesh_check(mesh);
     mesh_summary(mesh);
