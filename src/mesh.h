@@ -56,10 +56,10 @@ typedef struct {
 typedef struct {
     long num;
     long num_inner;
-    long num_ghost;
-    long num_periodic;
-    Graph node;  // cell-to-node connectivity
-    Graph cell;  // cell-to-cell connectivity
+    long off_ghost;     // num_inner + num_ghost
+    long off_periodic;  // num_inner + num_ghost + num_periodic
+    Graph node;         // cell-to-node connectivity
+    Graph cell;         // cell-to-cell connectivity
     scalar *volume;
     vector *center;
     vector *projection;  // axis-aligned projection of cell volume
@@ -72,7 +72,7 @@ typedef struct {
 typedef struct {
     long num;
     long num_inner;
-    long num_ghost;
+    long off_ghost;  // num_inner + num_ghost
     Graph node;      // face-to-node connectivity
     Adjacent *cell;  // face-to-cell connectivity
     scalar *area;
@@ -86,7 +86,7 @@ typedef char Name[128];
 typedef struct {
     long num;
     long num_inner;
-    long num_ghost;
+    long off_ghost;  // num_inner + num_ghost
     Name *name;
     long *cell_off;       // entity-to-cell offsets
     long *face_off;       // entity-to-face offsets

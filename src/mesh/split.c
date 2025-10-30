@@ -23,8 +23,8 @@ static void grow_entities(MeshEntities *entities, long idx)
     if (idx < entities->num_inner) {
         entities->num_inner += 1;
     }
-    else if (idx < entities->num_inner + entities->num_ghost) {
-        entities->num_ghost += 1;
+    else if (idx < entities->off_ghost) {
+        entities->off_ghost += 1;
     }
     entities->num += 1;
 

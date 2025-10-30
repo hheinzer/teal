@@ -117,9 +117,10 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
 
             if (mesh->cells.num) {
                 fprintf(stream,
-                        "\t mesh->cells.{num|inner|ghost|periodic} = %ld | %ld | %ld | %ld\n",
-                        mesh->cells.num, mesh->cells.num_inner, mesh->cells.num_ghost,
-                        mesh->cells.num_periodic);
+                        "\t mesh->cells.{num|num_inner|off_ghost|off_periodic} ="
+                        " %ld | %ld | %ld | %ld\n",
+                        mesh->cells.num, mesh->cells.num_inner, mesh->cells.off_ghost,
+                        mesh->cells.off_periodic);
                 fprintf(stream, "\t mesh->cells.{node|cell|volume|center|projection} = [\n");
                 for (long i = 0; i < mesh->cells.num; i++) {
                     fprintf(stream, "\t\t [%ld]", i);
@@ -134,8 +135,8 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
             }
 
             if (mesh->faces.num) {
-                fprintf(stream, "\t mesh->faces.{num|inner|ghost} = %ld | %ld | %ld\n",
-                        mesh->faces.num, mesh->faces.num_inner, mesh->faces.num_ghost);
+                fprintf(stream, "\t mesh->faces.{num|num_inner|off_ghost} = %ld | %ld | %ld\n",
+                        mesh->faces.num, mesh->faces.num_inner, mesh->faces.off_ghost);
                 fprintf(stream, "\t mesh->faces.{node|cell|area|center|basis|weight} = [\n");
                 for (long i = 0; i < mesh->faces.num; i++) {
                     fprintf(stream, "\t\t [%ld]", i);
@@ -151,8 +152,8 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
             }
 
             if (mesh->entities.num) {
-                fprintf(stream, "\t mesh->entities.{num|inner|ghost} = %ld | %ld | %ld\n",
-                        mesh->entities.num, mesh->entities.num_inner, mesh->entities.num_ghost);
+                fprintf(stream, "\t mesh->entities.{num|num_inner|off_ghost} = %ld | %ld | %ld\n",
+                        mesh->entities.num, mesh->entities.num_inner, mesh->entities.off_ghost);
                 fprintf(stream, "\t mesh->entities.{name|cell|face|translation} = [\n");
                 for (long i = 0; i < mesh->entities.num; i++) {
                     fprintf(stream, "\t\t [%ld]", i);

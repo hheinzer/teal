@@ -76,7 +76,7 @@ static void read_entities(MeshEntities *entities, hid_t loc)
 
     h5io_attribute_read(0, "num", &entities->num, 1, H5IO_LONG, group);
     h5io_attribute_read(0, "num_inner", &entities->num_inner, 1, H5IO_LONG, group);
-    h5io_attribute_read(0, "num_ghost", &entities->num_ghost, 1, H5IO_LONG, group);
+    h5io_attribute_read(0, "off_ghost", &entities->off_ghost, 1, H5IO_LONG, group);
 
     entities->name = malloc(entities->num * sizeof(*entities->name));
     assert(entities->name);

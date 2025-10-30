@@ -174,15 +174,19 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int
 {
     cells->num_inner = num_cells.x * num_cells.y * num_cells.z;
     cells->num = cells->num_inner;
+    long num_ghost = 0;
+    long num_periodic = 0;
     for (long i = 0; i < 2 * ndims; i++) {
         if (neighbor[i] == MPI_PROC_NULL) {
-            cells->num_ghost += num_cells_side(num_cells, i);
+            num_ghost += num_cells_side(num_cells, i);
         }
         else if (is_edge_side(dims, coords, i)) {
-            cells->num_periodic += num_cells_side(num_cells, i);
+            num_periodic += num_cells_side(num_cells, i);
         }
         cells->num += num_cells_side(num_cells, i);
     }
+    cells->off_ghost = cells->num_inner + num_ghost;
+    cells->off_periodic = cells->num_inner + num_ghost + num_periodic;
 
     long *off = arena_malloc(cells->num + 1, sizeof(*off));
     long *idx = arena_malloc(cells->num * MAX_CELL_NODES, sizeof(*idx));
@@ -309,19 +313,18 @@ static void compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims,
                 map[num] = cells->num_inner + num_ghost++;
             }
             else if (is_edge_side(dims, coords, i)) {
-                map[num] = cells->num_inner + cells->num_ghost + num_periodic++;
+                map[num] = cells->off_ghost + num_periodic++;
             }
             else {
-                map[num] =
-                    cells->num_inner + cells->num_ghost + cells->num_periodic + num_neighbors++;
+                map[num] = cells->off_periodic + num_neighbors++;
             }
             num += 1;
         }
     }
     assert(num == cells->num);
     assert(num_inner == cells->num_inner);
-    assert(num_ghost == cells->num_ghost);
-    assert(num_periodic == cells->num_periodic);
+    assert(num_ghost == cells->off_ghost - cells->num_inner);
+    assert(num_periodic == cells->off_periodic - cells->off_ghost);
     assert(num_neighbors == num - num_inner - num_ghost - num_periodic);
 }
 
@@ -397,7 +400,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     }
     assert(num == entities->num);
 
-    entities->num_ghost = num_ghost;
+    entities->off_ghost = entities->num_inner + num_ghost;
     entities->name = name;
     entities->cell_off = cell_off;
     entities->translation = translation;
@@ -417,7 +420,7 @@ static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, t
     long *rank = arena_malloc(neighbors->num, sizeof(*rank));
     long *recv_off = arena_malloc(neighbors->num + 1, sizeof(*recv_off));
 
-    recv_off[0] = cells->num_inner + cells->num_ghost;
+    recv_off[0] = cells->off_ghost;
 
     long num = 0;
     for (long i = 0; i < 2 * ndims; i++) {

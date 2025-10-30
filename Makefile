@@ -29,7 +29,8 @@ clean:
 	@rm -rf obj bin
 
 check:
-	@cppcheck --project=compile_commands.json --enable=all --inconclusive --check-level=exhaustive \
+	@cppcheck --quiet --project=compile_commands.json \
+		--enable=all --inconclusive --check-level=exhaustive \
 		--suppress=checkersReport --suppress=missingIncludeSystem \
 		--suppress=constVariable --suppress=constVariablePointer --suppress=unusedFunction
 

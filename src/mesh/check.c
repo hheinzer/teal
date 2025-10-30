@@ -77,16 +77,10 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
 {
     Arena save = arena_save();
 
-    check(cells->num > 0);
     check(cells->num_inner > 0);
-    check(cells->num_inner < cells->num);
-
-    long num_outer = cells->num - cells->num_inner;
-    check(cells->num_ghost >= 0);
-    check(cells->num_ghost <= num_outer);
-    check(cells->num_periodic >= 0);
-    check(cells->num_periodic <= num_outer);
-    check(cells->num_ghost + cells->num_periodic <= num_outer);
+    check(cells->num_inner <= cells->off_ghost);
+    check(cells->off_ghost <= cells->off_periodic);
+    check(cells->off_periodic <= cells->num);
 
     if (cells->node.off && cells->node.idx) {
         test_graph(cells->node, cells->num, 3, MAX_CELL_NODES, 0, nodes->num - 1);
@@ -151,11 +145,9 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
 {
     Arena save = arena_save();
 
-    check(faces->num > 0);
     check(faces->num_inner > 0);
-    check(faces->num_inner < faces->num);
-    check(faces->num_ghost >= 0);
-    check(faces->num_ghost <= faces->num - faces->num_inner);
+    check(faces->num_inner <= faces->off_ghost);
+    check(faces->off_ghost <= faces->num);
 
     if (faces->node.off && faces->node.idx) {
         test_graph(faces->node, faces->num, 3, MAX_FACE_NODES, 0, nodes->num - 1);
@@ -171,12 +163,12 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
                 check(faces->cell[i].right >= 0);
                 check(faces->cell[i].right < cells->num_inner);
             }
-            else if (i < faces->num_inner + faces->num_ghost) {
+            else if (i < faces->off_ghost) {
                 check(faces->cell[i].right >= cells->num_inner);
-                check(faces->cell[i].right < cells->num_inner + cells->num_ghost);
+                check(faces->cell[i].right < cells->off_ghost);
             }
             else {
-                check(faces->cell[i].right >= cells->num_inner + cells->num_ghost);
+                check(faces->cell[i].right >= cells->off_ghost);
                 check(faces->cell[i].right < cells->num);
             }
             check(faces->cell[i].left != faces->cell[i].right);
@@ -248,10 +240,8 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
                           const MeshEntities *entities)
 {
     check(entities->num > 0);
-    check(entities->num_inner > 0);
-    check(entities->num_inner <= entities->num);
-    check(entities->num_ghost >= 0);
-    check(entities->num_ghost <= entities->num - entities->num_inner);
+    check(entities->num_inner <= entities->off_ghost);
+    check(entities->off_ghost <= entities->num);
 
     if (entities->name) {
         for (long i = 0; i < entities->num; i++) {
@@ -265,8 +255,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
             check(entities->cell_off[i] <= entities->cell_off[i + 1]);
         }
         check(entities->cell_off[entities->num_inner] == cells->num_inner);
-        check(entities->cell_off[entities->num_inner + entities->num_ghost] ==
-              cells->num_inner + cells->num_ghost);
+        check(entities->cell_off[entities->off_ghost] == cells->off_ghost);
         check(entities->cell_off[entities->num] <= cells->num);
     }
 
@@ -276,8 +265,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
             check(entities->face_off[i] <= entities->face_off[i + 1]);
         }
         check(entities->face_off[entities->num_inner] == faces->num_inner);
-        check(entities->face_off[entities->num_inner + entities->num_ghost] ==
-              faces->num_inner + faces->num_ghost);
+        check(entities->face_off[entities->off_ghost] == faces->off_ghost);
         check(entities->face_off[entities->num] <= faces->num);
 
         if (entities->cell_off) {
@@ -294,7 +282,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
             check(isfinite(entities->translation[i].x));
             check(isfinite(entities->translation[i].y));
             check(isfinite(entities->translation[i].z));
-            if (i < entities->num_inner + entities->num_ghost) {
+            if (i < entities->off_ghost) {
                 check(isclose(entities->translation[i].x, 0));
                 check(isclose(entities->translation[i].y, 0));
                 check(isclose(entities->translation[i].z, 0));
@@ -332,7 +320,7 @@ static void test_neighbors(const MeshCells *cells, const MeshNeighbors *neighbor
     }
 
     if (neighbors->recv_off) {
-        check(neighbors->recv_off[0] == cells->num_inner + cells->num_ghost);
+        check(neighbors->recv_off[0] == cells->off_ghost);
         for (long i = 0; i < neighbors->num; i++) {
             check(neighbors->recv_off[i] <= neighbors->recv_off[i + 1]);
         }

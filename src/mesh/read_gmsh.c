@@ -865,7 +865,7 @@ static void create_entities(MeshEntities *entities, const Gmsh *gmsh)
 
     entities->num = num;
     entities->num_inner = num_inner;
-    entities->num_ghost = num_ghost;
+    entities->off_ghost = num_inner + num_ghost;
     entities->name = name;
 }
 

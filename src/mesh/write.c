@@ -51,9 +51,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     hid_t group = h5io_group_create("cells", loc);
 
-    long num_inner = cells->num_inner;
-    long num_outer = cells->num_ghost + cells->num_periodic;
-    long num_cells = num_inner + num_outer;
+    long num_cells = cells->off_periodic;
     long tot_cells = sync_lsum(num_cells);
     h5io_attribute_write(0, "num", &tot_cells, 1, H5IO_LONG, group);
 
@@ -117,7 +115,7 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
 
     h5io_attribute_write(0, "num", &entities->num, 1, H5IO_LONG, group);
     h5io_attribute_write(0, "num_inner", &entities->num_inner, 1, H5IO_LONG, group);
-    h5io_attribute_write(0, "num_ghost", &entities->num_ghost, 1, H5IO_LONG, group);
+    h5io_attribute_write(0, "off_ghost", &entities->off_ghost, 1, H5IO_LONG, group);
 
     long num_entities = (sync.rank == 0) ? entities->num : 0;
     h5io_dataset_write("name", entities->name, (hsize_t[]){num_entities, sizeof(*entities->name)},

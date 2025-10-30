@@ -22,12 +22,11 @@ void mesh_summary(const Mesh *mesh)
     long inner_nodes = sync_lsum(mesh->nodes.num_inner);
     long inner_cells = sync_lsum(mesh->cells.num_inner);
     long inner_faces = sync_lsum(mesh->faces.num_inner);
-    long ghost_faces = sync_lsum(mesh->faces.num_ghost);
-    long outer_faces = sync_lsum(mesh->faces.num - mesh->faces.num_inner - mesh->faces.num_ghost);
+    long ghost_faces = sync_lsum(mesh->faces.off_ghost - mesh->faces.num_inner);
+    long outer_faces = sync_lsum(mesh->faces.num - mesh->faces.off_ghost);
 
-    long periodic_cells = sync_lsum(mesh->cells.num_periodic);
-    long neighbor_cells = sync_lsum(mesh->cells.num - mesh->cells.num_inner -
-                                    mesh->cells.num_ghost - mesh->cells.num_periodic);
+    long periodic_cells = sync_lsum(mesh->cells.off_periodic - mesh->cells.off_ghost);
+    long neighbor_cells = sync_lsum(mesh->cells.num - mesh->cells.off_periodic);
     long exchange_cells = sync_lsum(count_exchange_cells(&mesh->neighbors));
 
     vector min_coord = sync_vmin(array_vmin(mesh->nodes.coord, mesh->nodes.num_inner));

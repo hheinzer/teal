@@ -175,7 +175,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
         if (face[i].right < cells->num_inner) {
             num_inner += 1;
         }
-        else if (face[i].right < cells->num_inner + cells->num_ghost) {
+        else if (face[i].right < cells->off_ghost) {
             num_ghost += 1;
         }
         off[i + 1] = off[i] + face[i].num;
@@ -185,13 +185,13 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
         cell[i].left = face[i].left;
         cell[i].right = face[i].right;
     }
-    assert(num_ghost == cells->num_ghost);
+    assert(num_ghost == cells->off_ghost - cells->num_inner);
 
     arena_load(save);
 
     faces->num = num;
     faces->num_inner = num_inner;
-    faces->num_ghost = num_ghost;
+    faces->off_ghost = num_inner + num_ghost;
     faces->node.off = arena_smuggle(off, num + 1, sizeof(*off));
     faces->node.idx = arena_smuggle(idx, faces->node.off[faces->num], sizeof(*idx));
     faces->cell = arena_smuggle(cell, num, sizeof(*cell));
@@ -237,7 +237,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     Arena save = arena_save();
 
     Kdtree *center2local = kdtree_create(sizeof(long));
-    for (long i = cells->num_inner + cells->num_ghost; i < cells->num; i++) {
+    for (long i = cells->off_ghost; i < cells->num; i++) {
         vector center = {0};
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
@@ -247,7 +247,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
         long local = cells->cell.idx[cells->cell.off[i]];
         kdtree_insert(center2local, center, &local);
     }
-    for (long i = cells->num_inner + cells->num_ghost + cells->num_periodic; i < cells->num; i++) {
+    for (long i = cells->off_periodic; i < cells->num; i++) {
         for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
             long local = cells->cell.idx[j];
             vector center = {0};
@@ -260,10 +260,10 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
         }
     }
 
-    long tot_recv = cells->num - cells->num_inner - cells->num_ghost;
+    long tot_recv = cells->num - cells->off_ghost;
     vector *recv = arena_malloc(tot_recv, sizeof(*recv));
     long num = 0;
-    for (long i = cells->num_inner + cells->num_ghost; i < cells->num; i++) {
+    for (long i = cells->off_ghost; i < cells->num; i++) {
         vector center = {0};
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
@@ -577,7 +577,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
         if (right < cells->num_inner) {
             projection[right] = vector_add(projection[right], inc);
         }
-        else if (i < faces->num_inner + faces->num_ghost) {  // mirror left center across the faces
+        else if (i < faces->off_ghost) {  // mirror left center across the faces
             vector c2f = vector_sub(faces->center[i], center[left]);
             center[right] =
                 vector_add(center[left], vector_mul(normal, 2 * vector_dot(c2f, normal)));
@@ -586,7 +586,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
 
     collect_centers(neighbors, center);
 
-    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
+    for (long i = entities->off_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
             center[j] = vector_sub(center[j], entities->translation[i]);
         }

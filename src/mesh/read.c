@@ -1040,7 +1040,7 @@ static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
         if (i < entities->num_inner) {
             num_inner += entities->cell_off[i + 1] - entities->cell_off[i];
         }
-        else if (i < entities->num_inner + entities->num_ghost) {
+        else if (i < entities->off_ghost) {
             num_ghost += entities->cell_off[i + 1] - entities->cell_off[i];
         }
         else {
@@ -1048,8 +1048,8 @@ static void compute_cell_counts(MeshCells *cells, const MeshEntities *entities)
         }
     }
     cells->num_inner = num_inner;
-    cells->num_ghost = num_ghost;
-    cells->num_periodic = num_periodic;
+    cells->off_ghost = num_inner + num_ghost;
+    cells->off_periodic = num_inner + num_ghost + num_periodic;
 }
 
 typedef struct {
@@ -1255,13 +1255,13 @@ static void collect_periodic_ranks(const MeshCells *cells, const MeshEntities *e
 
     Kdtree *centers = kdtree_create(0);
     long num = 0;
-    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
+    for (long i = entities->off_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
             vector center = vector_add(recv[num++].center, entities->translation[i]);
             kdtree_insert(centers, center, 0);
         }
     }
-    assert(num == cells->num_periodic);
+    assert(num == cells->off_periodic - cells->off_ghost);
 
     for (long i = 0; i < num; i++) {
         recv[i].rank = -1;
@@ -1308,7 +1308,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
         kdtree_insert(centers, center, 0);
     }
 
-    for (long i = cells->num_periodic; i < num; i++) {
+    for (long i = cells->off_periodic - cells->off_ghost; i < num; i++) {
         recv[i].rank = -1;
     }
 
@@ -1329,7 +1329,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
     }
     MPI_Type_free(&type);
 
-    for (long i = cells->num_periodic; i < num; i++) {
+    for (long i = cells->off_periodic - cells->off_ghost; i < num; i++) {
         assert(recv[i].rank != -1);
     }
 
@@ -1343,12 +1343,12 @@ static void compute_cell_map(const MeshCells *cells, const MeshEntities *entitie
 
     long (*off)[sync.size + 1] = arena_calloc(entities->num + 1, sizeof(*off));
     long num = 0;
-    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
+    for (long i = entities->off_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
             off[i][recv[num++].rank + 1] += 1;
         }
     }
-    assert(num == cells->num_periodic);
+    assert(num == cells->off_periodic - cells->off_ghost);
     for (long i = num; i < tot; i++) {
         off[entities->num][recv[i].rank + 1] += 1;
     }
@@ -1365,13 +1365,13 @@ static void compute_cell_map(const MeshCells *cells, const MeshEntities *entitie
     }
 
     num = 0;
-    for (long i = entities->num_inner + entities->num_ghost; i < entities->num; i++) {
+    for (long i = entities->off_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
             map[num] = off[i][recv[num].rank]++;
             num += 1;
         }
     }
-    assert(num == cells->num_periodic);
+    assert(num == cells->off_periodic - cells->off_ghost);
     for (long i = num; i < tot; i++) {
         map[i] = off[entities->num][recv[i].rank]++;
     }
@@ -1405,7 +1405,7 @@ static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const Mes
 {
     Arena save = arena_save();
 
-    long beg = cells->num_inner + cells->num_ghost;
+    long beg = cells->off_ghost;
     long end = cells->num;
     if (beg == end) {
         return;
