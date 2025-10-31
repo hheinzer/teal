@@ -10,7 +10,8 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-static void read_format(double *version, Mode *mode, Type *SIZE, bool *swap, File file)
+static void read_format(double *version, ParseMode *mode, ParseType *SIZE, bool *swap,
+                        ParseFile file)
 {
     char line[128];
     parse_ascii(STR, line, sizeof(line), file);
@@ -47,7 +48,7 @@ typedef struct {
     Physical *physical;
 } Physicals;
 
-static void read_physicals(Physicals *physicals, File file)
+static void read_physicals(Physicals *physicals, ParseFile file)
 {
     char line[128];
     parse_ascii(STR, line, sizeof(line), file);
@@ -78,7 +79,7 @@ typedef struct {
     int32_t *physical_tag;
 } Point;
 
-static Point *read_points(Mode mode, Type SIZE, long num, bool swap, File file)
+static Point *read_points(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Point *point = arena_malloc(num, sizeof(*point));
     for (long i = 0; i < num; i++) {
@@ -101,7 +102,7 @@ typedef struct {
     int32_t *point_tag;
 } Curve;
 
-static Curve *read_curves(Mode mode, Type SIZE, long num, bool swap, File file)
+static Curve *read_curves(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Curve *curve = arena_malloc(num, sizeof(*curve));
     for (long i = 0; i < num; i++) {
@@ -128,7 +129,7 @@ typedef struct {
     int32_t *curve_tag;
 } Surface;
 
-static Surface *read_surfaces(Mode mode, Type SIZE, long num, bool swap, File file)
+static Surface *read_surfaces(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Surface *surface = arena_malloc(num, sizeof(*surface));
     for (long i = 0; i < num; i++) {
@@ -155,7 +156,7 @@ typedef struct {
     int32_t *surface_tag;
 } Volume;
 
-static Volume *read_volumes(Mode mode, Type SIZE, long num, bool swap, File file)
+static Volume *read_volumes(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Volume *volume = arena_malloc(num, sizeof(*volume));
     for (long i = 0; i < num; i++) {
@@ -184,7 +185,8 @@ typedef struct {
     Volume *volume;
 } Entities;
 
-static void read_entities(Entities *entities, Mode mode, Type SIZE, bool swap, File file)
+static void read_entities(Entities *entities, ParseMode mode, ParseType SIZE, bool swap,
+                          ParseFile file)
 {
     char line[128];
     parse_ascii(STR, line, sizeof(line), file);
@@ -225,8 +227,8 @@ typedef struct {
     double *coord;
 } NodeBlock;
 
-static long read_node_block(NodeBlock *block, long beg, long end, long off, Mode mode, Type SIZE,
-                            bool swap, File file)
+static long read_node_block(NodeBlock *block, long beg, long end, long off, ParseMode mode,
+                            ParseType SIZE, bool swap, ParseFile file)
 {
     parse(mode, I32, &block->entity_dim, 1, swap, file);
     parse(mode, I32, &block->entity_tag, 1, swap, file);
@@ -273,7 +275,7 @@ typedef struct {
     NodeBlock *block;
 } Nodes;
 
-static void read_nodes(Nodes *nodes, Mode mode, Type SIZE, bool swap, File file)
+static void read_nodes(Nodes *nodes, ParseMode mode, ParseType SIZE, bool swap, ParseFile file)
 {
     char line[128];
     parse_ascii(STR, line, sizeof(line), file);
@@ -325,8 +327,8 @@ static long num_node_tags(long element_type)
     }
 }
 
-static long read_element_block(ElementBlock *block, long beg, long end, long off, Mode mode,
-                               Type SIZE, bool swap, File file)
+static long read_element_block(ElementBlock *block, long beg, long end, long off, ParseMode mode,
+                               ParseType SIZE, bool swap, ParseFile file)
 {
     parse(mode, I32, &block->entity_dim, 1, swap, file);
     parse(mode, I32, &block->entity_tag, 1, swap, file);
@@ -381,7 +383,8 @@ typedef struct {
     ElementBlock *block;
 } Elements;
 
-static void read_elements(Elements *elements, Mode mode, Type SIZE, bool swap, File file)
+static void read_elements(Elements *elements, ParseMode mode, ParseType SIZE, bool swap,
+                          ParseFile file)
 {
     char line[128];
     parse_ascii(STR, line, sizeof(line), file);
@@ -418,8 +421,8 @@ typedef struct {
     Elements elements;
 } Gmsh;
 
-__attribute((unused)) static void gmsh_dump(FILE *stream, double version, Mode mode, Type SIZE,
-                                            bool swap, const Gmsh *gmsh)
+__attribute((unused)) static void gmsh_dump(FILE *stream, double version, ParseMode mode,
+                                            ParseType SIZE, bool swap, const Gmsh *gmsh)
 {
     assert(stream && gmsh);
     long off = 0;
@@ -678,7 +681,7 @@ __attribute((unused)) static void gmsh_dump(FILE *stream, double version, Mode m
     }
 }
 
-static void create_nodes(MeshNodes *nodes, Type SIZE, const Gmsh *gmsh)
+static void create_nodes(MeshNodes *nodes, ParseType SIZE, const Gmsh *gmsh)
 {
     long num_blocks = parse_data_to_long(SIZE, &gmsh->nodes.num_blocks, 0);
     long num = 0;
@@ -718,7 +721,7 @@ static int cmp_map(const void *lhs, const void *rhs)
     return cmp_asc(_lhs->tag, _rhs->tag);
 }
 
-static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cells, Type SIZE,
+static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cells, ParseType SIZE,
                                          const Gmsh *gmsh)
 {
     Arena save = arena_save();
@@ -776,7 +779,7 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
     arena_load(save);
 }
 
-static void create_cells(const MeshNodes *nodes, MeshCells *cells, Type SIZE, const Gmsh *gmsh)
+static void create_cells(const MeshNodes *nodes, MeshCells *cells, ParseType SIZE, const Gmsh *gmsh)
 {
     long num_blocks = parse_data_to_long(SIZE, &gmsh->elements.num_blocks, 0);
     long num = 0;
@@ -883,7 +886,8 @@ static int cmp_volume(const void *lhs_, const void *rhs_)
     return cmp_asc(lhs->tag, rhs->tag);
 }
 
-static void compute_entity_map(long *entity, const MeshCells *cells, Type SIZE, const Gmsh *gmsh)
+static void compute_entity_map(long *entity, const MeshCells *cells, ParseType SIZE,
+                               const Gmsh *gmsh)
 {
     Arena save = arena_save();
 
@@ -941,7 +945,7 @@ static void compute_entity_map(long *entity, const MeshCells *cells, Type SIZE, 
     arena_load(save);
 }
 
-static void reorder(MeshCells *cells, MeshEntities *entities, Type SIZE, const Gmsh *gmsh)
+static void reorder(MeshCells *cells, MeshEntities *entities, ParseType SIZE, const Gmsh *gmsh)
 {
     Arena save = arena_save();
 
@@ -981,11 +985,11 @@ void mesh_read_gmsh(Mesh *mesh, const char *fname)
 
     Gmsh *gmsh = arena_calloc(1, sizeof(*gmsh));
 
-    File file = parse_open(fname);
+    ParseFile file = parse_open(fname);
 
     double version;
-    Mode mode;
-    Type SIZE;
+    ParseMode mode;
+    ParseType SIZE;
     bool swap = false;
     read_format(&version, &mode, &SIZE, &swap, file);
     assert(isclose(version, 4.1));  // NOLINT(readability-magic-numbers)

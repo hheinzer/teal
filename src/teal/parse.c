@@ -26,10 +26,10 @@ static const long size_of[] = {
     [F64] = sizeof(double),
 };
 
-File parse_open(const char *fname)
+ParseFile parse_open(const char *fname)
 {
     assert(fname);
-    File file = {0};
+    ParseFile file = {0};
     if (sync.rank == 0) {
         file.stream = fopen(fname, "rb");
         assert(file.stream);
@@ -38,7 +38,7 @@ File parse_open(const char *fname)
     return file;
 }
 
-long parse_get_offset(File file)
+long parse_get_offset(ParseFile file)
 {
     long offset = -1;
     if (sync.rank == 0) {
@@ -49,7 +49,7 @@ long parse_get_offset(File file)
     return offset;
 }
 
-void parse_set_offset(File file, long offset)
+void parse_set_offset(ParseFile file, long offset)
 {
     if (sync.rank == 0) {
         assert(file.stream && offset >= 0);
@@ -59,7 +59,7 @@ void parse_set_offset(File file, long offset)
 }
 
 /* Read next ASCII token from stream; unquote string it the `type == STR` and quotes are used. */
-static long next(Type type, char *token, long size, FILE *stream)
+static long next(ParseType type, char *token, long size, FILE *stream)
 {
     int chr;
     do {  // skip leading white space
@@ -94,7 +94,7 @@ static long next(Type type, char *token, long size, FILE *stream)
 }
 
 /* Convert token string into to the data type at index `idx`. */
-static void token_to_data(Type type, void *data, long idx, const char *token)
+static void token_to_data(ParseType type, void *data, long idx, const char *token)
 {
     errno = 0;
     char *end = 0;
@@ -114,7 +114,7 @@ static void token_to_data(Type type, void *data, long idx, const char *token)
     assert(errno == 0 && end && end != token && *end == 0);
 }
 
-void parse_ascii(Type type, void *data, long num, File file)
+void parse_ascii(ParseType type, void *data, long num, ParseFile file)
 {
     assert(data && num >= 0);
     if (sync.rank == 0) {
@@ -167,7 +167,7 @@ static void swap_data(void *data, long num, long size)
     }
 }
 
-void parse_binary(Type type, void *data, long num, bool swap, File file)
+void parse_binary(ParseType type, void *data, long num, bool swap, ParseFile file)
 {
     assert(type != STR && data && num >= 0);
     if (sync.rank == 0) {
@@ -181,7 +181,7 @@ void parse_binary(Type type, void *data, long num, bool swap, File file)
     MPI_Bcast(data, num, datatype_of[type], 0, sync.comm);
 }
 
-void parse(Mode mode, Type type, void *data, long num, bool swap, File file)
+void parse(ParseMode mode, ParseType type, void *data, long num, bool swap, ParseFile file)
 {
     switch (mode) {
         case ASCII: parse_ascii(type, data, num, file); break;
@@ -190,7 +190,7 @@ void parse(Mode mode, Type type, void *data, long num, bool swap, File file)
     }
 }
 
-long parse_split_ascii(Type type, void *data, long num, long len, long stride, File file)
+long parse_split_ascii(ParseType type, void *data, long num, long len, long stride, ParseFile file)
 {
     assert(type != STR && data && num >= 0 && len >= 0 && stride >= len);
 
@@ -254,8 +254,8 @@ long parse_split_ascii(Type type, void *data, long num, long len, long stride, F
     return end;
 }
 
-long parse_split_binary(Type type, void *data, long num, long len, long stride, bool swap,
-                        File file)
+long parse_split_binary(ParseType type, void *data, long num, long len, long stride, bool swap,
+                        ParseFile file)
 {
     assert(type != STR && data && num >= 0 && len >= 0 && stride >= len * size_of[type]);
 
@@ -292,8 +292,8 @@ long parse_split_binary(Type type, void *data, long num, long len, long stride, 
     return end;
 }
 
-long parse_split(Mode mode, Type type, void *data, long num, long len, long stride, bool swap,
-                 File file)
+long parse_split(ParseMode mode, ParseType type, void *data, long num, long len, long stride,
+                 bool swap, ParseFile file)
 {
     switch (mode) {
         case ASCII: return parse_split_ascii(type, data, num, len, stride, file);
@@ -302,7 +302,7 @@ long parse_split(Mode mode, Type type, void *data, long num, long len, long stri
     }
 }
 
-long parse_data_to_long(Type type, const void *data, long idx)
+long parse_data_to_long(ParseType type, const void *data, long idx)
 {
     assert(type != STR && data && idx >= 0);
     switch (type) {
@@ -320,7 +320,7 @@ long parse_data_to_long(Type type, const void *data, long idx)
     }
 }
 
-void parse_close(File file)
+void parse_close(ParseFile file)
 {
     if (sync.rank == 0) {
         assert(file.stream);
