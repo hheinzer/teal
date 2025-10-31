@@ -233,6 +233,11 @@ void h5io_dataset_read(const char *name, void *buf, const hsize_t *count, long r
 
 void h5io_link_create(const char *file, const char *object, const char *name, hid_t loc)
 {
-    assert(file && object && name);
-    H5Lcreate_external(file, object, loc, name, H5P_DEFAULT, H5P_DEFAULT);
+    assert(object && name);
+    if (file) {
+        H5Lcreate_external(file, object, loc, name, H5P_DEFAULT, H5P_DEFAULT);
+    }
+    else {
+        H5Lcreate_soft(object, loc, name, H5P_DEFAULT, H5P_DEFAULT);
+    }
 }
