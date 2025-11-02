@@ -10,7 +10,7 @@
 #include "teal/vector.h"
 
 /* Factor `sync.size` into a Cartesian grid, biased by global cell counts to balance work. */
-static void compute_dims(tuple num_cells, int ndims, int *dims)
+static void compute_dims(tuple num_cells, long ndims, int *dims)
 {
     long cells[3] = {lmax(1, num_cells.x), lmax(1, num_cells.y), lmax(1, num_cells.z)};
     dims[0] = dims[1] = dims[2] = 1;
@@ -59,8 +59,8 @@ static void compute_dims(tuple num_cells, int ndims, int *dims)
 
 /* Split physical bounds and cell counts for this rank's Cartesian slice. If axis is inactive,
  * collapse that axis to 1 cell; otherwise compute the rank's local sub-interval and cells count. */
-static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, long dim, int ndims,
-                         const int *dims, const int *coords)
+static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, long dim,
+                         long ndims, const int *dims, const int *coords)
 {
     if (ndims > dim) {
         assert(!isclose(*min_coord, *max_coord));
@@ -169,7 +169,7 @@ static bool is_edge_side(const int *dims, const int *coords, long idx)
 }
 
 /* Build cell-to-node connectivity for inner, ghost, periodic, and neighbor cells. */
-static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, int ndims,
+static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, long ndims,
                          const int *dims, const int *coords, const int *neighbor)
 {
     cells->num_inner = num_cells.x * num_cells.y * num_cells.z;
@@ -296,7 +296,7 @@ static void compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int 
 }
 
 /* Build cell reorder map to [inner, ghost, periodic, neighbor] for the current rank. */
-static void compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims, const int *dims,
+static void compute_cell_map(const MeshCells *cells, tuple num_cells, long ndims, const int *dims,
                              const int *coords, const int *neighbor, long *map)
 {
     long num = 0;
@@ -329,8 +329,8 @@ static void compute_cell_map(const MeshCells *cells, tuple num_cells, int ndims,
 }
 
 /* Reorder nodes then cells; fix connectivity using in-place maps. */
-static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple num_nodes, int ndims,
-                    const int *dims, const int *coords, const int *neighbor)
+static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple num_nodes,
+                    long ndims, const int *dims, const int *coords, const int *neighbor)
 {
     Arena save = arena_save();
 
@@ -358,7 +358,7 @@ static vector compute_translation(vector del_coord, int idx)
 }
 
 /* Create entities in the order [inner, ghost, periodic]. */
-static void create_entities(MeshEntities *entities, tuple num_cells, vector del_coord, int ndims,
+static void create_entities(MeshEntities *entities, tuple num_cells, vector del_coord, long ndims,
                             const int *dims, const int *periods, const int *coords,
                             const int *neighbor)
 {
@@ -408,7 +408,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
 
 /* Create neighbor metadata in the order [periodic, neighbor]. */
 static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, tuple num_cells,
-                             int ndims, const int *dims, const int *coords, const int *neighbor)
+                             long ndims, const int *dims, const int *coords, const int *neighbor)
 {
     neighbors->num = 0;
     for (long i = 0; i < 2 * ndims; i++) {
@@ -450,7 +450,7 @@ Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags per
     Mesh *mesh = arena_calloc(1, sizeof(*mesh));
 
     int dims[3] = {0};
-    int ndims = (num_cells.x > 1) + (num_cells.y > 1) + (num_cells.z > 1);
+    long ndims = (num_cells.x > 1) + (num_cells.y > 1) + (num_cells.z > 1);
     compute_dims(num_cells, ndims, dims);
 
     int periods[3] = {periodic.x, periodic.y, periodic.z};
