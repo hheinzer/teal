@@ -111,7 +111,7 @@ long sync_lexsum(long val)
 {
     long exsum = 0;
     MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
-    return exsum;
+    return (sync.rank == 0) ? 0 : exsum;
 }
 
 void sync_finalize(void)

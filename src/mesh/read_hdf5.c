@@ -11,8 +11,12 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
 {
     hid_t group = h5io_group_open("nodes", loc);
 
+    bool root = sync.rank == 0;
+
     long tot_nodes;
-    h5io_attribute_read(0, "num", &tot_nodes, 1, H5IO_LONG, group);
+    h5io_dataset_read("num", &tot_nodes, root, 1, H5IO_LONG, group);
+
+    MPI_Bcast(&tot_nodes, 1, MPI_LONG, 0, sync.comm);
 
     nodes->num = (tot_nodes / sync.size) + (sync.rank < tot_nodes % sync.size);
     assert(tot_nodes == sync_lsum(nodes->num));
@@ -20,7 +24,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     nodes->coord = malloc(nodes->num * sizeof(*nodes->coord));
     assert(nodes->coord);
 
-    h5io_dataset_read("coord", nodes->coord, (hsize_t[]){nodes->num, 3}, 2, H5IO_SCALAR, group);
+    h5io_dataset_read("coord", nodes->coord, nodes->num, 3, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 }
@@ -34,8 +38,8 @@ static void read_node_graph(Graph *node, long num_cells, hid_t loc)
 
     node->off[0] = 0;
 
-    long num = num_cells + (sync.rank == 0);
-    h5io_dataset_read("off", &node->off[sync.rank != 0], (hsize_t[]){num}, 1, H5IO_LONG, group);
+    long num_off = num_cells + (sync.rank == 0);
+    h5io_dataset_read("off", &node->off[sync.rank != 0], num_off, 1, H5IO_LONG, group);
 
     long offset = 0;
     int dst = (sync.rank + 1 < sync.size) ? sync.rank + 1 : MPI_PROC_NULL;
@@ -50,7 +54,8 @@ static void read_node_graph(Graph *node, long num_cells, hid_t loc)
     node->idx = malloc(node->off[num_cells] * sizeof(*node->idx));
     assert(node->idx);
 
-    h5io_dataset_read("idx", node->idx, (hsize_t[]){node->off[num_cells]}, 1, H5IO_LONG, group);
+    long num_idx = node->off[num_cells];
+    h5io_dataset_read("idx", node->idx, num_idx, 1, H5IO_LONG, group);
 
     h5io_group_close(group);
 }
@@ -59,8 +64,12 @@ static void read_cells(MeshCells *cells, hid_t loc)
 {
     hid_t group = h5io_group_open("cells", loc);
 
+    bool root = sync.rank == 0;
+
     long tot_cells;
-    h5io_attribute_read(0, "num", &tot_cells, 1, H5IO_LONG, group);
+    h5io_dataset_read("num", &tot_cells, root, 1, H5IO_LONG, group);
+
+    MPI_Bcast(&tot_cells, 1, MPI_LONG, 0, sync.comm);
 
     cells->num = (tot_cells / sync.size) + (sync.rank < tot_cells % sync.size);
     assert(tot_cells == sync_lsum(cells->num));
@@ -74,16 +83,21 @@ static void read_entities(MeshEntities *entities, hid_t loc)
 {
     hid_t group = h5io_group_open("entities", loc);
 
-    h5io_attribute_read(0, "num", &entities->num, 1, H5IO_LONG, group);
-    h5io_attribute_read(0, "num_inner", &entities->num_inner, 1, H5IO_LONG, group);
-    h5io_attribute_read(0, "off_ghost", &entities->off_ghost, 1, H5IO_LONG, group);
+    bool root = sync.rank == 0;
+
+    h5io_dataset_read("num", &entities->num, root, 1, H5IO_LONG, group);
+    h5io_dataset_read("num_inner", &entities->num_inner, root, 1, H5IO_LONG, group);
+    h5io_dataset_read("off_ghost", &entities->off_ghost, root, 1, H5IO_LONG, group);
+
+    MPI_Bcast(&entities->num, 1, MPI_LONG, 0, sync.comm);
+    MPI_Bcast(&entities->num_inner, 1, MPI_LONG, 0, sync.comm);
+    MPI_Bcast(&entities->off_ghost, 1, MPI_LONG, 0, sync.comm);
 
     entities->name = malloc(entities->num * sizeof(*entities->name));
     assert(entities->name);
 
-    long num_entities = (sync.rank == 0) ? entities->num : 0;
-    h5io_dataset_read("name", entities->name, (hsize_t[]){num_entities, sizeof(*entities->name)}, 2,
-                      H5IO_STRING, group);
+    long num = root ? entities->num : 0;
+    h5io_dataset_read("name", entities->name, num, sizeof(*entities->name), H5IO_STRING, group);
 
     MPI_Bcast(entities->name, entities->num * sizeof(*entities->name), MPI_CHAR, 0, sync.comm);
 
@@ -95,7 +109,7 @@ static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
     Arena save = arena_save();
 
     long *entity = arena_malloc(cells->num, sizeof(*entity));
-    h5io_dataset_read("cells/entity", entity, (hsize_t[]){cells->num}, 1, H5IO_LONG, loc);
+    h5io_dataset_read("cells/entity", entity, cells->num, 1, H5IO_LONG, loc);
 
     long *num_cells = arena_calloc(entities->num, sizeof(*num_cells));
     for (long i = 0; i < cells->num; i++) {
