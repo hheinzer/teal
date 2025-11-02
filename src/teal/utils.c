@@ -115,7 +115,7 @@ int cmp_vector(const void *lhs_, const void *rhs_)
     return cmp_scalar(&lhs->z, &rhs->z);
 }
 
-void lswap(long *lhs, long *rhs)
+void swap_long(long *lhs, long *rhs)
 {
     assert(lhs && rhs);
     long swap = *lhs;
@@ -123,7 +123,7 @@ void lswap(long *lhs, long *rhs)
     *rhs = swap;
 }
 
-void fswap(scalar *lhs, scalar *rhs)
+void swap_scalar(scalar *lhs, scalar *rhs)
 {
     assert(lhs && rhs);
     scalar swap = *lhs;
@@ -131,7 +131,7 @@ void fswap(scalar *lhs, scalar *rhs)
     *rhs = swap;
 }
 
-void vswap(vector *lhs, vector *rhs)
+void swap_vector(vector *lhs, vector *rhs)
 {
     assert(lhs && rhs);
     vector swap = *lhs;

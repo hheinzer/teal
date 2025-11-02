@@ -6,7 +6,6 @@
 
 #include "assert.h"
 #include "utils.h"
-#include "vector.h"
 
 long array_lmin(const long *arr, long num)
 {
@@ -64,36 +63,6 @@ scalar array_fsum(const scalar *arr, long num)
     double sum = 0;  // always use double to avoid loss of precision
     for (long i = 0; i < num; i++) {
         sum += arr[i];
-    }
-    return sum;
-}
-
-vector array_vmin(const vector *arr, long num)
-{
-    assert(arr ? num >= 0 : num == 0);
-    vector min = {INFINITY, INFINITY, INFINITY};
-    for (long i = 0; i < num; i++) {
-        min = vector_min(min, arr[i]);
-    }
-    return min;
-}
-
-vector array_vmax(const vector *arr, long num)
-{
-    assert(arr ? num >= 0 : num == 0);
-    vector max = {-INFINITY, -INFINITY, -INFINITY};
-    for (long i = 0; i < num; i++) {
-        max = vector_max(max, arr[i]);
-    }
-    return max;
-}
-
-vector array_vsum(const vector *arr, long num)
-{
-    assert(arr ? num >= 0 : num == 0);
-    vector sum = {0};
-    for (long i = 0; i < num; i++) {
-        sum = vector_add(sum, arr[i]);
     }
     return sum;
 }

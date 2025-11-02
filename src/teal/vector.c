@@ -2,39 +2,59 @@
 
 #include <math.h>
 
-vector vector_min(vector lhs, vector rhs)
-{
-    return (vector){fmin(lhs.x, rhs.x), fmin(lhs.y, rhs.y), fmin(lhs.z, rhs.z)};
-}
-
-vector vector_max(vector lhs, vector rhs)
-{
-    return (vector){fmax(lhs.x, rhs.x), fmax(lhs.y, rhs.y), fmax(lhs.z, rhs.z)};
-}
+#include "assert.h"
+#include "utils.h"
 
 vector vector_add(vector lhs, vector rhs)
 {
-    return (vector){lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};
+    return (vector){
+        lhs.x + rhs.x,
+        lhs.y + rhs.y,
+        lhs.z + rhs.z,
+    };
 }
 
 vector vector_sub(vector lhs, vector rhs)
 {
-    return (vector){lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
+    return (vector){
+        lhs.x - rhs.x,
+        lhs.y - rhs.y,
+        lhs.z - rhs.z,
+    };
 }
 
-vector vector_mul(vector lhs, scalar rhs)
+vector vector_mul(scalar lhs, vector rhs)
 {
-    return (vector){lhs.x * rhs, lhs.y * rhs, lhs.z * rhs};
+    return (vector){
+        lhs * rhs.x,
+        lhs * rhs.y,
+        lhs * rhs.z,
+    };
 }
 
 vector vector_div(vector lhs, scalar rhs)
 {
-    return vector_mul(lhs, 1.0 / rhs);
+    assert(!isclose(rhs, 0.0));
+    return vector_mul(1.0 / rhs, lhs);
 }
 
 vector vector_abs(vector vec)
 {
-    return (vector){fabs(vec.x), fabs(vec.y), fabs(vec.z)};
+    return (vector){
+        fabs(vec.x),
+        fabs(vec.y),
+        fabs(vec.z),
+    };
+}
+
+vector vector_sum(const vector *vec, long num)
+{
+    assert(vec ? num >= 0 : num == 0);
+    vector sum = {0};
+    for (long i = 0; i < num; i++) {
+        sum = vector_add(sum, vec[i]);
+    }
+    return sum;
 }
 
 scalar vector_dot(vector lhs, vector rhs)
@@ -42,14 +62,14 @@ scalar vector_dot(vector lhs, vector rhs)
     return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
 }
 
-scalar vector_len(vector vec)
+scalar vector_norm(vector vec)
 {
     return sqrt(vector_dot(vec, vec));
 }
 
-vector vector_unit(vector vec)
+vector vector_normalize(vector vec)
 {
-    return vector_div(vec, vector_len(vec));
+    return vector_div(vec, vector_norm(vec));
 }
 
 vector vector_cross(vector lhs, vector rhs)

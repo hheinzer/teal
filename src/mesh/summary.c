@@ -1,5 +1,4 @@
 #include "mesh.h"
-#include "teal/array.h"
 #include "teal/assert.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
@@ -29,13 +28,6 @@ void mesh_summary(const Mesh *mesh)
     long neighbor_cells = sync_lsum(mesh->cells.num - mesh->cells.off_periodic);
     long exchange_cells = sync_lsum(count_exchange_cells(&mesh->neighbors));
 
-    vector min_coord = sync_vmin(array_vmin(mesh->nodes.coord, mesh->nodes.num_inner));
-    vector max_coord = sync_vmax(array_vmax(mesh->nodes.coord, mesh->nodes.num_inner));
-
-    scalar min_volume = sync_fmin(array_fmin(mesh->cells.volume, mesh->cells.num_inner));
-    scalar max_volume = sync_fmax(array_fmax(mesh->cells.volume, mesh->cells.num_inner));
-    scalar sum_volume = sync_fsum(array_fsum(mesh->cells.volume, mesh->cells.num_inner));
-
     println("Mesh summary:");
     println("\t number of inner nodes:    %ld", inner_nodes);
     println("\t number of inner cells:    %ld", inner_cells);
@@ -45,7 +37,4 @@ void mesh_summary(const Mesh *mesh)
     println("\t number of periodic cells: %ld", periodic_cells);
     println("\t number of neighbor cells: %ld", neighbor_cells);
     println("\t number of exchange cells: %ld", exchange_cells);
-    println("\t min/max coord:            %g %g %g / %g %g %g", min_coord.x, min_coord.y,
-            min_coord.z, max_coord.x, max_coord.y, max_coord.z);
-    println("\t min/max/sum volume:       %g / %g / %g", min_volume, max_volume, sum_volume);
 }

@@ -18,13 +18,13 @@ static void compute_dims(tuple num_cells, long ndims, int *dims)
     // sort axes by descending global cell count (try larger cuts first)
     long perm[3] = {0, 1, 2};
     if (cells[perm[1]] > cells[perm[0]]) {
-        lswap(&perm[0], &perm[1]);
+        swap_long(&perm[0], &perm[1]);
     }
     if (cells[perm[2]] > cells[perm[1]]) {
-        lswap(&perm[1], &perm[2]);
+        swap_long(&perm[1], &perm[2]);
     }
     if (cells[perm[1]] > cells[perm[0]]) {
-        lswap(&perm[0], &perm[1]);
+        swap_long(&perm[0], &perm[1]);
     }
 
     long prime = sync.size;

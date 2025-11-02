@@ -29,9 +29,9 @@ int cmp_long(const void *lhs_, const void *rhs_);
 int cmp_scalar(const void *lhs_, const void *rhs_);
 int cmp_vector(const void *lhs_, const void *rhs_);
 
-void lswap(long *lhs, long *rhs);
-void fswap(scalar *lhs, scalar *rhs);
-void vswap(vector *lhs, vector *rhs);
+void swap_long(long *lhs, long *rhs);
+void swap_scalar(scalar *lhs, scalar *rhs);
+void swap_vector(vector *lhs, vector *rhs);
 void swap_bytes(void *lhs_, void *rhs_, long size);
 
 scalar str_to_size(const char *str);

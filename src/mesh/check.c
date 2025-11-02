@@ -205,9 +205,9 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
             check(isfinite(faces->basis[i].z.x));
             check(isfinite(faces->basis[i].z.y));
             check(isfinite(faces->basis[i].z.z));
-            check(isclose(vector_len(faces->basis[i].x), 1));
-            check(isclose(vector_len(faces->basis[i].y), 1));
-            check(isclose(vector_len(faces->basis[i].z), 1));
+            check(isclose(vector_norm(faces->basis[i].x), 1));
+            check(isclose(vector_norm(faces->basis[i].y), 1));
+            check(isclose(vector_norm(faces->basis[i].z), 1));
             check(isclose(vector_dot(faces->basis[i].x, faces->basis[i].y), 0));
             check(isclose(vector_dot(faces->basis[i].y, faces->basis[i].z), 0));
             check(isclose(vector_dot(faces->basis[i].z, faces->basis[i].x), 0));
@@ -220,7 +220,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
             long right = faces->cell[i].right;
             vector normal = faces->basis[i].x;
             vector l2r = vector_sub(cells->center[right], cells->center[left]);
-            check(!isclose(vector_len(l2r), 0) && vector_len(l2r) > 0);
+            check(!isclose(vector_norm(l2r), 0) && vector_norm(l2r) > 0);
             check(!isclose(vector_dot(normal, l2r), 0) && vector_dot(normal, l2r) > 0);
         }
     }
@@ -288,7 +288,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
                 check(isclose(entities->translation[i].z, 0));
             }
             else {
-                check(!isclose(vector_len(entities->translation[i]), 0));
+                check(!isclose(vector_norm(entities->translation[i]), 0));
                 if (entities->name) {
                     check(strchr(entities->name[i], ':'));
                 }

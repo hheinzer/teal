@@ -341,7 +341,7 @@ static void correct_coord_order(vector *coord, long num_nodes)
                     return;
                 }
                 if (i + 2 < num_nodes) {
-                    vswap(&coord[i + 1], &coord[i + 2]);
+                    swap_vector(&coord[i + 1], &coord[i + 2]);
                 }
             }
             assert(false);
@@ -355,7 +355,7 @@ static scalar compute_face_area(const vector *coord, long num_nodes)
         case 3: {
             vector a2b = vector_sub(coord[1], coord[0]);
             vector a2c = vector_sub(coord[2], coord[0]);
-            return vector_len(vector_cross(a2b, a2c)) / 2;
+            return vector_norm(vector_cross(a2b, a2c)) / 2;
         }
         case 4: {
             vector lhs[3] = {coord[0], coord[1], coord[2]};
@@ -370,7 +370,7 @@ static vector weighted_average(const vector *arr, const scalar *wgt, long num)
 {
     vector wsum = {0};
     for (long i = 0; i < num; i++) {
-        wsum = vector_add(wsum, vector_mul(arr[i], wgt[i]));
+        wsum = vector_add(wsum, vector_mul(wgt[i], arr[i]));
     }
     return vector_div(wsum, array_fsum(wgt, num));
 }
@@ -378,7 +378,7 @@ static vector weighted_average(const vector *arr, const scalar *wgt, long num)
 static vector compute_face_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
-        case 3: return vector_div(array_vsum(coord, 3), 3);
+        case 3: return vector_div(vector_sum(coord, 3), 3);
         case 4: {
             vector lhs[3] = {coord[0], coord[1], coord[2]};
             vector rhs[3] = {coord[0], coord[2], coord[3]};
@@ -396,14 +396,14 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
         case 3: {
             vector a2b = vector_sub(coord[1], coord[0]);
             vector a2c = vector_sub(coord[2], coord[0]);
-            return vector_unit(vector_cross(a2b, a2c));
+            return vector_normalize(vector_cross(a2b, a2c));
         }
         case 4: {
             vector sum = {0};
             for (long i = 0; i < 4; i++) {
                 sum = vector_add(sum, vector_cross(coord[i], coord[(i + 1) % 4]));
             }
-            return vector_unit(sum);
+            return vector_normalize(sum);
         }
         default: assert(false);
     }
@@ -437,8 +437,8 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, l
         mean = vector_add(mean, vector_div(coord, num_nodes));
     }
     if (vector_dot(vector_sub(mean, center), basis->x) > 0) {
-        basis->x = vector_mul(basis->x, -1);
-        basis->y = vector_mul(basis->y, -1);
+        basis->x = vector_mul(-1, basis->x);
+        basis->y = vector_mul(-1, basis->y);
     }
 }
 
@@ -497,7 +497,7 @@ static scalar compute_cell_volume(const vector *coord, long num_nodes)
 static vector compute_cell_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
-        case 4: return vector_div(array_vsum(coord, num_nodes), 4);
+        case 4: return vector_div(vector_sum(coord, num_nodes), 4);
         case 5: {
             vector lhs[4] = {coord[0], coord[1], coord[2], coord[4]};
             vector rhs[4] = {coord[0], coord[2], coord[3], coord[4]};
@@ -572,7 +572,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
         vector normal = faces->basis[i].x;
-        vector inc = vector_mul(vector_abs(normal), faces->area[i] / 2);
+        vector inc = vector_mul(faces->area[i] / 2, vector_abs(normal));
         projection[left] = vector_add(projection[left], inc);
         if (right < cells->num_inner) {
             projection[right] = vector_add(projection[right], inc);
@@ -580,7 +580,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
         else if (i < faces->off_ghost) {  // mirror left center across the faces
             vector c2f = vector_sub(faces->center[i], center[left]);
             center[right] =
-                vector_add(center[left], vector_mul(normal, 2 * vector_dot(c2f, normal)));
+                vector_add(center[left], vector_mul(2 * vector_dot(c2f, normal), normal));
         }
     }
 
@@ -611,7 +611,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = pow2(1.0 / vector_len(delta));
+        scalar theta2 = pow2(1.0 / vector_norm(delta));
         r11[left] += theta2 * delta.x * delta.x;
         r12[left] += theta2 * delta.x * delta.y;
         r22[left] += theta2 * delta.y * delta.y;
@@ -641,7 +641,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = pow2(1.0 / vector_len(delta));
+        scalar theta2 = pow2(1.0 / vector_norm(delta));
         scalar beta = (r12[left] * r23[left] - r13[left] * r22[left]) / (r11[left] * r22[left]);
         vector alpha;
         alpha.x = delta.x / pow2(r11[left]);
@@ -659,7 +659,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
             weight[i].y += -r23[left] / r22[left] * alpha.z;
             weight[i].z += alpha.z;
         }
-        weight[i] = vector_mul(weight[i], theta2);
+        weight[i] = vector_mul(theta2, weight[i]);
         assert(isfinite(weight[i].x));
         assert(isfinite(weight[i].y));
         assert(isfinite(weight[i].z));
