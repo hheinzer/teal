@@ -33,7 +33,7 @@ matrix matrix_mul(scalar lhs, matrix rhs)
 
 matrix matrix_div(matrix lhs, scalar rhs)
 {
-    assert(!isclose(rhs, 0.0));
+    assert(!isclose(rhs, 0));
     return matrix_mul(1.0 / rhs, lhs);
 }
 

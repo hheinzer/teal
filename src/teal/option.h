@@ -7,7 +7,7 @@ typedef struct {
     bool verbose;
     long capacity;
     long num_refines;
-    char *restart;
+    const char *restart;
 } Option;
 
 extern Option option;

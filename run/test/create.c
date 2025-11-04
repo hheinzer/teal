@@ -1,5 +1,4 @@
 #include <math.h>
-#include <stdio.h>
 
 #include "mesh.h"
 
@@ -9,7 +8,7 @@ int main(int argc, char **argv)
 
     vector min_coord = {0, 0, 0};
     vector max_coord = {9, 3, 1};
-    tuple num_cells = {180, 60, 20};
+    tuple num_cells = {300, 100, 33};
     flags periodic = {.x = true, .z = true};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
 
