@@ -10,11 +10,13 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
 
     bool root = sync.rank == 0;
 
-    long num_inner = nodes->num_inner;
-    long tot_inner = sync_lsum(num_inner);
-    h5io_dataset_write("num", &tot_inner, root, 1, H5IO_LONG, group);
+    long num_nodes = nodes->num_inner;
+    h5io_dataset_write("num", &num_nodes, 1, 1, H5IO_LONG, group);
 
-    h5io_dataset_write("coord", nodes->coord, num_inner, 3, H5IO_SCALAR, group);
+    long tot_nodes = sync_lsum(num_nodes);
+    h5io_dataset_write("tot", &tot_nodes, root, 1, H5IO_LONG, group);
+
+    h5io_dataset_write("coord", nodes->coord, num_nodes, 3, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 }
@@ -56,18 +58,19 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     bool root = sync.rank == 0;
 
     long num_cells = cells->off_periodic;
+    h5io_dataset_write("num", &num_cells, 1, 1, H5IO_LONG, group);
+
     long tot_cells = sync_lsum(num_cells);
-    h5io_dataset_write("num", &tot_cells, root, 1, H5IO_LONG, group);
+    h5io_dataset_write("tot", &tot_cells, root, 1, H5IO_LONG, group);
 
     long num_idx = cells->node.off[num_cells];
     long tot_idx = sync_lsum(num_idx);
-    h5io_dataset_write("num_idx", &tot_idx, root, 1, H5IO_LONG, group);
+    h5io_dataset_write("tot_idx", &tot_idx, root, 1, H5IO_LONG, group);
 
     write_node_graph(cells->node, nodes->global, num_cells, group);
 
     unsigned char *type = arena_malloc(num_cells, sizeof(*type));
     long *entity = arena_malloc(num_cells, sizeof(*entity));
-
     long *index = arena_malloc(num_cells, sizeof(*index));
     int *rank = arena_malloc(num_cells, sizeof(*rank));
 
@@ -103,7 +106,6 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     h5io_dataset_write("type", type, num_cells, 1, H5IO_UCHAR, group);
     h5io_dataset_write("entity", entity, num_cells, 1, H5IO_LONG, group);
-
     h5io_dataset_write("index", index, num_cells, 1, H5IO_LONG, group);
     h5io_dataset_write("rank", rank, num_cells, 1, H5IO_INT, group);
 

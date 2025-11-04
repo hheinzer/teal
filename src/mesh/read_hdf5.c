@@ -14,12 +14,18 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     bool root = sync.rank == 0;
 
     long tot_nodes;
-    h5io_dataset_read("num", &tot_nodes, root, 1, H5IO_LONG, group);
-
+    h5io_dataset_read("tot", &tot_nodes, root, 1, H5IO_LONG, group);
     MPI_Bcast(&tot_nodes, 1, MPI_LONG, 0, sync.comm);
 
-    nodes->num = (tot_nodes / sync.size) + (sync.rank < tot_nodes % sync.size);
-    assert(tot_nodes == sync_lsum(nodes->num));
+    long num_nodes;
+    if (h5io_dataset_num("num", group) == sync.size) {
+        h5io_dataset_read("num", &num_nodes, 1, 1, H5IO_LONG, group);
+    }
+    else {
+        num_nodes = (tot_nodes / sync.size) + (sync.rank < tot_nodes % sync.size);
+    }
+    nodes->num = num_nodes;
+    assert(sync_lsum(nodes->num) == tot_nodes);
 
     nodes->coord = malloc(nodes->num * sizeof(*nodes->coord));
     assert(nodes->coord);
@@ -67,12 +73,18 @@ static void read_cells(MeshCells *cells, hid_t loc)
     bool root = sync.rank == 0;
 
     long tot_cells;
-    h5io_dataset_read("num", &tot_cells, root, 1, H5IO_LONG, group);
-
+    h5io_dataset_read("tot", &tot_cells, root, 1, H5IO_LONG, group);
     MPI_Bcast(&tot_cells, 1, MPI_LONG, 0, sync.comm);
 
-    cells->num = (tot_cells / sync.size) + (sync.rank < tot_cells % sync.size);
-    assert(tot_cells == sync_lsum(cells->num));
+    long num_cells;
+    if (h5io_dataset_num("num", group) == sync.size) {
+        h5io_dataset_read("num", &num_cells, 1, 1, H5IO_LONG, group);
+    }
+    else {
+        num_cells = (tot_cells / sync.size) + (sync.rank < tot_cells % sync.size);
+    }
+    cells->num = num_cells;
+    assert(sync_lsum(cells->num) == tot_cells);
 
     read_node_graph(&cells->node, cells->num, group);
 
