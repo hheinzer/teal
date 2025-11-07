@@ -77,7 +77,7 @@ static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const
             long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
             for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
                 vector coord = nodes->coord[cells->node.idx[j]];
-                center = vector_add(center, vector_div(coord, num_nodes));
+                vector_inc(&center, vector_div(coord, num_nodes));
             }
             if (cmp_vector(&center, &min_center) < 0) {
                 seed = i;
@@ -242,7 +242,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
-            center = vector_add(center, vector_div(coord, num_nodes));
+            vector_inc(&center, vector_div(coord, num_nodes));
         }
         long local = cells->cell.idx[cells->cell.off[i]];
         kdtree_insert(center2local, center, &local);
@@ -254,7 +254,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
             long num_nodes = cells->node.off[local + 1] - cells->node.off[local];
             for (long k = cells->node.off[local]; k < cells->node.off[local + 1]; k++) {
                 vector coord = nodes->coord[cells->node.idx[k]];
-                center = vector_add(center, vector_div(coord, num_nodes));
+                vector_inc(&center, vector_div(coord, num_nodes));
             }
             kdtree_insert(center2local, center, &local);
         }
@@ -268,7 +268,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
-            center = vector_add(center, vector_div(coord, num_nodes));
+            vector_inc(&center, vector_div(coord, num_nodes));
         }
         long entity = array_ldigitize(&entities->cell_off[1], i, entities->num);
         if (entity < entities->num) {
@@ -370,7 +370,7 @@ static vector weighted_average(const vector *arr, const scalar *wgt, long num)
 {
     vector wsum = {0};
     for (long i = 0; i < num; i++) {
-        wsum = vector_add(wsum, vector_mul(wgt[i], arr[i]));
+        vector_inc(&wsum, vector_mul(wgt[i], arr[i]));
     }
     return vector_div(wsum, array_fsum(wgt, num));
 }
@@ -401,7 +401,7 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
         case 4: {
             vector sum = {0};
             for (long i = 0; i < 4; i++) {
-                sum = vector_add(sum, vector_cross(coord[i], coord[(i + 1) % 4]));
+                vector_inc(&sum, vector_cross(coord[i], coord[(i + 1) % 4]));
             }
             return vector_normalize(sum);
         }
@@ -434,7 +434,7 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, l
     long num_nodes = cells->node.off[left + 1] - cells->node.off[left];
     for (long i = cells->node.off[left]; i < cells->node.off[left + 1]; i++) {
         vector coord = nodes->coord[cells->node.idx[i]];
-        mean = vector_add(mean, vector_div(coord, num_nodes));
+        vector_inc(&mean, vector_div(coord, num_nodes));
     }
     if (vector_dot(vector_sub(mean, center), basis->x) > 0) {
         basis->x = vector_mul(-1, basis->x);
@@ -573,9 +573,9 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
         long right = faces->cell[i].right;
         vector normal = faces->basis[i].x;
         vector inc = vector_mul(faces->area[i] / 2, vector_abs(normal));
-        projection[left] = vector_add(projection[left], inc);
+        vector_inc(&projection[left], inc);
         if (right < cells->num_inner) {
-            projection[right] = vector_add(projection[right], inc);
+            vector_inc(&projection[right], inc);
         }
         else if (i < faces->off_ghost) {  // mirror left center across the faces
             vector c2f = vector_sub(faces->center[i], center[left]);
@@ -588,7 +588,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
 
     for (long i = entities->off_ghost; i < entities->num; i++) {
         for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
-            center[j] = vector_sub(center[j], entities->translation[i]);
+            vector_dec(&center[j], entities->translation[i]);
         }
     }
 

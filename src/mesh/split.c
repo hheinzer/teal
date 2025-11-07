@@ -57,7 +57,7 @@ static long reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
-            center = vector_add(center, vector_div(coord, num_nodes));
+            vector_inc(&center, vector_div(coord, num_nodes));
         }
         map[num] = vector_dot(vector_sub(center, root), normal) <= 0;
         off += map[num];

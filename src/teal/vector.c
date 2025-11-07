@@ -38,6 +38,16 @@ vector vector_div(vector lhs, scalar rhs)
     return vector_mul(1.0 / rhs, lhs);
 }
 
+void vector_inc(vector *lhs, vector rhs)
+{
+    *lhs = vector_add(*lhs, rhs);
+}
+
+void vector_dec(vector *lhs, vector rhs)
+{
+    *lhs = vector_sub(*lhs, rhs);
+}
+
 vector vector_abs(vector vec)
 {
     return (vector){
@@ -52,7 +62,7 @@ vector vector_sum(const vector *vec, long num)
     assert(vec ? num >= 0 : num == 0);
     vector sum = {0};
     for (long i = 0; i < num; i++) {
-        sum = vector_add(sum, vec[i]);
+        vector_inc(&sum, vec[i]);
     }
     return sum;
 }

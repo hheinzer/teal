@@ -312,12 +312,12 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
                     long key = cells->node.idx[k];
                     long *val = bsearch(&key, global, num, sizeof(*global), cmp_long);
                     assert(val);
-                    center = vector_add(center, vector_div(coord[val - global], num_nodes));
+                    vector_inc(&center, vector_div(coord[val - global], num_nodes));
                 }
                 Side side = (i == lhs) ? LHS : RHS;
                 long cell = j + off_cells;
                 kdtree_insert(center2link, center, &(Link){side, cell, -1});
-                mean[side] = vector_add(mean[side], center);
+                vector_inc(&mean[side], center);
             }
         }
     }
@@ -1203,11 +1203,11 @@ static void compute_translation(const MeshNodes *nodes, const MeshCells *cells,
                 long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
                 for (long k = cells->node.off[j]; k < cells->node.off[j + 1]; k++) {
                     vector coord = nodes->coord[cells->node.idx[k]];
-                    center = vector_add(center, vector_div(coord, num_nodes));
+                    vector_inc(&center, vector_div(coord, num_nodes));
                 }
                 Side side = (i == lhs) ? LHS : RHS;
                 num_cells[side] += 1;
-                mean[side] = vector_add(mean[side], center);
+                vector_inc(&mean[side], center);
             }
         }
     }
@@ -1303,7 +1303,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
-            center = vector_add(center, vector_div(coord, num_nodes));
+            vector_inc(&center, vector_div(coord, num_nodes));
         }
         kdtree_insert(centers, center, 0);
     }
@@ -1421,7 +1421,7 @@ static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const Mes
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
-            center = vector_add(center, vector_div(coord, num_nodes));
+            vector_inc(&center, vector_div(coord, num_nodes));
         }
         recv[num].center = center;
         recv[num].entity = array_ldigitize(&entities->cell_off[1], i, entities->num);

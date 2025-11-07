@@ -37,6 +37,16 @@ matrix matrix_div(matrix lhs, scalar rhs)
     return matrix_mul(1.0 / rhs, lhs);
 }
 
+void matrix_inc(matrix *lhs, matrix rhs)
+{
+    *lhs = matrix_add(*lhs, rhs);
+}
+
+void matrix_dec(matrix *lhs, matrix rhs)
+{
+    *lhs = matrix_sub(*lhs, rhs);
+}
+
 matrix matrix_transpose(matrix mat)
 {
     return (matrix){
