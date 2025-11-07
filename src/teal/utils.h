@@ -1,10 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-
 #include "teal.h"
 
-#define NON_NULL ((void *)(uintptr_t)1)  // NOLINT(performance-no-int-to-ptr)
+#define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
 
 #define countof(a) (sizeof(a) / sizeof(*(a)))
 
@@ -20,19 +18,19 @@ void error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
 scalar pow2(scalar val);
 scalar pow3(scalar val);
 
-long lmin(long lhs, long rhs);
-long lmax(long lhs, long rhs);
+number lmin(number lhs, number rhs);
+number lmax(number lhs, number rhs);
 
 bool isclose(scalar lhs, scalar rhs);
 
-int cmp_long(const void *lhs_, const void *rhs_);
+int cmp_number(const void *lhs_, const void *rhs_);
 int cmp_scalar(const void *lhs_, const void *rhs_);
 int cmp_vector(const void *lhs_, const void *rhs_);
 
-void swap_long(long *lhs, long *rhs);
+void swap_number(number *lhs, number *rhs);
 void swap_scalar(scalar *lhs, scalar *rhs);
 void swap_vector(vector *lhs, vector *rhs);
-void swap_bytes(void *lhs_, void *rhs_, long size);
+void swap_bytes(void *lhs_, void *rhs_, number size);
 
 scalar str_to_size(const char *str);
 void size_to_str(char *str, scalar size);

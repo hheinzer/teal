@@ -30,5 +30,5 @@ __attribute((noreturn)) static inline void unreachable(void)
 #define assert(expr) ((expr) ? (void)0 : x__assert_fail(__FILE__, __LINE__, __func__, #expr))
 #endif
 
-void x__assert_fail(const char *file, long line, const char *func, const char *expr)
+void x__assert_fail(const char *file, int line, const char *func, const char *expr)
     __attribute((noreturn));

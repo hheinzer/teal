@@ -9,7 +9,7 @@
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
-static bool append(char *buf, long size, long *pos, const char *fmt, ...)
+static bool append(char *buf, int size, int *pos, const char *fmt, ...)
 {
     if (*pos >= size) {
         buf[size - 1] = 0;
@@ -18,8 +18,8 @@ static bool append(char *buf, long size, long *pos, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    long rem = size - *pos;
-    long num = vsnprintf(&buf[*pos], rem, fmt, args);
+    int rem = size - *pos;
+    int num = vsnprintf(&buf[*pos], rem, fmt, args);
     va_end(args);
 
     if (num < 0) {
@@ -36,19 +36,19 @@ static bool append(char *buf, long size, long *pos, const char *fmt, ...)
     return true;
 }
 
-void x__assert_fail(const char *file, long line, const char *func, const char *expr)
+void x__assert_fail(const char *file, int line, const char *func, const char *expr)
 {
     char buf[4096];
-    long pos = 0;
-    if (!append(buf, sizeof(buf), &pos, "[%d] %s:%ld: %s: Assertion `%s` failed.\n", sync.rank,
-                file, line, func, expr)) {
+    int pos = 0;
+    if (!append(buf, sizeof(buf), &pos, "[%d] %s:%d: %s: Assertion `%s` failed.\n", sync.rank, file,
+                line, func, expr)) {
         goto out;
     }
 
     unw_context_t ctx;
     unw_cursor_t cur;
     if (!unw_getcontext(&ctx) && !unw_init_local(&cur, &ctx)) {
-        long frame = 0;
+        int frame = 0;
         while (unw_step(&cur) > 0) {
             char name[128];
             unw_word_t off = 0;
@@ -58,7 +58,7 @@ void x__assert_fail(const char *file, long line, const char *func, const char *e
             }
             unw_word_t iptr = 0;
             unw_get_reg(&cur, UNW_REG_IP, &iptr);
-            if (!append(buf, sizeof(buf), &pos, "\t %2ld. %-30s (+0x%lx) [0x%lx]\n", frame++, name,
+            if (!append(buf, sizeof(buf), &pos, "\t %2d. %-30s (+0x%lx) [0x%lx]\n", frame++, name,
                         off, iptr)) {
                 break;
             }

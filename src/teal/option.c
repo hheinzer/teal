@@ -44,8 +44,8 @@ void option_init(int *argc, char ***argv)
         }
     }
 
-    long num = 1;
-    for (long i = optind; i < *argc; i++) {
+    int num = 1;
+    for (int i = optind; i < *argc; i++) {
         (*argv)[num++] = (*argv)[i];
     }
     *argc = num;

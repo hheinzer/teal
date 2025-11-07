@@ -9,27 +9,27 @@ static void print_null(FILE *stream)
     fprintf(stream, " - |");
 }
 
-static void print_long(FILE *stream, const long *arr, long idx)
+static void print_number(FILE *stream, const number *arr, number idx)
 {
     if (arr) {
-        fprintf(stream, " %ld |", arr[idx]);
+        fprintf(stream, " %td |", arr[idx]);
     }
     else {
         print_null(stream);
     }
 }
 
-static void print_long_pair(FILE *stream, const long *arr, long idx)
+static void print_number_pair(FILE *stream, const number *arr, number idx)
 {
     if (arr) {
-        fprintf(stream, " %ld %ld |", arr[idx], arr[idx + 1]);
+        fprintf(stream, " %td %td |", arr[idx], arr[idx + 1]);
     }
     else {
         print_null(stream);
     }
 }
 
-static void print_scalar(FILE *stream, const scalar *arr, long idx)
+static void print_scalar(FILE *stream, const scalar *arr, number idx)
 {
     if (arr) {
         fprintf(stream, " %g |", arr[idx]);
@@ -39,7 +39,7 @@ static void print_scalar(FILE *stream, const scalar *arr, long idx)
     }
 }
 
-static void print_name(FILE *stream, const Name *arr, long idx)
+static void print_name(FILE *stream, const Name *arr, number idx)
 {
     if (arr) {
         fprintf(stream, " %s |", arr[idx]);
@@ -49,7 +49,7 @@ static void print_name(FILE *stream, const Name *arr, long idx)
     }
 }
 
-static void print_vector(FILE *stream, const vector *arr, long idx)
+static void print_vector(FILE *stream, const vector *arr, number idx)
 {
     if (arr) {
         vector vec = arr[idx];
@@ -60,7 +60,7 @@ static void print_vector(FILE *stream, const vector *arr, long idx)
     }
 }
 
-static void print_matrix(FILE *stream, const matrix *arr, long idx)
+static void print_matrix(FILE *stream, const matrix *arr, number idx)
 {
     if (arr) {
         matrix mat = arr[idx];
@@ -72,11 +72,11 @@ static void print_matrix(FILE *stream, const matrix *arr, long idx)
     }
 }
 
-static void print_graph(FILE *stream, Graph graph, long idx)
+static void print_graph(FILE *stream, Graph graph, number idx)
 {
     if (graph.off && graph.idx) {
-        for (long j = graph.off[idx]; j < graph.off[idx + 1]; j++) {
-            fprintf(stream, " %ld", graph.idx[j]);
+        for (number j = graph.off[idx]; j < graph.off[idx + 1]; j++) {
+            fprintf(stream, " %td", graph.idx[j]);
         }
         fprintf(stream, " |");
     }
@@ -85,10 +85,10 @@ static void print_graph(FILE *stream, Graph graph, long idx)
     }
 }
 
-static void print_adjacent(FILE *stream, const Adjacent *cell, long idx)
+static void print_adjacent(FILE *stream, const Adjacent *cell, number idx)
 {
     if (cell) {
-        fprintf(stream, " %ld %ld |", cell[idx].left, cell[idx].right);
+        fprintf(stream, " %td %td |", cell[idx].left, cell[idx].right);
     }
     else {
         print_null(stream);
@@ -98,17 +98,17 @@ static void print_adjacent(FILE *stream, const Adjacent *cell, long idx)
 void mesh_dump(FILE *stream, const Mesh *mesh)
 {
     assert(stream && mesh);
-    for (long rank = 0; rank < sync.size; rank++) {
+    for (number rank = 0; rank < sync.size; rank++) {
         if (rank == sync.rank) {
             fprintf(stream, "rank %d:\n", sync.rank);
 
             if (mesh->nodes.num) {
-                fprintf(stream, "\t mesh->nodes.{num|inner} = %ld | %ld\n", mesh->nodes.num,
+                fprintf(stream, "\t mesh->nodes.{num|inner} = %td | %td\n", mesh->nodes.num,
                         mesh->nodes.num_inner);
                 fprintf(stream, "\t mesh->nodes.{global|coord} = [\n");
-                for (long i = 0; i < mesh->nodes.num; i++) {
-                    fprintf(stream, "\t\t [%ld]", i);
-                    print_long(stream, mesh->nodes.global, i);
+                for (number i = 0; i < mesh->nodes.num; i++) {
+                    fprintf(stream, "\t\t [%td]", i);
+                    print_number(stream, mesh->nodes.global, i);
                     print_vector(stream, mesh->nodes.coord, i);
                     fprintf(stream, "\n");
                 }
@@ -118,12 +118,12 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
             if (mesh->cells.num) {
                 fprintf(stream,
                         "\t mesh->cells.{num|num_inner|off_ghost|off_periodic} ="
-                        " %ld | %ld | %ld | %ld\n",
+                        " %td | %td | %td | %td\n",
                         mesh->cells.num, mesh->cells.num_inner, mesh->cells.off_ghost,
                         mesh->cells.off_periodic);
                 fprintf(stream, "\t mesh->cells.{node|cell|volume|center|projection} = [\n");
-                for (long i = 0; i < mesh->cells.num; i++) {
-                    fprintf(stream, "\t\t [%ld]", i);
+                for (number i = 0; i < mesh->cells.num; i++) {
+                    fprintf(stream, "\t\t [%td]", i);
                     print_graph(stream, mesh->cells.node, i);
                     print_graph(stream, mesh->cells.cell, i);
                     print_scalar(stream, mesh->cells.volume, i);
@@ -135,11 +135,11 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
             }
 
             if (mesh->faces.num) {
-                fprintf(stream, "\t mesh->faces.{num|num_inner|off_ghost} = %ld | %ld | %ld\n",
+                fprintf(stream, "\t mesh->faces.{num|num_inner|off_ghost} = %td | %td | %td\n",
                         mesh->faces.num, mesh->faces.num_inner, mesh->faces.off_ghost);
                 fprintf(stream, "\t mesh->faces.{node|cell|area|center|basis|weight} = [\n");
-                for (long i = 0; i < mesh->faces.num; i++) {
-                    fprintf(stream, "\t\t [%ld]", i);
+                for (number i = 0; i < mesh->faces.num; i++) {
+                    fprintf(stream, "\t\t [%td]", i);
                     print_graph(stream, mesh->faces.node, i);
                     print_adjacent(stream, mesh->faces.cell, i);
                     print_scalar(stream, mesh->faces.area, i);
@@ -152,14 +152,14 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
             }
 
             if (mesh->entities.num) {
-                fprintf(stream, "\t mesh->entities.{num|num_inner|off_ghost} = %ld | %ld | %ld\n",
+                fprintf(stream, "\t mesh->entities.{num|num_inner|off_ghost} = %td | %td | %td\n",
                         mesh->entities.num, mesh->entities.num_inner, mesh->entities.off_ghost);
                 fprintf(stream, "\t mesh->entities.{name|cell|face|translation} = [\n");
-                for (long i = 0; i < mesh->entities.num; i++) {
-                    fprintf(stream, "\t\t [%ld]", i);
+                for (number i = 0; i < mesh->entities.num; i++) {
+                    fprintf(stream, "\t\t [%td]", i);
                     print_name(stream, mesh->entities.name, i);
-                    print_long_pair(stream, mesh->entities.cell_off, i);
-                    print_long_pair(stream, mesh->entities.face_off, i);
+                    print_number_pair(stream, mesh->entities.cell_off, i);
+                    print_number_pair(stream, mesh->entities.face_off, i);
                     print_vector(stream, mesh->entities.translation, i);
                     fprintf(stream, "\n");
                 }
@@ -167,12 +167,12 @@ void mesh_dump(FILE *stream, const Mesh *mesh)
             }
 
             if (mesh->neighbors.num) {
-                fprintf(stream, "\t mesh->neighbors.num = %ld\n", mesh->neighbors.num);
+                fprintf(stream, "\t mesh->neighbors.num = %td\n", mesh->neighbors.num);
                 fprintf(stream, "\t mesh->neighbors.{rank|recv|send} = [\n");
-                for (long i = 0; i < mesh->neighbors.num; i++) {
-                    fprintf(stream, "\t\t [%ld]", i);
-                    print_long(stream, mesh->neighbors.rank, i);
-                    print_long_pair(stream, mesh->neighbors.recv_off, i);
+                for (number i = 0; i < mesh->neighbors.num; i++) {
+                    fprintf(stream, "\t\t [%td]", i);
+                    print_number(stream, mesh->neighbors.rank, i);
+                    print_number_pair(stream, mesh->neighbors.recv_off, i);
                     print_graph(stream, mesh->neighbors.send, i);
                     fprintf(stream, "\n");
                 }

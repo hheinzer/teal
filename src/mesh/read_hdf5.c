@@ -13,13 +13,13 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
 
     bool root = sync.rank == 0;
 
-    long tot_nodes;
-    h5io_dataset_read("tot", &tot_nodes, root, 1, H5IO_LONG, group);
-    MPI_Bcast(&tot_nodes, 1, MPI_LONG, 0, sync.comm);
+    number tot_nodes;
+    h5io_dataset_read("tot", &tot_nodes, root, 1, H5IO_NUMBER, group);
+    MPI_Bcast(&tot_nodes, 1, MPI_NUMBER, 0, sync.comm);
 
-    long num_nodes;
+    number num_nodes;
     if (h5io_dataset_num("num", group) == sync.size) {
-        h5io_dataset_read("num", &num_nodes, 1, 1, H5IO_LONG, group);
+        h5io_dataset_read("num", &num_nodes, 1, 1, H5IO_NUMBER, group);
     }
     else {
         num_nodes = (tot_nodes / sync.size) + (sync.rank < tot_nodes % sync.size);
@@ -35,7 +35,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
-static void read_node_graph(Graph *node, long num_cells, hid_t loc)
+static void read_node_graph(Graph *node, number num_cells, hid_t loc)
 {
     hid_t group = h5io_group_open("node", loc);
 
@@ -44,24 +44,24 @@ static void read_node_graph(Graph *node, long num_cells, hid_t loc)
 
     node->off[0] = 0;
 
-    long num_off = num_cells + (sync.rank == 0);
-    h5io_dataset_read("off", &node->off[sync.rank != 0], num_off, 1, H5IO_LONG, group);
+    number num_off = num_cells + (sync.rank == 0);
+    h5io_dataset_read("off", &node->off[sync.rank != 0], num_off, 1, H5IO_NUMBER, group);
 
-    long offset = 0;
+    number offset = 0;
     int dst = (sync.rank + 1 < sync.size) ? sync.rank + 1 : MPI_PROC_NULL;
     int src = (sync.rank - 1 >= 0) ? sync.rank - 1 : MPI_PROC_NULL;
-    MPI_Sendrecv(&node->off[num_cells], 1, MPI_LONG, dst, 0, &offset, 1, MPI_LONG, src, 0,
+    MPI_Sendrecv(&node->off[num_cells], 1, MPI_NUMBER, dst, 0, &offset, 1, MPI_NUMBER, src, 0,
                  sync.comm, MPI_STATUS_IGNORE);
 
-    for (long i = 0; i < num_cells; i++) {
+    for (number i = 0; i < num_cells; i++) {
         node->off[i + 1] -= offset;  // localize offsets
     }
 
     node->idx = malloc(node->off[num_cells] * sizeof(*node->idx));
     assert(node->idx);
 
-    long num_idx = node->off[num_cells];
-    h5io_dataset_read("idx", node->idx, num_idx, 1, H5IO_LONG, group);
+    number num_idx = node->off[num_cells];
+    h5io_dataset_read("idx", node->idx, num_idx, 1, H5IO_NUMBER, group);
 
     h5io_group_close(group);
 }
@@ -72,13 +72,13 @@ static void read_cells(MeshCells *cells, hid_t loc)
 
     bool root = sync.rank == 0;
 
-    long tot_cells;
-    h5io_dataset_read("tot", &tot_cells, root, 1, H5IO_LONG, group);
-    MPI_Bcast(&tot_cells, 1, MPI_LONG, 0, sync.comm);
+    number tot_cells;
+    h5io_dataset_read("tot", &tot_cells, root, 1, H5IO_NUMBER, group);
+    MPI_Bcast(&tot_cells, 1, MPI_NUMBER, 0, sync.comm);
 
-    long num_cells;
+    number num_cells;
     if (h5io_dataset_num("num", group) == sync.size) {
-        h5io_dataset_read("num", &num_cells, 1, 1, H5IO_LONG, group);
+        h5io_dataset_read("num", &num_cells, 1, 1, H5IO_NUMBER, group);
     }
     else {
         num_cells = (tot_cells / sync.size) + (sync.rank < tot_cells % sync.size);
@@ -97,18 +97,18 @@ static void read_entities(MeshEntities *entities, hid_t loc)
 
     bool root = sync.rank == 0;
 
-    h5io_dataset_read("num", &entities->num, root, 1, H5IO_LONG, group);
-    h5io_dataset_read("num_inner", &entities->num_inner, root, 1, H5IO_LONG, group);
-    h5io_dataset_read("off_ghost", &entities->off_ghost, root, 1, H5IO_LONG, group);
+    h5io_dataset_read("num", &entities->num, root, 1, H5IO_NUMBER, group);
+    h5io_dataset_read("num_inner", &entities->num_inner, root, 1, H5IO_NUMBER, group);
+    h5io_dataset_read("off_ghost", &entities->off_ghost, root, 1, H5IO_NUMBER, group);
 
-    MPI_Bcast(&entities->num, 1, MPI_LONG, 0, sync.comm);
-    MPI_Bcast(&entities->num_inner, 1, MPI_LONG, 0, sync.comm);
-    MPI_Bcast(&entities->off_ghost, 1, MPI_LONG, 0, sync.comm);
+    MPI_Bcast(&entities->num, 1, MPI_NUMBER, 0, sync.comm);
+    MPI_Bcast(&entities->num_inner, 1, MPI_NUMBER, 0, sync.comm);
+    MPI_Bcast(&entities->off_ghost, 1, MPI_NUMBER, 0, sync.comm);
 
     entities->name = malloc(entities->num * sizeof(*entities->name));
     assert(entities->name);
 
-    long num = root ? entities->num : 0;
+    number num = root ? entities->num : 0;
     h5io_dataset_read("name", entities->name, num, sizeof(*entities->name), H5IO_STRING, group);
 
     MPI_Bcast(entities->name, entities->num * sizeof(*entities->name), MPI_CHAR, 0, sync.comm);
@@ -120,27 +120,27 @@ static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
 {
     Arena save = arena_save();
 
-    long *entity = arena_malloc(cells->num, sizeof(*entity));
-    h5io_dataset_read("cells/entity", entity, cells->num, 1, H5IO_LONG, loc);
+    number *entity = arena_malloc(cells->num, sizeof(*entity));
+    h5io_dataset_read("cells/entity", entity, cells->num, 1, H5IO_NUMBER, loc);
 
-    long *num_cells = arena_calloc(entities->num, sizeof(*num_cells));
-    for (long i = 0; i < cells->num; i++) {
+    number *num_cells = arena_calloc(entities->num, sizeof(*num_cells));
+    for (number i = 0; i < cells->num; i++) {
         num_cells[entity[i]] += 1;
     }
 
-    long *cell_off = malloc((entities->num + 1) * sizeof(*cell_off));
+    number *cell_off = malloc((entities->num + 1) * sizeof(*cell_off));
     assert(cell_off);
 
     cell_off[0] = 0;
-    for (long i = 0; i < entities->num; i++) {
+    for (number i = 0; i < entities->num; i++) {
         cell_off[i + 1] = cell_off[i] + num_cells[i];
     }
 
-    long *map = arena_malloc(cells->num, sizeof(*map));
-    for (long i = 0; i < entities->num; i++) {
+    number *map = arena_malloc(cells->num, sizeof(*map));
+    for (number i = 0; i < entities->num; i++) {
         cell_off[i + 1] -= num_cells[i];
     }
-    for (long i = 0; i < cells->num; i++) {
+    for (number i = 0; i < cells->num; i++) {
         map[i] = cell_off[entity[i] + 1]++;
     }
     mesh_reorder_cells(cells, 0, 0, cells->num, map);

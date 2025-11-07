@@ -44,24 +44,24 @@ void sync_abort(void)
     abort();
 }
 
-long sync_lmin(long val)
+number sync_lmin(number val)
 {
-    long min = val;
-    MPI_Allreduce(&val, &min, 1, MPI_LONG, MPI_MIN, sync.comm);
+    number min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_NUMBER, MPI_MIN, sync.comm);
     return min;
 }
 
-long sync_lmax(long val)
+number sync_lmax(number val)
 {
-    long max = val;
-    MPI_Allreduce(&val, &max, 1, MPI_LONG, MPI_MAX, sync.comm);
+    number max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_NUMBER, MPI_MAX, sync.comm);
     return max;
 }
 
-long sync_lsum(long val)
+number sync_lsum(number val)
 {
-    long sum = 0;
-    MPI_Allreduce(&val, &sum, 1, MPI_LONG, MPI_SUM, sync.comm);
+    number sum = 0;
+    MPI_Allreduce(&val, &sum, 1, MPI_NUMBER, MPI_SUM, sync.comm);
     return sum;
 }
 
@@ -107,10 +107,10 @@ vector sync_vsum(vector val)
     return sum;
 }
 
-long sync_lexsum(long val)
+number sync_lexsum(number val)
 {
-    long exsum = 0;
-    MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
+    number exsum = 0;
+    MPI_Exscan(&val, &exsum, 1, MPI_NUMBER, MPI_SUM, sync.comm);
     return (sync.rank == 0) ? 0 : exsum;
 }
 

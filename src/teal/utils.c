@@ -61,12 +61,12 @@ scalar pow3(scalar val)
     return val * val * val;
 }
 
-long lmin(long lhs, long rhs)
+number lmin(number lhs, number rhs)
 {
     return (lhs < rhs) ? lhs : rhs;
 }
 
-long lmax(long lhs, long rhs)
+number lmax(number lhs, number rhs)
 {
     return (lhs > rhs) ? lhs : rhs;
 }
@@ -84,11 +84,11 @@ bool isclose(scalar lhs, scalar rhs)
     return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
 }
 
-int cmp_long(const void *lhs_, const void *rhs_)
+int cmp_number(const void *lhs_, const void *rhs_)
 {
     assert(lhs_ && rhs_);
-    const long *lhs = lhs_;
-    const long *rhs = rhs_;
+    const number *lhs = lhs_;
+    const number *rhs = rhs_;
     return cmp_asc(*lhs, *rhs);
 }
 
@@ -115,10 +115,10 @@ int cmp_vector(const void *lhs_, const void *rhs_)
     return cmp_scalar(&lhs->z, &rhs->z);
 }
 
-void swap_long(long *lhs, long *rhs)
+void swap_number(number *lhs, number *rhs)
 {
     assert(lhs && rhs);
-    long swap = *lhs;
+    number swap = *lhs;
     *lhs = *rhs;
     *rhs = swap;
 }
@@ -139,12 +139,12 @@ void swap_vector(vector *lhs, vector *rhs)
     *rhs = swap;
 }
 
-void swap_bytes(void *lhs_, void *rhs_, long size)
+void swap_bytes(void *lhs_, void *rhs_, number size)
 {
     assert((lhs_ || rhs_) ? (lhs_ && rhs_ && size >= 0) : size == 0);
     char *lhs = lhs_;
     char *rhs = rhs_;
-    for (long i = 0; i < size; i++) {
+    for (number i = 0; i < size; i++) {
         char swap = lhs[i];
         lhs[i] = rhs[i];
         rhs[i] = swap;
@@ -152,7 +152,7 @@ void swap_bytes(void *lhs_, void *rhs_, long size)
 }
 
 static const char *suffix = "\0KMGTPE";  // ready for exascale computing
-static const long base = 1000;
+static const number base = 1000;
 
 scalar str_to_size(const char *str)
 {
@@ -171,7 +171,7 @@ scalar str_to_size(const char *str)
 void size_to_str(char *str, scalar size)
 {
     assert(str && size >= 0);
-    long idx = 0;
+    number idx = 0;
     while (size >= base && suffix[idx + 1]) {
         size /= base;
         idx += 1;

@@ -57,11 +57,11 @@ vector vector_abs(vector vec)
     };
 }
 
-vector vector_sum(const vector *vec, long num)
+vector vector_sum(const vector *vec, number num)
 {
     assert(vec ? num >= 0 : num == 0);
     vector sum = {0};
-    for (long i = 0; i < num; i++) {
+    for (number i = 0; i < num; i++) {
         vector_inc(&sum, vec[i]);
     }
     return sum;

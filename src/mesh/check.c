@@ -21,20 +21,20 @@ static void test_nodes(const MeshNodes *nodes)
     check(nodes->num_inner <= nodes->num);
 
     if (nodes->global) {
-        long *global = arena_malloc(nodes->num, sizeof(*global));
-        for (long i = 0; i < nodes->num; i++) {
+        number *global = arena_malloc(nodes->num, sizeof(*global));
+        for (number i = 0; i < nodes->num; i++) {
             check(nodes->global[i] >= 0);
             global[i] = nodes->global[i];
         }
 
-        qsort(global, nodes->num, sizeof(*global), cmp_long);
-        for (long i = 1; i < nodes->num; i++) {
+        qsort(global, nodes->num, sizeof(*global), cmp_number);
+        for (number i = 1; i < nodes->num; i++) {
             check(global[i - 1] != global[i]);
         }
     }
 
     if (nodes->coord) {
-        for (long i = 0; i < nodes->num; i++) {
+        for (number i = 0; i < nodes->num; i++) {
             check(isfinite(nodes->coord[i].x));
             check(isfinite(nodes->coord[i].y));
             check(isfinite(nodes->coord[i].z));
@@ -44,11 +44,11 @@ static void test_nodes(const MeshNodes *nodes)
     arena_load(save);
 }
 
-static void test_graph(Graph graph, long num, long min_deg, long max_deg, long min_idx,
-                       long max_idx)
+static void test_graph(Graph graph, number num, number min_deg, number max_deg, number min_idx,
+                       number max_idx)
 {
     check(graph.off[0] == 0);
-    for (long i = 0; i < num; i++) {
+    for (number i = 0; i < num; i++) {
         check(graph.off[i] <= graph.off[i + 1]);
         if (min_deg >= 0) {
             check(graph.off[i + 1] - graph.off[i] >= min_deg);
@@ -56,16 +56,16 @@ static void test_graph(Graph graph, long num, long min_deg, long max_deg, long m
         if (max_deg >= 0) {
             check(graph.off[i + 1] - graph.off[i] <= max_deg);
         }
-        for (long j = graph.off[i]; j < graph.off[i + 1]; j++) {
+        for (number j = graph.off[i]; j < graph.off[i + 1]; j++) {
             check(graph.idx[j] >= min_idx);
             check(graph.idx[j] <= max_idx);
         }
     }
 }
 
-static bool has_neighbor(Graph graph, long lhs, long rhs)
+static bool has_neighbor(Graph graph, number lhs, number rhs)
 {
-    for (long i = graph.off[lhs]; i < graph.off[lhs + 1]; i++) {
+    for (number i = graph.off[lhs]; i < graph.off[lhs + 1]; i++) {
         if (graph.idx[i] == rhs) {
             return true;
         }
@@ -89,9 +89,9 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
     if (cells->cell.off && cells->cell.idx) {
         test_graph(cells->cell, cells->num, 1, MAX_CELL_FACES, 0, cells->num - 1);
 
-        long *local = arena_calloc(cells->num, sizeof(*local));
-        for (long i = 0; i < cells->num; i++) {
-            for (long j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
+        number *local = arena_calloc(cells->num, sizeof(*local));
+        for (number i = 0; i < cells->num; i++) {
+            for (number j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
                 check(cells->cell.idx[j] != i);
                 check(has_neighbor(cells->cell, cells->cell.idx[j], i));
                 local[cells->cell.idx[j]] = 1;
@@ -101,7 +101,7 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
     }
 
     if (cells->volume) {
-        for (long i = 0; i < cells->num; i++) {
+        for (number i = 0; i < cells->num; i++) {
             check(isfinite(cells->volume[i]));
             if (i < cells->num_inner) {
                 check(!isclose(cells->volume[i], 0) && cells->volume[i] > 0);
@@ -113,7 +113,7 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
     }
 
     if (cells->center) {
-        for (long i = 0; i < cells->num; i++) {
+        for (number i = 0; i < cells->num; i++) {
             check(isfinite(cells->center[i].x));
             check(isfinite(cells->center[i].y));
             check(isfinite(cells->center[i].z));
@@ -121,7 +121,7 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
     }
 
     if (cells->projection) {
-        for (long i = 0; i < cells->num; i++) {
+        for (number i = 0; i < cells->num; i++) {
             check(isfinite(cells->projection[i].x));
             check(isfinite(cells->projection[i].y));
             check(isfinite(cells->projection[i].z));
@@ -154,9 +154,9 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     }
 
     if (faces->cell) {
-        long *left = arena_calloc(cells->num_inner, sizeof(*left));
-        long *right = arena_calloc(cells->num, sizeof(*right));
-        for (long i = 0; i < faces->num; i++) {
+        number *left = arena_calloc(cells->num_inner, sizeof(*left));
+        number *right = arena_calloc(cells->num, sizeof(*right));
+        for (number i = 0; i < faces->num; i++) {
             check(faces->cell[i].left >= 0);
             check(faces->cell[i].left < cells->num_inner);
             if (i < faces->num_inner) {
@@ -180,14 +180,14 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     }
 
     if (faces->area) {
-        for (long i = 0; i < faces->num; i++) {
+        for (number i = 0; i < faces->num; i++) {
             check(isfinite(faces->area[i]));
             check(!isclose(faces->area[i], 0) && faces->area[i] > 0);
         }
     }
 
     if (faces->center) {
-        for (long i = 0; i < faces->num; i++) {
+        for (number i = 0; i < faces->num; i++) {
             check(isfinite(faces->center[i].x));
             check(isfinite(faces->center[i].y));
             check(isfinite(faces->center[i].z));
@@ -195,7 +195,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     }
 
     if (faces->basis) {
-        for (long i = 0; i < faces->num; i++) {
+        for (number i = 0; i < faces->num; i++) {
             check(isfinite(faces->basis[i].x.x));
             check(isfinite(faces->basis[i].x.y));
             check(isfinite(faces->basis[i].x.z));
@@ -215,9 +215,9 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     }
 
     if (faces->cell && faces->basis && cells->center) {
-        for (long i = 0; i < faces->num; i++) {
-            long left = faces->cell[i].left;
-            long right = faces->cell[i].right;
+        for (number i = 0; i < faces->num; i++) {
+            number left = faces->cell[i].left;
+            number right = faces->cell[i].right;
             vector normal = faces->basis[i].x;
             vector l2r = vector_sub(cells->center[right], cells->center[left]);
             check(!isclose(vector_norm(l2r), 0) && vector_norm(l2r) > 0);
@@ -226,7 +226,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     }
 
     if (faces->weight) {
-        for (long i = 0; i < faces->num; i++) {
+        for (number i = 0; i < faces->num; i++) {
             check(isfinite(faces->weight[i].x));
             check(isfinite(faces->weight[i].y));
             check(isfinite(faces->weight[i].z));
@@ -244,14 +244,14 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
     check(entities->off_ghost <= entities->num);
 
     if (entities->name) {
-        for (long i = 0; i < entities->num; i++) {
+        for (number i = 0; i < entities->num; i++) {
             check(strlen(entities->name[i]) > 0);
         }
     }
 
     if (entities->cell_off) {
         check(entities->cell_off[0] == 0);
-        for (long i = 0; i < entities->num; i++) {
+        for (number i = 0; i < entities->num; i++) {
             check(entities->cell_off[i] <= entities->cell_off[i + 1]);
         }
         check(entities->cell_off[entities->num_inner] == cells->num_inner);
@@ -261,7 +261,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
 
     if (entities->face_off) {
         check(entities->face_off[0] == faces->num_inner);
-        for (long i = 0; i < entities->num; i++) {
+        for (number i = 0; i < entities->num; i++) {
             check(entities->face_off[i] <= entities->face_off[i + 1]);
         }
         check(entities->face_off[entities->num_inner] == faces->num_inner);
@@ -269,16 +269,16 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
         check(entities->face_off[entities->num] <= faces->num);
 
         if (entities->cell_off) {
-            for (long i = entities->num_inner; i < entities->num; i++) {
-                long num_cells = entities->cell_off[i + 1] - entities->cell_off[i];
-                long num_faces = entities->face_off[i + 1] - entities->face_off[i];
+            for (number i = entities->num_inner; i < entities->num; i++) {
+                number num_cells = entities->cell_off[i + 1] - entities->cell_off[i];
+                number num_faces = entities->face_off[i + 1] - entities->face_off[i];
                 check(num_cells == num_faces);
             }
         }
     }
 
     if (entities->translation) {
-        for (long i = 0; i < entities->num; i++) {
+        for (number i = 0; i < entities->num; i++) {
             check(isfinite(entities->translation[i].x));
             check(isfinite(entities->translation[i].y));
             check(isfinite(entities->translation[i].z));
@@ -307,21 +307,21 @@ static void test_neighbors(const MeshCells *cells, const MeshNeighbors *neighbor
         int *rank = arena_malloc(neighbors->num, sizeof(*rank));
         int tag = sync_tag();
         MPI_Request *req = arena_malloc(neighbors->num, sizeof(*req));
-        for (long i = 0; i < neighbors->num; i++) {
+        for (number i = 0; i < neighbors->num; i++) {
             check(neighbors->rank[i] >= 0);
             check(neighbors->rank[i] < sync.size);
             MPI_Isendrecv(&sync.rank, 1, MPI_INT, neighbors->rank[i], tag, &rank[i], 1, MPI_INT,
                           neighbors->rank[i], tag, sync.comm, &req[i]);
         }
         MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
-        for (long i = 0; i < neighbors->num; i++) {
+        for (number i = 0; i < neighbors->num; i++) {
             check(neighbors->rank[i] == rank[i]);
         }
     }
 
     if (neighbors->recv_off) {
         check(neighbors->recv_off[0] == cells->off_ghost);
-        for (long i = 0; i < neighbors->num; i++) {
+        for (number i = 0; i < neighbors->num; i++) {
             check(neighbors->recv_off[i] <= neighbors->recv_off[i + 1]);
         }
         check(neighbors->recv_off[neighbors->num] == cells->num);

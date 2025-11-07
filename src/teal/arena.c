@@ -1,6 +1,5 @@
 #include "arena.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -19,7 +18,7 @@ enum { ALIGN = 64 };
 
 enum { REDZONE = 64 };
 
-#elif defined(ENABLE_VALGRIND)
+#elif defined(VALGRIND)
 
 #include <valgrind/memcheck.h>
 
@@ -44,9 +43,9 @@ STATIC_ASSERT(REDZONE == 0 || REDZONE % ALIGN == 0);
 static Arena arena = {0};
 static char *arena_base = 0;
 static char *arena_end = 0;
-static long size_max = 0;
+static number size_max = 0;
 
-void arena_init(long capacity)
+void arena_init(number capacity)
 {
     assert(capacity > 0);
 
@@ -58,14 +57,14 @@ void arena_init(long capacity)
     MAKE_REGION_NOACCESS(arena_base, capacity);
 }
 
-void *arena_malloc(long num, long size)
+void *arena_malloc(number num, number size)
 {
     assert(num >= 0 && size > 0);
 
-    long available = arena_end - arena.beg;
-    long padding = -(uintptr_t)arena.beg & (ALIGN - 1);  // round up to next aligned location
+    number available = arena_end - arena.beg;
+    number padding = -(number)arena.beg & (ALIGN - 1);  // round up to next aligned location
     if (num > (available - padding - REDZONE) / size) {
-        error("out of memory trying to allocate %ld blocks of size %ld", num, size);
+        error("out of memory trying to allocate %td blocks of size %td", num, size);
     }
 
     arena.last = arena.beg + padding + REDZONE;
@@ -76,20 +75,20 @@ void *arena_malloc(long num, long size)
     return arena.last;
 }
 
-void *arena_calloc(long num, long size)
+void *arena_calloc(number num, number size)
 {
     void *ptr = arena_malloc(num, size);
     return memset(ptr, 0, num * size);
 }
 
-void *arena_memdup(const void *ptr, long num, long size)
+void *arena_memdup(const void *ptr, number num, number size)
 {
     assert(ptr);
     void *dup = arena_malloc(num, size);
     return memcpy(dup, ptr, num * size);
 }
 
-char *arena_strdup(const char *str, long len)
+char *arena_strdup(const char *str, number len)
 {
     if (len < 0) {
         len = strlen(str);
@@ -100,18 +99,18 @@ char *arena_strdup(const char *str, long len)
     return dup;
 }
 
-void *arena_resize(const void *ptr, long num, long size)
+void *arena_resize(const void *ptr, number num, number size)
 {
     if (ptr == arena.last) {
         assert(num >= 0 && size > 0);
 
-        long available = arena_end - arena.last;
+        number available = arena_end - arena.last;
         if (num > available / size) {
-            error("out of memory trying to allocate %ld blocks of size %ld", num, size);
+            error("out of memory trying to allocate %td blocks of size %td", num, size);
         }
 
-        long old_size = arena.beg - arena.last;
-        long new_size = num * size;
+        number old_size = arena.beg - arena.last;
+        number new_size = num * size;
         arena.beg = arena.last + new_size;
 
         if (old_size < new_size) {
@@ -129,7 +128,7 @@ void *arena_resize(const void *ptr, long num, long size)
 
 static void *(*const volatile force_memmove)(void *, const void *, size_t) = memmove;
 
-void *arena_smuggle(const void *ptr, long num, long size)
+void *arena_smuggle(const void *ptr, number num, number size)
 {
     void *new = arena_malloc(num, size);
     assert((char *)new <= (char *)ptr && (char *)ptr < arena_end);
@@ -160,12 +159,12 @@ void arena_load(Arena save)
     arena = save;
 }
 
-long arena_size(void)
+number arena_size(void)
 {
     return arena.beg - arena_base;
 }
 
-long arena_size_max(void)
+number arena_size_max(void)
 {
     return size_max;
 }

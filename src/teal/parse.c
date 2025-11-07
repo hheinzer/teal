@@ -14,12 +14,12 @@
 enum { MAX_TOKEN = 4096 };
 
 static const MPI_Datatype datatype_of[] = {
-    [I8] = MPI_INT8_T,  [I16] = MPI_INT16_T,  [I32] = MPI_INT32_T,  [I64] = MPI_INT64_T,
+    [I8] = MPI_INT8_T,  [I16] = MPI_INT16_T,  [I32] = MPI_INT32_T,  [I64] = MPI_UINT64_T,
     [U8] = MPI_UINT8_T, [U16] = MPI_UINT16_T, [U32] = MPI_UINT32_T, [U64] = MPI_UINT64_T,
     [F32] = MPI_FLOAT,  [F64] = MPI_DOUBLE,   [STR] = MPI_CHAR,
 };
 
-static const long size_of[] = {
+static const number size_of[] = {
     [I8] = sizeof(int8_t),    [I16] = sizeof(int16_t),  [I32] = sizeof(int32_t),
     [I64] = sizeof(int64_t),  [U8] = sizeof(uint8_t),   [U16] = sizeof(uint16_t),
     [U32] = sizeof(uint32_t), [U64] = sizeof(uint64_t), [F32] = sizeof(float),
@@ -38,9 +38,9 @@ ParseFile parse_open(const char *fname)
     return file;
 }
 
-long parse_get_offset(ParseFile file)
+number parse_get_offset(ParseFile file)
 {
-    long offset = -1;
+    number offset = -1;
     if (sync.rank == 0) {
         assert(file.stream);
         offset = ftell(file.stream);
@@ -49,7 +49,7 @@ long parse_get_offset(ParseFile file)
     return offset;
 }
 
-void parse_set_offset(ParseFile file, long offset)
+void parse_set_offset(ParseFile file, number offset)
 {
     if (sync.rank == 0) {
         assert(file.stream && offset >= 0);
@@ -59,7 +59,7 @@ void parse_set_offset(ParseFile file, long offset)
 }
 
 /* Read next ASCII token from stream; unquote string it the `type == STR` and quotes are used. */
-static long next(ParseType type, char *token, long size, FILE *stream)
+static number next(ParseType type, char *token, number size, FILE *stream)
 {
     int chr;
     do {  // skip leading white space
@@ -67,7 +67,7 @@ static long next(ParseType type, char *token, long size, FILE *stream)
         assert(chr != EOF);
     } while (isspace((unsigned char)chr));
 
-    long len = 0;
+    number len = 0;
     if (type == STR && (chr == '\"' || chr == '\'')) {
         int quote = chr;
         while (true) {
@@ -94,7 +94,7 @@ static long next(ParseType type, char *token, long size, FILE *stream)
 }
 
 /* Convert token string into to the data type at index `idx`. */
-static void token_to_data(ParseType type, void *data, long idx, const char *token)
+static void token_to_data(ParseType type, void *data, number idx, const char *token)
 {
     errno = 0;
     char *end = 0;
@@ -114,21 +114,21 @@ static void token_to_data(ParseType type, void *data, long idx, const char *toke
     assert(errno == 0 && end && end != token && *end == 0);
 }
 
-void parse_ascii(ParseType type, void *data, long num, ParseFile file)
+void parse_ascii(ParseType type, void *data, number num, ParseFile file)
 {
     assert(data && num >= 0);
     if (sync.rank == 0) {
         assert(file.stream);
         char token[MAX_TOKEN];
         if (type == STR) {
-            long len = next(type, token, sizeof(token), file.stream);
+            number len = next(type, token, sizeof(token), file.stream);
             assert(len < num);
             char *str = data;
             memcpy(str, token, len);
             memset(str + len, 0, num - len);
         }
         else {
-            for (long i = 0; i < num; i++) {
+            for (number i = 0; i < num; i++) {
                 next(type, token, sizeof(token), file.stream);
                 token_to_data(type, data, i, token);
             }
@@ -138,28 +138,28 @@ void parse_ascii(ParseType type, void *data, long num, ParseFile file)
 }
 
 /* Perform byte swap for data based on the item size. */
-static void swap_data(void *data, long num, long size)
+static void swap_data(void *data, number num, number size)
 {
     switch (size) {
         case 1: break;
         case 2: {
-            uint16_t *u16 = data;
-            for (long i = 0; i < num; i++) {
-                u16[i] = bswap_16(u16[i]);
+            uint16_t *data16 = data;
+            for (number i = 0; i < num; i++) {
+                data16[i] = bswap_16(data16[i]);
             }
             break;
         }
         case 4: {
-            uint32_t *u32 = data;
-            for (long i = 0; i < num; i++) {
-                u32[i] = bswap_32(u32[i]);
+            uint32_t *data32 = data;
+            for (number i = 0; i < num; i++) {
+                data32[i] = bswap_32(data32[i]);
             }
             break;
         }
         case 8: {
-            uint64_t *u64 = data;
-            for (long i = 0; i < num; i++) {
-                u64[i] = bswap_64(u64[i]);
+            uint64_t *data64 = data;
+            for (number i = 0; i < num; i++) {
+                data64[i] = bswap_64(data64[i]);
             }
             break;
         }
@@ -167,12 +167,12 @@ static void swap_data(void *data, long num, long size)
     }
 }
 
-void parse_binary(ParseType type, void *data, long num, bool swap, ParseFile file)
+void parse_binary(ParseType type, void *data, number num, bool swap, ParseFile file)
 {
     assert(type != STR && data && num >= 0);
     if (sync.rank == 0) {
         assert(file.stream);
-        long read = fread(data, size_of[type], num, file.stream);
+        number read = fread(data, size_of[type], num, file.stream);
         assert(read == num);
         if (swap) {
             swap_data(data, num, size_of[type]);
@@ -181,7 +181,7 @@ void parse_binary(ParseType type, void *data, long num, bool swap, ParseFile fil
     MPI_Bcast(data, num, datatype_of[type], 0, sync.comm);
 }
 
-void parse(ParseMode mode, ParseType type, void *data, long num, bool swap, ParseFile file)
+void parse(ParseMode mode, ParseType type, void *data, number num, bool swap, ParseFile file)
 {
     switch (mode) {
         case ASCII: parse_ascii(type, data, num, file); break;
@@ -190,38 +190,39 @@ void parse(ParseMode mode, ParseType type, void *data, long num, bool swap, Pars
     }
 }
 
-long parse_split_ascii(ParseType type, void *data, long num, long len, long stride, ParseFile file)
+number parse_split_ascii(ParseType type, void *data, number num, number len, number stride,
+                         ParseFile file)
 {
     assert(type != STR && data && num >= 0 && len >= 0 && stride >= len);
 
-    long tot = sync_lsum(num);
+    number tot = sync_lsum(num);
 
     int tag_num = sync_tag();
     int tag_data = sync_tag();
     if (sync.rank != 0) {
-        MPI_Send(&num, 1, MPI_LONG, 0, tag_num, sync.comm);
+        MPI_Send(&num, 1, MPI_NUMBER, 0, tag_num, sync.comm);
         MPI_Recv(data, num * len, datatype_of[type], 0, tag_data, sync.comm, MPI_STATUS_IGNORE);
     }
 
-    long end;
+    number end;
     if (sync.rank == 0) {
-        long gap = stride - len;
-        long pos = -1;
+        number gap = stride - len;
+        number pos = -1;
 
         char token[MAX_TOKEN];
-        long cnt = 0;
-        for (long rank = 0; rank < sync.size; rank++) {
+        number cnt = 0;
+        for (number rank = 0; rank < sync.size; rank++) {
             Arena save = arena_save();
 
-            long num_rank = num;
+            number num_rank = num;
             void *data_rank = data;
             if (rank != 0) {
-                MPI_Recv(&num_rank, 1, MPI_LONG, rank, tag_num, sync.comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&num_rank, 1, MPI_NUMBER, rank, tag_num, sync.comm, MPI_STATUS_IGNORE);
                 data_rank = arena_malloc(num_rank * len, size_of[type]);
             }
 
-            for (long i = 0; i < num_rank; i++) {
-                for (long j = 0; j < len; j++) {
+            for (number i = 0; i < num_rank; i++) {
+                for (number j = 0; j < len; j++) {
                     next(type, token, sizeof(token), file.stream);
                     token_to_data(type, data_rank, (i * len) + j, token);
                 }
@@ -229,7 +230,7 @@ long parse_split_ascii(ParseType type, void *data, long num, long len, long stri
                     pos = ftell(file.stream);
                 }
                 if (++cnt < tot) {  // only skip internal gaps
-                    for (long j = 0; j < gap; j++) {
+                    for (number j = 0; j < gap; j++) {
                         next(type, token, sizeof(token), file.stream);
                     }
                 }
@@ -250,19 +251,19 @@ long parse_split_ascii(ParseType type, void *data, long num, long len, long stri
         }
     }
 
-    MPI_Bcast(&end, 1, MPI_LONG, 0, sync.comm);
+    MPI_Bcast(&end, 1, MPI_NUMBER, 0, sync.comm);
     return end;
 }
 
-long parse_split_binary(ParseType type, void *data, long num, long len, long stride, bool swap,
-                        ParseFile file)
+number parse_split_binary(ParseType type, void *data, number num, number len, number stride,
+                          bool swap, ParseFile file)
 {
     assert(type != STR && data && num >= 0 && len >= 0 && stride >= len * size_of[type]);
 
-    long beg = parse_get_offset(file);
-    MPI_Bcast(&beg, 1, MPI_LONG, 0, sync.comm);
+    number beg = parse_get_offset(file);
+    MPI_Bcast(&beg, 1, MPI_NUMBER, 0, sync.comm);
 
-    long gap = stride - (len * size_of[type]);
+    number gap = stride - (len * size_of[type]);
     MPI_Offset disp = beg + (sync_lexsum(num) * stride);
     if (gap == 0) {
         MPI_File_read_at(file.handle, disp, data, num * len, datatype_of[type], MPI_STATUS_IGNORE);
@@ -274,7 +275,7 @@ long parse_split_binary(ParseType type, void *data, long num, long len, long str
         MPI_File_read_at(file.handle, disp, src, num * stride, MPI_BYTE, MPI_STATUS_IGNORE);
 
         char (*dst)[len * size_of[type]] = data;
-        for (long i = 0; i < num; i++) {
+        for (number i = 0; i < num; i++) {
             memcpy(&dst[i], &src[i], sizeof(*dst));
         }
 
@@ -285,15 +286,15 @@ long parse_split_binary(ParseType type, void *data, long num, long len, long str
         swap_data(data, num * len, size_of[type]);
     }
 
-    long tot = sync_lsum(num);
-    long end = (tot == 0) ? beg : beg + (tot * stride) - gap;
+    number tot = sync_lsum(num);
+    number end = (tot == 0) ? beg : beg + (tot * stride) - gap;
 
     parse_set_offset(file, (tot > 0 && gap > 0) ? beg + (len * size_of[type]) : end);
     return end;
 }
 
-long parse_split(ParseMode mode, ParseType type, void *data, long num, long len, long stride,
-                 bool swap, ParseFile file)
+number parse_split(ParseMode mode, ParseType type, void *data, number num, number len,
+                   number stride, bool swap, ParseFile file)
 {
     switch (mode) {
         case ASCII: return parse_split_ascii(type, data, num, len, stride, file);
@@ -302,7 +303,7 @@ long parse_split(ParseMode mode, ParseType type, void *data, long num, long len,
     }
 }
 
-long parse_data_to_long(ParseType type, const void *data, long idx)
+number parse_data_to_number(ParseType type, const void *data, number idx)
 {
     assert(type != STR && data && idx >= 0);
     switch (type) {

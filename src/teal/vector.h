@@ -11,7 +11,7 @@ void vector_inc(vector *lhs, vector rhs);
 void vector_dec(vector *lhs, vector rhs);
 
 vector vector_abs(vector vec);
-vector vector_sum(const vector *vec, long num);
+vector vector_sum(const vector *vec, number num);
 
 scalar vector_dot(vector lhs, vector rhs);
 scalar vector_norm(vector vec);

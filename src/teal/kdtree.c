@@ -9,7 +9,7 @@
 #include "utils.h"
 #include "vector.h"
 
-Kdtree *kdtree_create(long size_val)
+Kdtree *kdtree_create(number size_val)
 {
     assert(size_val >= 0);
     Kdtree *tree = arena_calloc(1, sizeof(*tree));
@@ -18,7 +18,7 @@ Kdtree *kdtree_create(long size_val)
     return tree;
 }
 
-static int veccmp(vector lhs, vector rhs, long depth)
+static int veccmp(vector lhs, vector rhs, number depth)
 {
     switch (depth % 3) {
         case 0: return isclose(lhs.x, rhs.x) ? 0 : cmp_asc(lhs.x, rhs.x);
@@ -28,7 +28,7 @@ static int veccmp(vector lhs, vector rhs, long depth)
     }
 }
 
-static int keycmp(vector lhs, vector rhs, long depth)
+static int keycmp(vector lhs, vector rhs, number depth)
 {
     int cmp = veccmp(lhs, rhs, depth);
     if (cmp) {
@@ -45,7 +45,7 @@ void *kdtree_insert(Kdtree *self, vector key, const void *val)
     assert(self && (val || self->size_val == 0));
 
     KdtreeItem **item = &self->beg;
-    long depth = 0;
+    number depth = 0;
     while (*item) {
         int cmp = keycmp(key, (*item)->key, depth);
         if (!cmp) {
@@ -70,7 +70,7 @@ void *kdtree_lookup(const Kdtree *self, vector key)
 {
     assert(self);
     KdtreeItem *item = self->beg;
-    long depth = 0;
+    number depth = 0;
     while (item) {
         int cmp = keycmp(key, item->key, depth);
         if (!cmp) {
@@ -89,18 +89,18 @@ static scalar squared_distance(vector lhs, vector rhs)
 }
 
 static void heap_replace(const void *item_val, scalar item_metric, void *val_, scalar *metric,
-                         long num, long size)
+                         number num, number size)
 {
     char (*val)[size] = val_;
 
     memcpy(val[0], item_val, size);
     metric[0] = item_metric;
 
-    long idx = 0;
-    long left = 1;
+    number idx = 0;
+    number left = 1;
     while (left < num) {
-        long right = left + 1;
-        long max = idx;
+        number right = left + 1;
+        number max = idx;
         if (metric[left] > metric[max]) {
             max = left;
         }
@@ -119,7 +119,7 @@ static void heap_replace(const void *item_val, scalar item_metric, void *val_, s
     }
 }
 
-static scalar delta(vector lhs, vector rhs, long depth)
+static scalar delta(vector lhs, vector rhs, number depth)
 {
     switch (depth % 3) {
         case 0: return lhs.x - rhs.x;
@@ -131,21 +131,21 @@ static scalar delta(vector lhs, vector rhs, long depth)
 
 typedef struct {
     KdtreeItem *item;
-    long depth;
+    number depth;
 } Stack;
 
-void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
+void kdtree_nearest(const Kdtree *self, vector key, void *val, number num)
 {
     assert(self && self->beg && self->size_val > 0 && val && 0 < num && num <= self->num);
     Arena save = arena_save();
 
     scalar *metric = arena_malloc(num, sizeof(*metric));
-    for (long i = 0; i < num; i++) {
+    for (number i = 0; i < num; i++) {
         metric[i] = INFINITY;
     }
 
     Stack *stack = arena_malloc(self->num, sizeof(*stack));
-    long top = 0;
+    number top = 0;
 
     stack[top++] = (Stack){self->beg, 0};
     while (top) {
@@ -172,17 +172,17 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
     arena_load(save);
 }
 
-long kdtree_radius(const Kdtree *self, vector key, void *val_, long cap, scalar radius)
+number kdtree_radius(const Kdtree *self, vector key, void *val_, number cap, scalar radius)
 {
     assert(self && self->beg && self->size_val > 0 && val_ && 0 < cap && radius >= 0);
     Arena save = arena_save();
 
     char (*val)[self->size_val] = val_;
     scalar metric = pow2(radius);
-    long num = 0;
+    number num = 0;
 
     Stack *stack = arena_malloc(self->num, sizeof(*stack));
-    long top = 0;
+    number top = 0;
 
     stack[top++] = (Stack){self->beg, 0};
     while (top && num < cap) {

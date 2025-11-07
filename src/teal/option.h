@@ -2,11 +2,13 @@
 
 #include <stdbool.h>
 
+#include "teal.h"
+
 typedef struct {
     bool quiet;
     bool verbose;
-    long capacity;
-    long num_refines;
+    number capacity;
+    number num_refines;
     const char *restart;
 } Option;
 

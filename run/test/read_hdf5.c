@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 
     Mesh *mesh = mesh_read("run/test/mesh.h5");
 
-    for (long i = 0; i < mesh->nodes.num; i++) {
+    for (number i = 0; i < mesh->nodes.num; i++) {
         vector *coord = &mesh->nodes.coord[i];
         scalar a = 4.5, b = 3.5, c = 1.0 / 6;
         coord->y += c * (3 - coord->y) * (1 + tanh(b * (fabs(coord->x - a) - b)));

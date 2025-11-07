@@ -1,19 +1,26 @@
 # compiler, default flags, and libraries
 CC = clang
-CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Isrc
-LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
+LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 
-# debug flags
-CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=undefined
-CFLAGS += -fsanitize=address
-#CFLAGS += -D ENABLE_VALGRIND
+CONFIG ?= debug
+CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Isrc
 
-# release flags
-#CFLAGS += -O3 -march=native -flto=auto -D NDEBUG
+ifeq ($(CONFIG), debug)
+CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
+endif
 
-# profiling flags
-#CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
+ifeq ($(CONFIG), valgrind)
+CFLAGS += -Og -fno-omit-frame-pointer -D VALGRIND
+endif
+
+ifneq (,$(filter $(CONFIG), release profile))
+CFLAGS += -O3 -march=native -flto=auto -D NDEBUG
+endif
+
+ifeq ($(CONFIG), profile)
+CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
+endif
 
 # sources, objects, and programs
 SRC = $(shell find src -type f -name '*.c')
@@ -22,8 +29,18 @@ OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 BIN = $(patsubst run/%.c, bin/%, $(RUN))
 
 # make functions
-.PHONY: all clean check tidy format
+.PHONY: all valgrind release profile clean check tidy format
+
 all: $(BIN)
+
+valgrind:
+	@$(MAKE) --no-print-directory CONFIG=valgrind
+
+release:
+	@$(MAKE) --no-print-directory CONFIG=release
+
+profile:
+	@$(MAKE) --no-print-directory CONFIG=profile
 
 clean:
 	@rm -rf obj bin
@@ -47,7 +64,7 @@ DEP = $(OBJ:.o=.d) $(BIN:=.d)
 
 # build rules
 .SUFFIXES:
-obj/%.o: src/%.c Makefile
+obj/%.o: src/%.c
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) -c $< -o $@
 

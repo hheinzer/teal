@@ -1,14 +1,16 @@
 #pragma once
 
+#include "teal.h"
+
 typedef struct Dict Dict;
 typedef struct DictItem DictItem;
 
 struct Dict {
-    long num;
+    number num;
     DictItem *beg;
     DictItem **end;
-    long size_key;
-    long size_val;
+    number size_key;
+    number size_val;
 };
 
 struct DictItem {
@@ -19,7 +21,7 @@ struct DictItem {
 };
 
 /* Returns empty dictionary; if `size_val == 0` it behaves as a set (values ignored). */
-Dict *dict_create(long size_key, long size_val);
+Dict *dict_create(number size_key, number size_val);
 
 /* Returns pointer to stored value if `key` is already present; else inserts and returns `0`. */
 void *dict_insert(Dict *self, const void *key, const void *val);
