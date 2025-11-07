@@ -11,22 +11,28 @@ CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefin
 endif
 
 ifeq ($(CONFIG), valgrind)
-CFLAGS += -Og -fno-omit-frame-pointer -D VALGRIND
+CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 endif
 
 ifneq (,$(filter $(CONFIG), release profile))
-CFLAGS += -O3 -march=native -flto=auto -D NDEBUG
+CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
 endif
 
 ifeq ($(CONFIG), profile)
 CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
 endif
 
+# build info
+COMPILER := $(shell $(CC) --version | head -n1)
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+STATUS := $(shell git diff-index --quiet HEAD 2>/dev/null || echo "-dirty")
+CFLAGS += -DCOMPILER="\"$(COMPILER)\"" -DCOMMIT=\"$(COMMIT)$(STATUS)\" -DCONFIG=\"$(CONFIG)\"
+
 # sources, objects, and programs
-SRC = $(shell find src -type f -name '*.c')
-RUN = $(shell find run -type f -name '*.c')
-OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
-BIN = $(patsubst run/%.c, bin/%, $(RUN))
+SRC := $(shell find src -type f -name '*.c')
+RUN := $(shell find run -type f -name '*.c')
+OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
+BIN := $(patsubst run/%.c, bin/%, $(RUN))
 
 # make functions
 .PHONY: all valgrind release profile clean check tidy format
@@ -62,9 +68,16 @@ CFLAGS += -MMD -MP
 DEP = $(OBJ:.o=.d) $(BIN:=.d)
 -include $(DEP)
 
+# config stamp
+CONFIG_STAMP := obj/.config-$(CONFIG)
+$(CONFIG_STAMP):
+	@mkdir -p $(dir $@)
+	@rm -f obj/.config-*
+	@touch $@
+
 # build rules
 .SUFFIXES:
-obj/%.o: src/%.c
+obj/%.o: src/%.c .git/HEAD .git/index $(CONFIG_STAMP)
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) -c $< -o $@
 
