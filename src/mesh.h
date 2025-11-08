@@ -120,9 +120,6 @@ void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 /* Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights. */
 void mesh_generate(Mesh *mesh);
 
-/* Write a per-rank, human-readable mesh dump to `stream`. */
-void mesh_dump(FILE *stream, const Mesh *mesh);
-
 /* Check the mesh integrety and report violations. */
 void mesh_check(const Mesh *mesh);
 

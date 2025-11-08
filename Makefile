@@ -69,15 +69,15 @@ DEP = $(OBJ:.o=.d) $(BIN:=.d)
 -include $(DEP)
 
 # config stamp
-CONFIG_STAMP := obj/.config-$(CONFIG)
-$(CONFIG_STAMP):
+STAMP := obj/.config-$(CONFIG)
+$(STAMP):
 	@mkdir -p $(dir $@)
 	@rm -f obj/.config-*
 	@touch $@
 
 # build rules
 .SUFFIXES:
-obj/%.o: src/%.c .git/HEAD .git/index $(CONFIG_STAMP)
+obj/%.o: src/%.c $(STAMP)
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) -c $< -o $@
 

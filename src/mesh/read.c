@@ -20,15 +20,18 @@
 static void read_file(Mesh *mesh, const char *fname)
 {
     char *ext = strrchr(fname, '.');
-    if (ext && !strcmp(ext, ".h5")) {
+    if (!ext) {
+        error("invalid file name -- '%s'", fname);
+    }
+    if (!strcmp(ext, ".h5")) {
         mesh_read_hdf5(mesh, fname);
+        return;
     }
-    else if (ext && !strcmp(ext, ".msh")) {
+    if (!strcmp(ext, ".msh")) {
         mesh_read_gmsh(mesh, fname);
+        return;
     }
-    else {
-        assert(false);
-    }
+    error("invalid file extension -- '%s'", ext);
 }
 
 static number count_inner_cells(const MeshEntities *entities)
