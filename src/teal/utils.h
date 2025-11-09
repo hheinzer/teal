@@ -4,12 +4,12 @@
 
 #define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
 
-#define countof(a) (sizeof(a) / sizeof(*(a)))
+#define countof(arr) (sizeof(arr) / sizeof(*(arr)))
 
-#define opt(s) (((s) && (s)[0]) ? (s) : "-")
+#define optional(str) (((str) && *(str)) ? (str) : "none")
 
-#define cmp_asc(l, r) (((l) > (r)) - ((l) < (r)))
-#define cmp_dsc(l, r) cmp_asc(r, l)
+#define cmp_asc(lhs, rhs) (((lhs) > (rhs)) - ((lhs) < (rhs)))
+#define cmp_dsc(lhs, rhs) cmp_asc(rhs, lhs)
 
 void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));

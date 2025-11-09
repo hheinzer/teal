@@ -540,8 +540,8 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
         for (number j = neighbors->send.off[i]; j < neighbors->send.off[i + 1]; j++) {
             send[j] = center[neighbors->send.idx[j]];
         }
-        int sendcount = neighbors->send.off[i + 1] - neighbors->send.off[i];
-        int recvcount = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
+        number sendcount = neighbors->send.off[i + 1] - neighbors->send.off[i];
+        number recvcount = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
         MPI_Isendrecv(&send[neighbors->send.off[i]], sendcount, type, neighbors->rank[i], tag,
                       &center[neighbors->recv_off[i]], recvcount, type, neighbors->rank[i], tag,
                       sync.comm, &req[i]);

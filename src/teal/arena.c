@@ -131,14 +131,14 @@ static void *(*const volatile force_memmove)(void *, const void *, size_t) = mem
 void *arena_smuggle(const void *ptr, number num, number size)
 {
     void *new = arena_malloc(num, size);
-    assert((char *)new <= (char *)ptr && (char *)ptr < arena_end);
+    assert((char *)new <= (const char *)ptr && (const char *)ptr < arena_end);
     MAKE_REGION_DEFINED(ptr, num * size);
     if (new == ptr) {
         return new;
     }
-    if ((char *)ptr - (char *)new < num * size) {
+    if ((const char *)ptr - (char *)new < num * size) {
         force_memmove(new, ptr, num * size);  // avoid compiler folding into memcpy
-        MAKE_REGION_NOACCESS((char *)new + (num * size), (char *)ptr - (char *)new);
+        MAKE_REGION_NOACCESS((char *)new + (num * size), (const char *)ptr - (char *)new);
     }
     else {
         memcpy(new, ptr, num * size);

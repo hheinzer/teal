@@ -4,7 +4,7 @@ MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 
 CONFIG ?= debug
-CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Isrc
+CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Isrc
 
 ifeq ($(CONFIG), debug)
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined

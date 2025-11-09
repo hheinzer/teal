@@ -153,7 +153,7 @@ static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, 
     nodes->global = global;
 }
 
-static number num_cells_side(tuple num_cells, int idx)
+static number num_cells_side(tuple num_cells, number idx)
 {
     switch (idx / 2) {
         case 0: return num_cells.y * num_cells.z;
@@ -347,7 +347,7 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
     arena_load(save);
 }
 
-static vector compute_translation(vector del_coord, int idx)
+static vector compute_translation(vector del_coord, number idx)
 {
     scalar sign = (idx % 2) ? -1 : +1;
     switch (idx / 2) {

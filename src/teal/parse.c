@@ -307,16 +307,16 @@ number parse_data_to_number(ParseType type, const void *data, number idx)
 {
     assert(type != STR && data && idx >= 0);
     switch (type) {
-        case I8: return ((int8_t *)data)[idx];
-        case I16: return ((int16_t *)data)[idx];
-        case I32: return ((int32_t *)data)[idx];
-        case I64: return ((int64_t *)data)[idx];
-        case U8: return ((uint8_t *)data)[idx];
-        case U16: return ((uint16_t *)data)[idx];
-        case U32: return ((uint32_t *)data)[idx];
-        case U64: return ((uint64_t *)data)[idx];
-        case F32: return lrintf(((float *)data)[idx]);
-        case F64: return lrint(((double *)data)[idx]);
+        case I8: return ((const int8_t *)data)[idx];
+        case I16: return ((const int16_t *)data)[idx];
+        case I32: return ((const int32_t *)data)[idx];
+        case I64: return ((const int64_t *)data)[idx];
+        case U8: return ((const uint8_t *)data)[idx];
+        case U16: return ((const uint16_t *)data)[idx];
+        case U32: return ((const uint32_t *)data)[idx];
+        case U64: return ((const uint64_t *)data)[idx];
+        case F32: return lrintf(((const float *)data)[idx]);
+        case F64: return lrint(((const double *)data)[idx]);
         default: assert(false);
     }
 }
