@@ -9,6 +9,7 @@ matrix matrix_div(matrix lhs, scalar rhs);
 
 void matrix_inc(matrix *lhs, matrix rhs);
 void matrix_dec(matrix *lhs, matrix rhs);
+void matrix_scale(matrix *lhs, scalar rhs);
 
 matrix matrix_transpose(matrix mat);
 

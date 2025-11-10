@@ -444,8 +444,8 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, n
         vector_inc(&mean, vector_div(coord, num_nodes));
     }
     if (vector_dot(vector_sub(mean, center), basis->x) > 0) {
-        basis->x = vector_mul(-1, basis->x);
-        basis->y = vector_mul(-1, basis->y);
+        vector_scale(&basis->x, -1);
+        vector_scale(&basis->y, -1);
     }
 }
 
@@ -687,7 +687,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
             weight[i].y += -r23[left] / r22[left] * alpha.z;
             weight[i].z += alpha.z;
         }
-        weight[i] = vector_mul(theta2, weight[i]);
+        vector_scale(&weight[i], theta2);
         assert(isfinite(weight[i].x));
         assert(isfinite(weight[i].y));
         assert(isfinite(weight[i].z));

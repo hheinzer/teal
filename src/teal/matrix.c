@@ -47,6 +47,11 @@ void matrix_dec(matrix *lhs, matrix rhs)
     *lhs = matrix_sub(*lhs, rhs);
 }
 
+void matrix_scale(matrix *lhs, scalar rhs)
+{
+    *lhs = matrix_mul(rhs, *lhs);
+}
+
 matrix matrix_transpose(matrix mat)
 {
     return (matrix){

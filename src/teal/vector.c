@@ -48,6 +48,11 @@ void vector_dec(vector *lhs, vector rhs)
     *lhs = vector_sub(*lhs, rhs);
 }
 
+void vector_scale(vector *lhs, scalar rhs)
+{
+    *lhs = vector_mul(rhs, *lhs);
+}
+
 vector vector_abs(vector vec)
 {
     return (vector){

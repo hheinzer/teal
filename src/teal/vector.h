@@ -9,6 +9,7 @@ vector vector_div(vector lhs, scalar rhs);
 
 void vector_inc(vector *lhs, vector rhs);
 void vector_dec(vector *lhs, vector rhs);
+void vector_scale(vector *lhs, scalar rhs);
 
 vector vector_abs(vector vec);
 vector vector_sum(const vector *vec, number num);
