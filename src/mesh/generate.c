@@ -126,6 +126,21 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
     arena_load(save);
 }
 
+/* Fill `node` with node indices common to cells left and right and return the count. */
+static number compute_intersection(number *node, const MeshCells *cells, number left, number right)
+{
+    number num = 0;
+    for (number i = cells->node.off[left]; i < cells->node.off[left + 1]; i++) {
+        for (number j = cells->node.off[right]; j < cells->node.off[right + 1]; j++) {
+            if (cells->node.idx[i] == cells->node.idx[j]) {
+                assert(num < MAX_FACE_NODES);
+                node[num++] = cells->node.idx[i];
+            }
+        }
+    }
+    return num;
+}
+
 /* Build faces: one per unique adjacent cell pair; fill face->node and face->cell. */
 static void create_faces(const MeshCells *cells, MeshFaces *faces)
 {
@@ -148,16 +163,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
                 assert(num < cap);
                 face[num].left = left;
                 face[num].right = right;
-                face[num].num = 0;
-                for (number ii = cells->node.off[left]; ii < cells->node.off[left + 1]; ii++) {
-                    for (number jj = cells->node.off[right]; jj < cells->node.off[right + 1];
-                         jj++) {
-                        if (cells->node.idx[ii] == cells->node.idx[jj]) {
-                            assert(face[num].num < MAX_FACE_NODES);
-                            face[num].node[face[num].num++] = cells->node.idx[ii];
-                        }
-                    }
-                }
+                face[num].num = compute_intersection(face[num].node, cells, left, right);
                 num += 1;
             }
         }
@@ -598,6 +604,27 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
     cells->projection = projection;
 }
 
+void compute_cell_offsets(const MeshNodes *nodes, MeshCells *cells)
+{
+    vector *offset = arena_malloc(cells->cell.off[cells->num_inner], sizeof(*offset));
+    for (number i = 0; i < cells->num_inner; i++) {
+        for (number j = cells->cell.off[i]; j < cells->cell.off[i + 1]; j++) {
+            number node[MAX_FACE_NODES];
+            number num_nodes = compute_intersection(node, cells, i, cells->cell.idx[j]);
+
+            vector coord[MAX_FACE_NODES];
+            for (number k = 0; k < num_nodes; k++) {
+                coord[k] = nodes->coord[node[k]];
+            }
+            correct_coord_order(coord, num_nodes);
+
+            vector center = compute_face_center(coord, num_nodes);
+            offset[j] = vector_sub(center, cells->center[i]);
+        }
+    }
+    cells->offset = offset;
+}
+
 static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
@@ -690,5 +717,6 @@ void mesh_generate(Mesh *mesh)
     compute_cell_geometry(&mesh->nodes, &mesh->cells, &mesh->faces, &mesh->entities,
                           &mesh->neighbors);
 
+    compute_cell_offsets(&mesh->nodes, &mesh->cells);
     compute_face_weights(&mesh->cells, &mesh->faces);
 }

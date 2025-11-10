@@ -63,6 +63,7 @@ typedef struct {
     scalar *volume;
     vector *center;
     vector *projection;  // axis-aligned projection of cell volume
+    vector *offset;      // cell-to-face offset
 } MeshCells;
 
 typedef struct {
