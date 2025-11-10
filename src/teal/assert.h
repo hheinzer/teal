@@ -25,9 +25,9 @@ __attribute((noreturn)) static inline void unreachable(void)
 #endif
 
 #ifdef NDEBUG
-#define assert(expr) (expect(!!(expr), 1) ? (void)0 : unreachable())
+#define assert(expr) (expect(!!(expr), 1) ? ((void)0) : unreachable())
 #else
-#define assert(expr) ((expr) ? (void)0 : x__assert_fail(__FILE__, __LINE__, __func__, #expr))
+#define assert(expr) ((expr) ? ((void)0) : x__assert_fail(__FILE__, __LINE__, __func__, #expr))
 #endif
 
 void x__assert_fail(const char *file, int line, const char *func, const char *expr)

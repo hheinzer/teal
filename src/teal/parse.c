@@ -287,9 +287,9 @@ number parse_split_binary(ParseType type, void *data, number num, number len, nu
     }
 
     number tot = sync_lsum(num);
-    number end = (tot == 0) ? beg : beg + (tot * stride) - gap;
+    number end = (tot == 0) ? beg : (beg + (tot * stride) - gap);
 
-    parse_set_offset(file, (tot > 0 && gap > 0) ? beg + (len * size_of[type]) : end);
+    parse_set_offset(file, (tot > 0 && gap > 0) ? (beg + (len * size_of[type])) : end);
     return end;
 }
 

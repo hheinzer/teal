@@ -390,7 +390,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     }
     for (number i = 0; i < 2 * ndims; i++) {
         if (periods[i / 2]) {
-            sprintf(name[num], "%s:%s", side[i], side[(i % 2 == 0) ? i + 1 : i - 1]);
+            sprintf(name[num], "%s:%s", side[i], side[(i % 2 == 0) ? (i + 1) : (i - 1)]);
             cell_off[num + 1] = cell_off[num];
             if (is_edge_side(dims, coords, i)) {
                 cell_off[num + 1] += num_cells_side(num_cells, i);

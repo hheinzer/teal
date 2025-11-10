@@ -141,7 +141,7 @@ void swap_vector(vector *lhs, vector *rhs)
 
 void swap_bytes(void *lhs_, void *rhs_, number size)
 {
-    assert((lhs_ || rhs_) ? (lhs_ && rhs_ && size >= 0) : size == 0);
+    assert((lhs_ || rhs_) ? (lhs_ && rhs_ && size >= 0) : (size == 0));
     char *lhs = lhs_;
     char *rhs = rhs_;
     for (number i = 0; i < size; i++) {

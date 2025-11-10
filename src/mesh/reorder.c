@@ -24,7 +24,7 @@ static bool is_valid(const number *map, number num)
     ret &= array_lsum(count, num) == num;
 
     arena_load(save);
-    return num > 0 ? ret : true;
+    return (num > 0) ? ret : true;
 }
 
 void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const number *map)

@@ -9,7 +9,7 @@
 
 number array_lmin(const number *arr, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     number min = PTRDIFF_MAX;
     for (number i = 0; i < num; i++) {
         min = lmin(min, arr[i]);
@@ -19,7 +19,7 @@ number array_lmin(const number *arr, number num)
 
 number array_lmax(const number *arr, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     number max = PTRDIFF_MIN;
     for (number i = 0; i < num; i++) {
         max = lmax(max, arr[i]);
@@ -29,7 +29,7 @@ number array_lmax(const number *arr, number num)
 
 number array_lsum(const number *arr, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     number sum = 0;
     for (number i = 0; i < num; i++) {
         sum += arr[i];
@@ -39,7 +39,7 @@ number array_lsum(const number *arr, number num)
 
 scalar array_fmin(const scalar *arr, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     scalar min = INFINITY;
     for (number i = 0; i < num; i++) {
         min = fmin(min, arr[i]);
@@ -49,7 +49,7 @@ scalar array_fmin(const scalar *arr, number num)
 
 scalar array_fmax(const scalar *arr, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     scalar max = -INFINITY;
     for (number i = 0; i < num; i++) {
         max = fmax(max, arr[i]);
@@ -59,7 +59,7 @@ scalar array_fmax(const scalar *arr, number num)
 
 scalar array_fsum(const scalar *arr, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     double sum = 0;  // always use double to avoid loss of precision
     for (number i = 0; i < num; i++) {
         sum += arr[i];
@@ -69,7 +69,7 @@ scalar array_fsum(const scalar *arr, number num)
 
 void array_lunique(number *arr, number *num)
 {
-    assert(arr ? *num >= 0 : *num == 0);
+    assert(arr ? (*num >= 0) : (*num == 0));
     if (*num <= 1) {
         return;
     }
@@ -85,7 +85,7 @@ void array_lunique(number *arr, number *num)
 
 number array_ldigitize(const number *arr, number val, number num)
 {
-    assert(arr ? num >= 0 : num == 0);
+    assert(arr ? (num >= 0) : (num == 0));
     if (num == 0) {
         return 0;
     }

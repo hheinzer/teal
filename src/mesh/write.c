@@ -8,7 +8,7 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
 {
     hid_t group = h5io_group_create("nodes", loc);
 
-    bool root = sync.rank == 0;
+    bool root = (sync.rank == 0);
 
     number num_nodes = nodes->num_inner;
     h5io_dataset_write("num", &num_nodes, 1, 1, H5IO_NUMBER, group);
@@ -55,7 +55,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     hid_t group = h5io_group_create("cells", loc);
 
-    bool root = sync.rank == 0;
+    bool root = (sync.rank == 0);
 
     number num_cells = cells->off_periodic;
     h5io_dataset_write("num", &num_cells, 1, 1, H5IO_NUMBER, group);
@@ -122,7 +122,7 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
 {
     hid_t group = h5io_group_create("entities", loc);
 
-    bool root = sync.rank == 0;
+    bool root = (sync.rank == 0);
 
     h5io_dataset_write("num", &entities->num, root, 1, H5IO_NUMBER, group);
     h5io_dataset_write("num_inner", &entities->num_inner, root, 1, H5IO_NUMBER, group);

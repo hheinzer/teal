@@ -66,7 +66,7 @@ static number reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntiti
     number lhs = 0;
     number rhs = 0;
     for (number i = 0; i < tot; i++) {
-        map[i] = map[i] ? lhs++ : off + rhs++;
+        map[i] = map[i] ? lhs++ : (off + rhs++);
     }
     assert(lhs == off);
     assert(rhs == tot - off);

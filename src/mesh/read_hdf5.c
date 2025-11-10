@@ -11,7 +11,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
 {
     hid_t group = h5io_group_open("nodes", loc);
 
-    bool root = sync.rank == 0;
+    bool root = (sync.rank == 0);
 
     number tot_nodes;
     h5io_dataset_read("tot", &tot_nodes, root, 1, H5IO_NUMBER, group);
@@ -48,8 +48,8 @@ static void read_node_graph(Graph *node, number num_cells, hid_t loc)
     h5io_dataset_read("off", &node->off[sync.rank != 0], num_off, 1, H5IO_NUMBER, group);
 
     number offset = 0;
-    int dst = (sync.rank + 1 < sync.size) ? sync.rank + 1 : MPI_PROC_NULL;
-    int src = (sync.rank - 1 >= 0) ? sync.rank - 1 : MPI_PROC_NULL;
+    int dst = (sync.rank + 1 < sync.size) ? (sync.rank + 1) : MPI_PROC_NULL;
+    int src = (sync.rank - 1 >= 0) ? (sync.rank - 1) : MPI_PROC_NULL;
     MPI_Sendrecv(&node->off[num_cells], 1, MPI_NUMBER, dst, 0, &offset, 1, MPI_NUMBER, src, 0,
                  sync.comm, MPI_STATUS_IGNORE);
 
@@ -70,7 +70,7 @@ static void read_cells(MeshCells *cells, hid_t loc)
 {
     hid_t group = h5io_group_open("cells", loc);
 
-    bool root = sync.rank == 0;
+    bool root = (sync.rank == 0);
 
     number tot_cells;
     h5io_dataset_read("tot", &tot_cells, root, 1, H5IO_NUMBER, group);
@@ -95,7 +95,7 @@ static void read_entities(MeshEntities *entities, hid_t loc)
 {
     hid_t group = h5io_group_open("entities", loc);
 
-    bool root = sync.rank == 0;
+    bool root = (sync.rank == 0);
 
     h5io_dataset_read("num", &entities->num, root, 1, H5IO_NUMBER, group);
     h5io_dataset_read("num_inner", &entities->num_inner, root, 1, H5IO_NUMBER, group);
