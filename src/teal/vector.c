@@ -35,7 +35,7 @@ vector vector_mul(scalar lhs, vector rhs)
 vector vector_div(vector lhs, scalar rhs)
 {
     assert(!isclose(rhs, 0));
-    return vector_mul(1.0 / rhs, lhs);
+    return vector_mul(1 / rhs, lhs);
 }
 
 void vector_inc(vector *lhs, vector rhs)

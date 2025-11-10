@@ -1,21 +1,21 @@
 #!/bin/bash
 
-ncores=1 # number of cores
+num_cores=1
 while getopts "n:" opt; do
     case $opt in
-        n) ncores=$OPTARG ;;
+        n) num_cores=$OPTARG ;;
         *) exit 1 ;;
     esac
 done
 shift $((OPTIND - 1))
 
-prog=$1 # program
-args=${@:2} # program arguments
+prog=$1
+args=${@:2}
 
 out=${prog}_gprof.out
 pdf=${prog}_gprof.pdf
 
-GMON_OUT_PREFIX=gmon.out- mpirun -x GMON_OUT_PREFIX -n $ncores $prog $args
+GMON_OUT_PREFIX=gmon.out- mpirun -x GMON_OUT_PREFIX -n $num_cores $prog $args
 gprof -s $prog gmon.out-*
 gprof $prog gmon.sum | tee $out | gprof2dot | dot -Tpdf -o $pdf
 rm gmon.out-* gmon.sum

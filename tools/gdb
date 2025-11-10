@@ -12,6 +12,8 @@ shift $((OPTIND - 1))
 prog=$1
 args=${@:2}
 
-exec mpirun -n $num_cores valgrind -q --tool=memcheck --gen-suppressions=no \
-    --suppressions=tools/valgrind.supp --leak-check=full --track-origins=yes \
-    $prog $args
+if [ $num_cores -gt 1 ]; then
+    exec mpirun -n 1 gdb -q -ex 'start' --args $prog $args : -n $((num_cores - 1)) $prog $args
+else
+    exec gdb -q -ex 'start' --args $prog $args
+fi

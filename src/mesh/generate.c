@@ -639,7 +639,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         number left = faces->cell[i].left;
         number right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = pow2(1.0 / vector_norm(delta));
+        scalar theta2 = pow2(1 / vector_norm(delta));
         r11[left] += theta2 * delta.x * delta.x;
         r12[left] += theta2 * delta.x * delta.y;
         r22[left] += theta2 * delta.y * delta.y;
@@ -669,7 +669,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         number left = faces->cell[i].left;
         number right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = pow2(1.0 / vector_norm(delta));
+        scalar theta2 = pow2(1 / vector_norm(delta));
         scalar beta = (r12[left] * r23[left] - r13[left] * r22[left]) / (r11[left] * r22[left]);
         vector alpha;
         alpha.x = delta.x / pow2(r11[left]);

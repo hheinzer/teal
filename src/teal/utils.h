@@ -4,6 +4,8 @@
 
 #define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
 
+#define unused(val) ((void)(val))
+
 #define countof(arr) (sizeof(arr) / sizeof(*(arr)))
 
 #define optional(str) (((str) && *(str)) ? (str) : "none")

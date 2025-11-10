@@ -34,7 +34,7 @@ matrix matrix_mul(scalar lhs, matrix rhs)
 matrix matrix_div(matrix lhs, scalar rhs)
 {
     assert(!isclose(rhs, 0));
-    return matrix_mul(1.0 / rhs, lhs);
+    return matrix_mul(1 / rhs, lhs);
 }
 
 void matrix_inc(matrix *lhs, matrix rhs)
