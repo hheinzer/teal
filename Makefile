@@ -1,32 +1,30 @@
-# compiler, default flags, and libraries
+# compiler and libraries
 CC = clang
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 
+# compiler flags
 CONFIG ?= debug
 CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Isrc
-
 ifeq ($(CONFIG), debug)
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
 endif
-
 ifeq ($(CONFIG), valgrind)
 CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 endif
-
-ifneq (,$(filter $(CONFIG), release profile))
+ifneq (,$(filter $(CONFIG), release gprof))
 CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
 endif
-
-ifeq ($(CONFIG), profile)
+ifeq ($(CONFIG), gprof)
 CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
 endif
+CFLAGS += -DCONFIG=\"$(CONFIG)\"
 
 # build info
 COMPILER := $(shell $(CC) --version | head -n1)
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 STATUS := $(shell git diff-index --quiet HEAD 2>/dev/null || echo "-dirty")
-CFLAGS += -DCOMPILER="\"$(COMPILER)\"" -DCOMMIT=\"$(COMMIT)$(STATUS)\" -DCONFIG=\"$(CONFIG)\"
+CFLAGS += -DCOMPILER="\"$(COMPILER)\"" -DCOMMIT=\"$(COMMIT)$(STATUS)\"
 
 # sources, objects, and programs
 SRC := $(shell find src -type f -name '*.c')
@@ -35,7 +33,7 @@ OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
 BIN := $(patsubst run/%.c, bin/%, $(RUN))
 
 # make functions
-.PHONY: all valgrind release profile clean check tidy format
+.PHONY: all valgrind release gprof clean check tidy format
 
 all: $(BIN)
 
@@ -45,8 +43,8 @@ valgrind:
 release:
 	@$(MAKE) --no-print-directory CONFIG=release
 
-profile:
-	@$(MAKE) --no-print-directory CONFIG=profile
+gprof:
+	@$(MAKE) --no-print-directory CONFIG=gprof
 
 clean:
 	@rm -rf obj bin
@@ -68,14 +66,14 @@ CFLAGS += -MMD -MP
 DEP = $(OBJ:.o=.d) $(BIN:=.d)
 -include $(DEP)
 
-# config stamp
+# configuration stamp
 STAMP := obj/.config-$(CONFIG)
 $(STAMP):
 	@mkdir -p $(dir $@)
 	@rm -f obj/.config-*
 	@touch $@
 
-# build rules
+# suffix rules
 .SUFFIXES:
 obj/%.o: src/%.c $(STAMP)
 	@mkdir -p $(@D)
