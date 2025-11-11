@@ -1,8 +1,10 @@
 #include "sync.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "assert.h"
+#include "teal/arena.h"
 
 Sync sync = {0};
 
@@ -86,21 +88,21 @@ scalar sync_fsum(scalar val)
     return sum;
 }
 
-vector sync_vmin(vector val)
+vector sync_vector_min(vector val)
 {
     vector min = val;
     MPI_Allreduce(&val, &min, 3, MPI_SCALAR, MPI_MIN, sync.comm);
     return min;
 }
 
-vector sync_vmax(vector val)
+vector sync_vector_max(vector val)
 {
     vector max = val;
     MPI_Allreduce(&val, &max, 3, MPI_SCALAR, MPI_MAX, sync.comm);
     return max;
 }
 
-vector sync_vsum(vector val)
+vector sync_vector_sum(vector val)
 {
     vector sum = {0};
     MPI_Allreduce(&val, &sum, 3, MPI_SCALAR, MPI_SUM, sync.comm);
@@ -112,6 +114,36 @@ number sync_lexsum(number val)
     number exsum = 0;
     MPI_Exscan(&val, &exsum, 1, MPI_NUMBER, MPI_SUM, sync.comm);
     return (sync.rank == 0) ? 0 : exsum;
+}
+
+MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_, number num,
+                               number stride, int tag)
+{
+    scalar(*arr)[stride] = arr_;
+    MPI_Request *req = arena_malloc(num, sizeof(*req));
+    for (number i = 0; i < num; i++) {
+        number count = (off[i + 1] - off[i]) * stride;
+        MPI_Irecv(arr[off[i]], count, MPI_SCALAR, rank[i], tag, sync.comm, &req[i]);
+    }
+    return req;
+}
+
+MPI_Request *sync_isend_scalar(const number *rank, const number *off, const number *idx,
+                               const void *arr_, number num, number stride, int tag)
+{
+    const scalar(*arr)[stride] = arr_;
+    scalar(*buf)[stride] = arena_malloc(off[num], sizeof(*buf));
+    for (number i = 0; i < num; i++) {
+        for (number j = off[i]; j < off[i + 1]; j++) {
+            memcpy(buf[j], arr[idx[j]], sizeof(*arr));
+        }
+    }
+    MPI_Request *req = arena_malloc(num, sizeof(*req));
+    for (number i = 0; i < num; i++) {
+        number count = (off[i + 1] - off[i]) * stride;
+        MPI_Isend(buf[off[i]], count, MPI_SCALAR, rank[i], tag, sync.comm, &req[i]);
+    }
+    return req;
 }
 
 void sync_finalize(void)

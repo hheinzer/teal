@@ -325,8 +325,8 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
         }
     }
 
-    mean[LHS] = vector_div(sync_vsum(mean[LHS]), num_cells[LHS]);
-    mean[RHS] = vector_div(sync_vsum(mean[RHS]), num_cells[RHS]);
+    mean[LHS] = vector_div(sync_vector_sum(mean[LHS]), num_cells[LHS]);
+    mean[RHS] = vector_div(sync_vector_sum(mean[RHS]), num_cells[RHS]);
     collect_links(mean, center2link);
 
     number num_edges;
@@ -1220,8 +1220,8 @@ static void compute_translation(const MeshNodes *nodes, const MeshCells *cells,
     num_cells[RHS] = sync_lsum(num_cells[RHS]);
     assert(num_cells[LHS] == num_cells[RHS]);
 
-    mean[LHS] = vector_div(sync_vsum(mean[LHS]), num_cells[LHS]);
-    mean[RHS] = vector_div(sync_vsum(mean[RHS]), num_cells[RHS]);
+    mean[LHS] = vector_div(sync_vector_sum(mean[LHS]), num_cells[LHS]);
+    mean[RHS] = vector_div(sync_vector_sum(mean[RHS]), num_cells[RHS]);
 
     translation[lhs] = vector_sub(mean[RHS], mean[LHS]);
     translation[rhs] = vector_sub(mean[LHS], mean[RHS]);

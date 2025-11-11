@@ -33,11 +33,15 @@ scalar sync_fmin(scalar val);
 scalar sync_fmax(scalar val);
 scalar sync_fsum(scalar val);
 
-vector sync_vmin(vector val);
-vector sync_vmax(vector val);
-vector sync_vsum(vector val);
+vector sync_vector_min(vector val);
+vector sync_vector_max(vector val);
+vector sync_vector_sum(vector val);
 
-/* Return exclusive prefix sum of `val`. */
 number sync_lexsum(number val);
+
+MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_, number num,
+                               number stride, int tag);
+MPI_Request *sync_isend_scalar(const number *rank, const number *off, const number *idx,
+                               const void *arr_, number num, number stride, int tag);
 
 void sync_finalize(void);
