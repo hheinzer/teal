@@ -44,4 +44,9 @@ MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_
 MPI_Request *sync_isend_scalar(const number *rank, const number *off, const number *idx,
                                const void *arr_, number num, number stride, int tag);
 
+MPI_Request *sync_irecv_vector(const number *rank, const number *off, void *arr_, number num,
+                               number stride, int tag);
+MPI_Request *sync_isend_vector(const number *rank, const number *off, const number *idx,
+                               const void *arr_, number num, number stride, int tag);
+
 void sync_finalize(void);

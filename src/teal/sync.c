@@ -146,6 +146,18 @@ MPI_Request *sync_isend_scalar(const number *rank, const number *off, const numb
     return req;
 }
 
+MPI_Request *sync_irecv_vector(const number *rank, const number *off, void *arr_, number num,
+                               number stride, int tag)
+{
+    return sync_irecv_scalar(rank, off, arr_, num, stride * 3, tag);
+}
+
+MPI_Request *sync_isend_vector(const number *rank, const number *off, const number *idx,
+                               const void *arr_, number num, number stride, int tag)
+{
+    return sync_isend_scalar(rank, off, idx, arr_, num, stride * 3, tag);
+}
+
 void sync_finalize(void)
 {
     MPI_Comm_free(&sync.comm);
