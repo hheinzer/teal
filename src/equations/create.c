@@ -1,0 +1,98 @@
+#include <string.h>
+
+#include "equations.h"
+#include "teal/arena.h"
+#include "teal/assert.h"
+
+Equations *equations_create(const Mesh *mesh, const char *name, number space_order)
+{
+    assert(mesh && name && 1 <= space_order && space_order <= 2);
+
+    Equations *eqns = arena_calloc(1, sizeof(*eqns));
+    eqns->mesh = mesh;
+    strcpy(eqns->name, name);
+    eqns->space_order = space_order;
+
+    number num = mesh->entities.off_ghost - mesh->entities.num_inner;
+    eqns->boundary.num = num;
+    eqns->boundary.entity = &mesh->entities.name[mesh->entities.num_inner];
+    eqns->boundary.cell_off = &mesh->entities.cell_off[mesh->entities.num_inner];
+    eqns->boundary.face_off = &mesh->entities.face_off[mesh->entities.num_inner];
+    eqns->boundary.name = arena_calloc(num, sizeof(*eqns->boundary.name));
+    eqns->boundary.reference = arena_calloc(num, sizeof(*eqns->boundary.reference));
+    eqns->boundary.custom = arena_calloc(num, sizeof(*eqns->boundary.custom));
+    eqns->boundary.condition = arena_calloc(num, sizeof(*eqns->boundary.condition));
+
+    return eqns;
+}
+
+void equations_create_variables(Equations *eqns, const char **name, const Type *type,
+                                Update *conserved, Update *primitive, number num_conserved,
+                                number num)
+{
+    assert(eqns && name && type && 0 < num_conserved && num_conserved <= num);
+    number len = 0;
+    number stride = 0;
+    for (number i = 0; i < num; i++) {
+        if (i < num_conserved) {
+            len += type[i];
+        }
+        stride += type[i];
+    }
+    eqns->variables.num = num;
+    eqns->variables.len = len;
+    eqns->variables.stride = stride;
+    eqns->variables.name = arena_calloc(num, sizeof(*eqns->variables.name));
+    for (number i = 0; i < num; i++) {
+        strcpy(eqns->variables.name[i], name[i]);
+    }
+    eqns->variables.type = arena_memdup(type, num, sizeof(*type));
+    eqns->variables.variable = arena_calloc(eqns->mesh->cells.num * stride, sizeof(scalar));
+    eqns->variables.conserved = conserved;
+    eqns->variables.primitive = primitive;
+}
+
+void equations_create_properties(Equations *eqns, const char **name, const scalar *property,
+                                 number num)
+{
+    assert(eqns && name && property && num > 0);
+    eqns->properties.num = num;
+    eqns->properties.name = arena_calloc(num, sizeof(*eqns->properties.name));
+    for (number i = 0; i < num; i++) {
+        strcpy(eqns->properties.name[i], name[i]);
+    }
+    eqns->properties.property = arena_memdup(property, num, sizeof(*property));
+}
+
+void equations_create_user_variables(Equations *eqns, const char **name, const Type *type,
+                                     Compute *compute, number num)
+{
+    assert(eqns && name && type && compute && num > 0);
+    number stride = 0;
+    for (number i = 0; i < num; i++) {
+        stride += type[i];
+    }
+    eqns->user.num = num;
+    eqns->user.stride = stride;
+    eqns->user.name = arena_calloc(num, sizeof(*eqns->user.name));
+    for (number i = 0; i < num; i++) {
+        strcpy(eqns->user.name[i], name[i]);
+    }
+    eqns->user.type = arena_memdup(type, num, sizeof(*type));
+    eqns->user.compute = compute;
+}
+
+void equations_create_exact_solution(Equations *eqns, Compute *compute)
+{
+    assert(eqns && compute);
+    number num = eqns->variables.num;
+    eqns->user.num = num;
+    eqns->user.stride = eqns->variables.stride;
+    eqns->user.name = arena_calloc(num, sizeof(*eqns->user.name));
+    for (number i = 0; i < num; i++) {
+        sprintf(eqns->user.name[i], "exact %s", eqns->variables.name[i]);
+    }
+    eqns->user.type = arena_memdup(eqns->variables.type, num, sizeof(*eqns->variables.type));
+    eqns->user.compute = compute;
+    eqns->user.conserved = eqns->variables.conserved;
+}
