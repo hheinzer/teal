@@ -61,6 +61,7 @@ typedef struct {
     Graph node;           // cell-to-node connectivity
     Graph cell;           // cell-to-cell connectivity
     scalar *volume;
+    scalar sum_volume;
     vector *center;
     vector *projection;  // axis-aligned projection of cell volume
     vector *offset;      // cell-to-face offset
