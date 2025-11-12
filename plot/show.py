@@ -2,6 +2,7 @@ from argparse import ArgumentParser, BooleanOptionalAction as Boolean
 import h5py
 import numpy as np
 import pyvista as pv
+import matplotlib.pyplot as plt
 
 parser = ArgumentParser(description="Visualize an unstructured grid")
 parser.add_argument("fname", help="Input file")
@@ -12,6 +13,7 @@ parser.add_argument("-x", "--explode", action=Boolean, help="Explode cells")
 parser.add_argument("-c", "--clip", action=Boolean, help="Add clip plane")
 parser.add_argument("-e", "--edges", action=Boolean, help="Show edges")
 parser.add_argument("--crinkle", action=Boolean, help="Crinkle clip")
+parser.add_argument("--line", action=Boolean, help="Plot over line")
 parser.add_argument("--cmap", default="coolwarm", help="Colormap")
 args = parser.parse_args()
 
@@ -40,17 +42,47 @@ def read_mesh(fname):
     return mesh
 
 
-def main():
-    mesh = read_mesh(args.fname) if "_mesh.h5" in args.fname else pv.read(args.fname)
-    mesh.set_active_scalars(args.field)
+def show_line(mesh, field):
+    xmin = mesh.points.min(axis=0)[0]
+    xmax = mesh.points.max(axis=0)[0]
+    mean = mesh.points.mean(axis=0)
+    pointa = (xmin, mean[1], mean[2])
+    pointb = (xmax, mean[1], mean[2])
+    sample = mesh.sample_over_line(pointa, pointb, resolution=1000)
 
-    if args.list:
-        print("\n".join(mesh.array_names))
-        return
+    fig, ax = plt.subplots()
 
-    if args.points:
-        mesh = mesh.cell_data_to_point_data()
+    for name in sample.array_names:
+        if field in name:
+            zorder = 1 if "exact" in name else 2
+            if sample[name].ndim == 1:
+                ax.plot(sample.points[:, 0], sample[name], label=name, zorder=zorder)
+            elif sample[name].ndim == 2:
+                if sample[name].shape[1] == 3:
+                    for i, dim in enumerate([" x", " y", " z"]):
+                        ax.plot(
+                            sample.points[:, 0], sample[name][:, i], label=name + dim, zorder=zorder
+                        )
+                elif sample[name].shape[1] == 9:
+                    for i, dim in enumerate(
+                        [" xx", " xy", " xz", " yx", " yy", " yz", " zx", " zy", " zz"]
+                    ):
+                        ax.plot(
+                            sample.points[:, 0], sample[name][:, i], label=name + dim, zorder=zorder
+                        )
+            else:
+                norm = np.linalg.norm(sample[name], axis=-1)
+                ax.plot(sample.points[:, 0], norm, label=name + " norm", zorder=zorder)
 
+    ax.legend()
+    ax.set_xlabel("x")
+    ax.set_ylabel(field)
+
+    fig.tight_layout()
+    plt.show()
+
+
+def show_field(mesh):
     pvp = pv.Plotter(lighting="three lights")
 
     if args.explode:
@@ -69,6 +101,23 @@ def main():
     pvp.show_bounds()
     pvp.view_xy()
     pvp.show()
+
+
+def main():
+    mesh = read_mesh(args.fname) if "_mesh.h5" in args.fname else pv.read(args.fname)
+    mesh.set_active_scalars(args.field)
+
+    if args.list:
+        print("\n".join(mesh.array_names))
+        return
+
+    if args.points:
+        mesh = mesh.cell_data_to_point_data()
+
+    if args.line and args.field:
+        show_line(mesh, args.field)
+    else:
+        show_field(mesh)
 
 
 if __name__ == "__main__":
