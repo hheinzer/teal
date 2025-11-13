@@ -16,7 +16,7 @@ typedef struct {
     number stride;
     Name *name;
     Type *type;
-    void *variable;
+    void *data;
     Update *conserved;
     Update *primitive;
 } EquationsVariables;
@@ -24,7 +24,7 @@ typedef struct {
 typedef struct {
     number num;
     Name *name;
-    scalar *property;
+    scalar *data;
 } EquationsProperties;
 
 typedef scalar Timestep(const void *variable_, const scalar *property, scalar volume,

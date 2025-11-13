@@ -14,7 +14,7 @@ void equations_boundary(const Equations *eqns, void *variable_, scalar time)
 
     number stride = eqns->variables.stride;
     Update *conserved = eqns->variables.conserved;
-    scalar *property = eqns->properties.property;
+    scalar *property = eqns->properties.data;
 
     number num = eqns->boundary.num;
     const number *face_off = eqns->boundary.face_off;

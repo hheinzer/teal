@@ -14,7 +14,7 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
     bool root = (sync.rank == 0);
 
     for (number i = 0; i < eqns->properties.num; i++) {
-        h5io_dataset_write(eqns->properties.name[i], &eqns->properties.property[i], root, 1,
+        h5io_dataset_write(eqns->properties.name[i], &eqns->properties.data[i], root, 1,
                            H5IO_SCALAR, group);
     }
 
@@ -46,8 +46,8 @@ static void write_user_variables(const Equations *eqns, scalar time, number num_
     Arena save = arena_save();
 
     vector *center = eqns->mesh->cells.center;
-    scalar(*variable)[eqns->variables.stride] = eqns->variables.variable;
-    scalar *property = eqns->properties.property;
+    scalar(*variable)[eqns->variables.stride] = eqns->variables.data;
+    scalar *property = eqns->properties.data;
 
     scalar(*user)[eqns->user.stride] = arena_calloc(num_cells, sizeof(*user));
     for (number i = 0; i < num_cells; i++) {
@@ -68,7 +68,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     hid_t group = h5io_group_create("CellData", loc);
 
     number num_cells = eqns->mesh->cells.off_periodic;
-    write_variables(eqns->variables.name, eqns->variables.type, eqns->variables.variable,
+    write_variables(eqns->variables.name, eqns->variables.type, eqns->variables.data,
                     eqns->variables.num, eqns->variables.stride, num_cells, group);
 
     if (eqns->user.num > 0) {

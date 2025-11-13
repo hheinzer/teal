@@ -13,5 +13,6 @@ prog=$1
 args=${@:2}
 
 exec mpirun -n $num_cores valgrind -q --tool=memcheck --gen-suppressions=no \
-    --suppressions=tools/valgrind.supp --leak-check=full --track-origins=yes \
+    --suppressions=tools/openmpi.supp --suppressions=tools/thread.supp \
+    --leak-check=full --track-origins=yes \
     $prog $args

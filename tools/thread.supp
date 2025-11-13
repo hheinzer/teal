@@ -1,0 +1,15 @@
+{
+    thread_param
+    Memcheck:Param
+    writev(vector[1])
+    ...
+    fun:*thread*
+    ...
+}
+{
+    thread_leak
+    Memcheck:Leak
+    ...
+    fun:*thread*
+    ...
+}

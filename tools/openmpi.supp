@@ -1,4 +1,3 @@
-# openmpi
 {
     openmpi_param
     Memcheck:Param
@@ -27,22 +26,5 @@
     Memcheck:Leak
     ...
     fun:*ompi*
-    ...
-}
-
-# thread
-{
-    thread_param
-    Memcheck:Param
-    writev(vector[1])
-    ...
-    fun:*thread*
-    ...
-}
-{
-    thread_leak
-    Memcheck:Leak
-    ...
-    fun:*thread*
     ...
 }

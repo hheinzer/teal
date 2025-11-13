@@ -1,4 +1,3 @@
-#include <math.h>
 #include <string.h>
 
 #include "equations.h"
@@ -32,7 +31,7 @@ void equations_set_viscous_select(Equations *eqns, ViscousSelect *select)
 
 void equations_set_limiter(Equations *eqns, const char *name, scalar parameter)
 {
-    assert(eqns && name && isfinite(parameter));
+    assert(eqns && name);
     strcpy(eqns->limiter.name, name);
     if (!strcmp(name, "none")) {
         eqns->limiter.compute = 0;
@@ -76,26 +75,30 @@ void equations_set_convective_flux(Equations *eqns, const char *name)
 {
     assert(eqns && name);
     strcpy(eqns->convective.name, name);
-    if (strcmp(name, "none") != 0) {
-        assert(eqns->convective.select);
-        eqns->convective.flux = eqns->convective.select(name);
+    if (!strcmp(name, "none")) {
+        eqns->convective.flux = 0;
+        return;
     }
+    assert(eqns->convective.select);
+    eqns->convective.flux = eqns->convective.select(name);
 }
 
 void equations_set_viscous_flux(Equations *eqns, const char *name)
 {
     assert(eqns && name);
     strcpy(eqns->viscous.name, name);
-    if (strcmp(name, "none") != 0) {
-        assert(eqns->viscous.select);
-        eqns->viscous.flux = eqns->viscous.select(name);
+    if (!strcmp(name, "none")) {
+        eqns->viscous.flux = 0;
+        return;
     }
+    assert(eqns->viscous.select);
+    eqns->viscous.flux = eqns->viscous.select(name);
 }
 
 void equations_set_initial_condition(Equations *eqns, const char *entity, Compute *compute,
                                      scalar time)
 {
-    assert(eqns && entity && compute && isfinite(time) && time >= 0);
+    assert(eqns && entity && compute && time >= 0);
 
     vector *center = eqns->mesh->cells.center;
 
@@ -104,9 +107,9 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
     number *cell_off = eqns->mesh->entities.cell_off;
 
     number stride = eqns->variables.stride;
-    scalar(*variable)[stride] = eqns->variables.variable;
+    scalar(*variable)[stride] = eqns->variables.data;
     Update *conserved = eqns->variables.conserved;
-    scalar *property = eqns->properties.property;
+    scalar *property = eqns->properties.data;
 
     for (number i = 0; i < num; i++) {
         if (!strcmp(name[i], entity)) {
@@ -131,9 +134,9 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
     number *cell_off = eqns->mesh->entities.cell_off;
 
     number stride = eqns->variables.stride;
-    scalar(*variable)[stride] = eqns->variables.variable;
+    scalar(*variable)[stride] = eqns->variables.data;
     Update *conserved = eqns->variables.conserved;
-    scalar *property = eqns->properties.property;
+    scalar *property = eqns->properties.data;
 
     for (number i = 0; i < num; i++) {
         if (!strcmp(name[i], entity)) {
@@ -151,10 +154,10 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
 
 void equations_set_property(Equations *eqns, const char *name, scalar property)
 {
-    assert(eqns && name && isfinite(property));
+    assert(eqns && name);
     for (number i = 0; i < eqns->properties.num; i++) {
         if (!strcmp(eqns->properties.name[i], name)) {
-            eqns->properties.property[i] = property;
+            eqns->properties.data[i] = property;
             return;
         }
     }

@@ -13,7 +13,7 @@ scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *
     vector *projection = eqns->mesh->cells.projection;
 
     number stride = eqns->variables.stride;
-    scalar *property = eqns->properties.property;
+    scalar *property = eqns->properties.data;
     Timestep *timestep = eqns->timestep;
 
     const scalar(*variable)[stride] = variable_;

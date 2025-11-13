@@ -19,7 +19,7 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
 
     number len = eqns->variables.len;
     number stride = eqns->variables.stride;
-    scalar *property = eqns->properties.property;
+    scalar *property = eqns->properties.data;
     Convective *convective = eqns->convective.flux;
 
     scalar(*variable)[stride] = variable_;
@@ -71,7 +71,7 @@ static void evaluate_source(const Equations *eqns, void *variable_, void *deriva
 
     number len = eqns->variables.len;
     number stride = eqns->variables.stride;
-    scalar *property = eqns->properties.property;
+    scalar *property = eqns->properties.data;
     Source *compute = eqns->source;
 
     scalar(*variable)[stride] = variable_;

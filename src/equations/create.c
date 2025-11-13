@@ -9,6 +9,7 @@ Equations *equations_create(const Mesh *mesh, const char *name, number space_ord
     assert(mesh && name && 1 <= space_order && space_order <= 2);
 
     Equations *eqns = arena_calloc(1, sizeof(*eqns));
+
     eqns->mesh = mesh;
     strcpy(eqns->name, name);
     eqns->space_order = space_order;
@@ -47,7 +48,7 @@ void equations_create_variables(Equations *eqns, const char **name, const Type *
         strcpy(eqns->variables.name[i], name[i]);
     }
     eqns->variables.type = arena_memdup(type, num, sizeof(*type));
-    eqns->variables.variable = arena_calloc(eqns->mesh->cells.num * stride, sizeof(scalar));
+    eqns->variables.data = arena_calloc(eqns->mesh->cells.num * stride, sizeof(scalar));
     eqns->variables.conserved = conserved;
     eqns->variables.primitive = primitive;
 }
@@ -61,7 +62,7 @@ void equations_create_properties(Equations *eqns, const char **name, const scala
     for (number i = 0; i < num; i++) {
         strcpy(eqns->properties.name[i], name[i]);
     }
-    eqns->properties.property = arena_memdup(property, num, sizeof(*property));
+    eqns->properties.data = arena_memdup(property, num, sizeof(*property));
 }
 
 void equations_create_user_variables(Equations *eqns, const char **name, const Type *type,

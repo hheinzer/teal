@@ -17,10 +17,5 @@ Windows, I recommend that you use WSL.
 ## Compilers
 
 The compiler is selected in the Makefile; change it there if needed. The project compiles under both
-Clang and GCC, although GCC throws some `stringop` warnings, which appear bogus to me. It is also
-possible to use TCC, albeit with a performance hit.
-
-## Notes
-
-- Ensure you install the *parallel* HDF5 package on your system (often suffixed `-mpi` or `-openmpi`).
-- If you use module systems on clusters, load MPI, HDF5-MPI, METIS, and ParMETIS before building.
+Clang and GCC, although GCC throws some warnings, which appear bogus to me. It is also possible to
+use TCC, albeit with a performance hit.
