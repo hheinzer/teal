@@ -4,15 +4,14 @@
 #include "teal/arena.h"
 #include "teal/assert.h"
 
-Equations *equations_create(const Mesh *mesh, const char *name, number space_order)
+Equations *equations_create(const Mesh *mesh, const char *name)
 {
-    assert(mesh && name && 1 <= space_order && space_order <= 2);
+    assert(mesh && name);
 
     Equations *eqns = arena_calloc(1, sizeof(*eqns));
 
     eqns->mesh = mesh;
     strcpy(eqns->name, name);
-    eqns->space_order = space_order;
 
     number num = mesh->entities.off_ghost - mesh->entities.num_inner;
     eqns->boundary.num = num;

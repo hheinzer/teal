@@ -108,7 +108,7 @@ typedef struct {
     Source *source;
 } Equations;
 
-Equations *equations_create(const Mesh *mesh, const char *name, number space_order);
+Equations *equations_create(const Mesh *mesh, const char *name);
 
 void equations_create_variables(Equations *eqns, const char **name, const Type *type,
                                 Update *conserved, Update *primitive, number num_conserved,
@@ -121,6 +121,8 @@ void equations_create_user_variables(Equations *eqns, const char **name, const T
                                      Compute *compute, number num);
 
 void equations_create_exact_solution(Equations *eqns, Compute *compute);
+
+void equations_set_space_order(Equations *eqns, number space_order);
 
 void equations_set_timestep(Equations *eqns, Timestep *timestep);
 

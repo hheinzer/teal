@@ -5,6 +5,12 @@
 #include "teal/assert.h"
 #include "teal/utils.h"
 
+void equations_set_space_order(Equations *eqns, number space_order)
+{
+    assert(eqns && 1 <= space_order && space_order <= 2);
+    eqns->space_order = space_order;
+}
+
 void equations_set_timestep(Equations *eqns, Timestep *timestep)
 {
     assert(eqns && timestep);
