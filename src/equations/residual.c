@@ -1,12 +1,11 @@
 #include <math.h>
 
 #include "equations.h"
-#include "teal/arena.h"
 #include "teal/assert.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-void *equations_residual(const Equations *eqns, const void *derivative_)
+void equations_residual(const Equations *eqns, const void *derivative_, void *residual_)
 {
     assert(eqns && derivative_);
 
@@ -16,8 +15,8 @@ void *equations_residual(const Equations *eqns, const void *derivative_)
 
     number len = eqns->variables.len;
     const scalar(*derivative)[len] = derivative_;
+    scalar *residual = residual_;
 
-    scalar *residual = arena_calloc(len, sizeof(*residual));
     for (number i = 0; i < num; i++) {
         for (number j = 0; j < len; j++) {
             residual[j] += volume[i] * pow2(derivative[i][j]);
@@ -26,5 +25,4 @@ void *equations_residual(const Equations *eqns, const void *derivative_)
     for (number i = 0; i < len; i++) {
         residual[i] = sqrt(sync_fsum(residual[i])) / sum_volume;
     }
-    return residual;
 }

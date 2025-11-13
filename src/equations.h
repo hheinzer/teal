@@ -152,6 +152,8 @@ void equations_set_user_source(Equations *eqns, Source *source);
 
 void equations_summary(const Equations *eqns);
 
+void equations_restart(const Equations *eqns, scalar *time, number *index);
+
 scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *value);
 
 void equations_boundary(const Equations *eqns, void *variable_, scalar time);
@@ -162,7 +164,7 @@ void *equations_gradient(const Equations *eqns, void *variable_);
 
 void equations_limiter(const Equations *eqns, const void *variable_, void *gradient_);
 
-void *equations_residual(const Equations *eqns, const void *derivative_);
+void equations_residual(const Equations *eqns, const void *derivative_, void *residual_);
 
 void *equations_average(const Equations *eqns, const char *entity, const void *variable_);
 

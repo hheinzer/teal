@@ -1,0 +1,14 @@
+#include "equations.h"
+#include "teal/assert.h"
+#include "teal/option.h"
+
+void equations_restart(const Equations *eqns, scalar *time, number *index)
+{
+    assert(eqns && time && index);
+    if (!option.restart) {
+        *time = 0;
+        *index = 0;
+        return;
+    }
+    // TODO
+}
