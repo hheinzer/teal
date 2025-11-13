@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="17.638599mm"
+   height="7.0555558mm"
+   viewBox="0 0 17.638599 7.0555559"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   sodipodi:docname="teal.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="6.2074635"
+     inkscape:cx="26.419809"
+     inkscape:cy="19.009375"
+     inkscape:window-width="991"
+     inkscape:window-height="716"
+     inkscape:window-x="26"
+     inkscape:window-y="23"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-47.967615,-70.13112)">
+    <path
+       id="text5"
+       style="font-size:10px;line-height:1.2;font-family:'PxPlus IBM VGA 8x16';-inkscape-font-specification:'PxPlus IBM VGA 8x16';text-align:center;fill:#008080;fill-opacity:1;stroke-width:0.598241;stroke-dasharray:0.598247, 1.19649"
+       d="m 50.084573,70.13112 v 0.705847 h -0.705847 v 1.410528 h -1.411111 v 0.705848 h 1.411111 v 3.527485 h 0.705847 v 0.705848 h 2.116375 v -0.705848 h 0.705847 0.705264 v 0.705848 h 3.527487 v -0.705848 h 0.705847 0.705264 v 0.705848 h 2.116959 v -0.705848 h -1.411111 v -2.116375 h 1.411111 v 2.116375 h 0.705264 v 0.705848 h 1.411111 2.822223 V 76.480828 H 64.900366 V 70.13112 h -2.116375 v 0.705847 h 0.705264 v 5.643861 H 62.783991 62.078144 V 72.953343 H 61.37288 v -0.705848 h -2.822223 v 0.705848 h 2.116959 v 0.705264 h -2.116959 v 0.705846 h -0.705264 v 1.411111 h -1.411111 v 0.705264 h -2.116959 v -2.116375 h 3.52807 v -1.41111 h -0.705847 v -0.705848 h -3.527487 v 0.705848 h -0.705264 v 2.822221 h -1.411111 v 0.705264 h -0.705846 v -3.527485 h 1.41111 v -0.705848 h -1.41111 V 70.13112 Z m 4.23275,2.822223 h 2.116959 v 0.705264 h -2.116959 z" />
+  </g>
+</svg>
