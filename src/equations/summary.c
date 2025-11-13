@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "equations.h"
 #include "teal/assert.h"
 #include "teal/utils.h"
@@ -6,18 +8,39 @@ void equations_summary(const Equations *eqns)
 {
     assert(eqns);
 
-    println("Equations summary:");
-    println("\t name:            %s", eqns->name);
-    println("\t space order:     %td", eqns->space_order);
-    println("\t convective flux: %s", optional(eqns->convective.name));
-    println("\t viscous flux:    %s", optional(eqns->viscous.name));
-    println("\t limiter:         %s", optional(eqns->limiter.name));
+    int len = 16;
+    for (number i = 0; i < eqns->properties.num; i++) {
+        len = lmax(len, strlen(eqns->properties.name[i]));
+    }
 
-    println("\t boundary conditions:");
+    println("Equations summary");
+    println("\t %-*s : %s", len, "name", eqns->name);
+
+    for (number i = 0; i < eqns->properties.num; i++) {
+        println("\t %-*s : %g", len, eqns->properties.name[i], eqns->properties.data[i]);
+    }
+
+    println("\t %-*s : %td", len, "space order", eqns->space_order);
+    if (*eqns->convective.name) {
+        println("\t %-*s : %s", len, "convective flux", eqns->convective.name);
+    }
+    if (*eqns->viscous.name) {
+        println("\t %-*s : %s", len, "viscous flux", eqns->viscous.name);
+    }
+    if (*eqns->limiter.name) {
+        println("\t %-*s : %s", len, "limiter", eqns->limiter.name);
+    }
+
+    len = 0;
+    for (number i = eqns->mesh->entities.num_inner; i < eqns->mesh->entities.num; i++) {
+        len = lmax(len, strlen(eqns->mesh->entities.name[i]));
+    }
+
+    println("\t boundary conditions");
     for (number i = 0; i < eqns->boundary.num; i++) {
-        println("\t\t %s: %s", eqns->boundary.entity[i], optional(eqns->boundary.name[i]));
+        println("\t\t %-*s : %s", len, eqns->boundary.entity[i], eqns->boundary.name[i]);
     }
     for (number i = eqns->mesh->entities.off_ghost; i < eqns->mesh->entities.num; i++) {
-        println("\t\t %s: %s", eqns->mesh->entities.name[i], "periodic");
+        println("\t\t %-*s : %s", len, eqns->mesh->entities.name[i], "periodic");
     }
 }

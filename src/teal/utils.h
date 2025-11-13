@@ -8,8 +8,6 @@
 
 #define countof(arr) (sizeof(arr) / sizeof(*(arr)))
 
-#define optional(str) (((str) && *(str)) ? (str) : "none")
-
 #define cmp_asc(lhs, rhs) (((lhs) > (rhs)) - ((lhs) < (rhs)))
 #define cmp_dsc(lhs, rhs) cmp_asc(rhs, lhs)
 

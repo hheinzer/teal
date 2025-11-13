@@ -37,12 +37,12 @@ void equations_set_viscous_select(Equations *eqns, ViscousSelect *select)
 
 void equations_set_limiter(Equations *eqns, const char *name, scalar parameter)
 {
-    assert(eqns && name);
-    strcpy(eqns->limiter.name, name);
-    if (!strcmp(name, "none")) {
+    assert(eqns);
+    if (!name) {
         eqns->limiter.compute = 0;
         return;
     }
+    strcpy(eqns->limiter.name, name);
     if (!strcmp(name, "minmod")) {
         eqns->limiter.compute = minmod;
         return;
@@ -79,25 +79,25 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
 
 void equations_set_convective_flux(Equations *eqns, const char *name)
 {
-    assert(eqns && name);
-    strcpy(eqns->convective.name, name);
-    if (!strcmp(name, "none")) {
+    assert(eqns);
+    if (!name) {
         eqns->convective.flux = 0;
         return;
     }
     assert(eqns->convective.select);
+    strcpy(eqns->convective.name, name);
     eqns->convective.flux = eqns->convective.select(name);
 }
 
 void equations_set_viscous_flux(Equations *eqns, const char *name)
 {
-    assert(eqns && name);
-    strcpy(eqns->viscous.name, name);
-    if (!strcmp(name, "none")) {
+    assert(eqns);
+    if (!name) {
         eqns->viscous.flux = 0;
         return;
     }
     assert(eqns->viscous.select);
+    strcpy(eqns->viscous.name, name);
     eqns->viscous.flux = eqns->viscous.select(name);
 }
 

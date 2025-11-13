@@ -28,13 +28,13 @@ void mesh_summary(const Mesh *mesh)
     number neighbor_cells = sync_lsum(mesh->cells.num - mesh->cells.off_periodic);
     number exchange_cells = sync_lsum(count_exchange_cells(&mesh->neighbors));
 
-    println("Mesh summary:");
-    println("\t number of inner nodes:    %td", inner_nodes);
-    println("\t number of inner cells:    %td", inner_cells);
-    println("\t number of inner faces:    %td", inner_faces);
-    println("\t number of ghost faces:    %td", ghost_faces);
-    println("\t number of outer faces:    %td", outer_faces);
-    println("\t number of periodic cells: %td", periodic_cells);
-    println("\t number of neighbor cells: %td", neighbor_cells);
-    println("\t number of exchange cells: %td", exchange_cells);
+    println("Mesh summary");
+    println("\t number of inner nodes    : %td", inner_nodes);
+    println("\t number of inner cells    : %td", inner_cells);
+    println("\t number of inner faces    : %td", inner_faces);
+    println("\t number of ghost faces    : %td", ghost_faces);
+    println("\t number of outer faces    : %td", outer_faces);
+    println("\t number of periodic cells : %td", periodic_cells);
+    println("\t number of neighbor cells : %td", neighbor_cells);
+    println("\t number of exchange cells : %td", exchange_cells);
 }

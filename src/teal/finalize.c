@@ -20,8 +20,8 @@ void teal_finalize(void)
     size_to_str(sum, sync_lsum(arena_size()));
 
     println("Goodbye, World!");
-    println("\t stop time:              %s", now);
-    println("\t arena min/max/sum size: %s / %s / %s", min, max, sum);
+    println("\t stop time              : %s", now);
+    println("\t arena min/max/sum size : %s / %s / %s", min, max, sum);
 
     arena_finalize();
     sync_finalize();
