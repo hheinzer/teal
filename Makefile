@@ -81,4 +81,4 @@ obj/%.o: src/%.c $(STAMP)
 
 bin/%: run/%.c $(OBJ)
 	@mkdir -p $(@D)
-	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
+	@$(MPICC) $(CFLAGS) -Wno-unused-parameter $< $(OBJ) $(LDLIBS) -o $@
