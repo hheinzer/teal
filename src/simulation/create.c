@@ -21,7 +21,7 @@ Simulation *simulation_create(const Equations *eqns, const char *prefix)
     sim->iter.max = PTRDIFF_MAX;
     sim->iter.output = PTRDIFF_MAX;
 
-    simulation_set_advance(sim, "explicit euler");
+    simulation_set_advance(sim, "lserk");
 
     return sim;
 }
