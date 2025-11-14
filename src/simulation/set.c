@@ -63,7 +63,7 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
     }
 
     number idx = 0;
-    number len = strlen(condition);
+    int len = strlen(condition);
     if (condition[len - 1] == '-') {
         idx = component_index(condition[len]);
         len -= 2;
@@ -83,7 +83,7 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
             return;
         }
     }
-    error("invalid variable -- '%.*s'", (int)len, condition);
+    error("invalid variable -- '%.*s'", len, condition);
 }
 
 void simulation_set_advance(Simulation *sim, const char *name)
@@ -95,5 +95,36 @@ void simulation_set_advance(Simulation *sim, const char *name)
         sim->advance.method = explicit_euler;
         return;
     }
+    if (!strcmp(name, "lserk")) {
+        sim->time_order = sim->eqns->space_order;
+        sim->advance.context.lserk.time_order = &sim->time_order;
+        sim->advance.context.lserk.num_stages = sim->time_order + 1;
+        sim->advance.method = lserk;
+        return;
+    }
     error("invalid advance method -- '%s'", name);
+}
+
+void simulation_set_lserk_num_stages(Simulation *sim, number num_stages)
+{
+    assert(sim && 1 <= num_stages && num_stages <= 6);
+    sim->advance.context.lserk.num_stages = num_stages;
+}
+
+void simulation_set_newton_tolerance(Simulation *sim, scalar tolerance)
+{
+    assert(sim && tolerance > 0);
+    sim->advance.context.implicit_euler.tol_newton = tolerance;
+}
+
+void simulation_set_krylov_tolerance(Simulation *sim, scalar tolerance)
+{
+    assert(sim && tolerance > 0);
+    sim->advance.context.implicit_euler.tol_krylov = tolerance;
+}
+
+void simulation_set_krylov_dimension(Simulation *sim, number dimension)
+{
+    assert(sim && dimension > 0);
+    sim->advance.context.implicit_euler.dim_krylov = dimension;
 }

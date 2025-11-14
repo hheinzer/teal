@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 
 #include "equations.h"
 #include "sync.h"
@@ -88,13 +89,18 @@ static void evaluate_source(const Equations *eqns, void *variable_, void *deriva
     arena_load(save);
 }
 
-void *equations_derivative(const Equations *eqns, void *variable_, scalar time)
+void *equations_derivative(const Equations *eqns, void *variable_, void *derivative_, scalar time)
 {
     assert(eqns && variable_ && isfinite(time) && time >= 0);
 
     number num = eqns->mesh->cells.num_inner;
     number len = eqns->variables.len;
-    scalar(*derivative)[len] = arena_calloc(num, sizeof(*derivative));
+
+    scalar(*derivative)[len] = derivative_;
+    if (!derivative) {
+        derivative = arena_malloc(num, sizeof(*derivative));
+    }
+    memset(derivative, 0, num * sizeof(*derivative));
 
     equations_boundary(eqns, variable_, time);
     switch (eqns->space_order) {

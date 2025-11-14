@@ -27,7 +27,6 @@ int main(int argc, char **argv)
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_time(sim, max_time);
-    simulation_set_advance(sim, "explicit euler");
     simulation_summary(sim);
 
     scalar time = simulation_run(sim);

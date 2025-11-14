@@ -158,7 +158,7 @@ scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *
 
 void equations_boundary(const Equations *eqns, void *variable_, scalar time);
 
-void *equations_derivative(const Equations *eqns, void *variable_, scalar time);
+void *equations_derivative(const Equations *eqns, void *variable_, void *derivative_, scalar time);
 
 void *equations_gradient(const Equations *eqns, void *variable_);
 

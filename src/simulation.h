@@ -18,12 +18,28 @@ typedef struct {
     scalar residual;
 } SimulationTermination;
 
+typedef struct {
+    number *time_order;
+    number num_stages;
+} Lserk;
+
+typedef struct {
+    scalar tol_newton;
+    scalar tol_krylov;
+    number dim_krylov;
+} ImplicitEuler;
+
+typedef union {
+    Lserk lserk;
+    ImplicitEuler implicit_euler;
+} Context;
+
 typedef scalar Advance(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-                       scalar max_timestep, void *context);
+                       scalar max_timestep, Context *context);
 
 typedef struct {
     Name name;
-    void *context;
+    Context context;
     Advance *method;
 } SimulationAdvance;
 
@@ -56,7 +72,7 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
 
 void simulation_set_advance(Simulation *sim, const char *name);
 
-void simulation_set_lserk_stages(Simulation *sim, number num);
+void simulation_set_lserk_num_stages(Simulation *sim, number num_stages);
 
 void simulation_set_newton_tolerance(Simulation *sim, scalar tolerance);
 

@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "simulation.h"
 #include "teal/assert.h"
@@ -36,6 +37,9 @@ void simulation_summary(const Simulation *sim)
     }
 
     println("\t advance          : %s", sim->advance.name);
+    if (!strcmp(sim->advance.name, "lserk")) {
+        println("\t number of stages : %td", sim->advance.context.lserk.num_stages);
+    }
 
     scalar timestep = equations_timestep(sim->eqns, sim->eqns->variables.data, 0);
     println("\t initial timestep : %g", sim->courant * timestep);
