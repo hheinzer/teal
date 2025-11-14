@@ -1,0 +1,27 @@
+#include <math.h>
+#include <stdint.h>
+
+#include "simulation.h"
+#include "teal/arena.h"
+#include "teal/assert.h"
+
+Simulation *simulation_create(const Equations *eqns, const char *prefix)
+{
+    assert(eqns);
+
+    Simulation *sim = arena_calloc(1, sizeof(*sim));
+
+    sim->eqns = eqns;
+    sim->prefix = prefix;
+    sim->courant = 0.99;  // NOLINT(readability-magic-numbers)
+
+    sim->time.max = INFINITY;
+    sim->time.output = INFINITY;
+
+    sim->iter.max = PTRDIFF_MAX;
+    sim->iter.output = PTRDIFF_MAX;
+
+    simulation_set_advance(sim, "explicit euler");
+
+    return sim;
+}
