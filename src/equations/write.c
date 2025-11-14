@@ -65,9 +65,12 @@ static void write_user_variables(const Equations *eqns, scalar time, number num_
 
 static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 {
+    Arena save = arena_save();
+
     hid_t group = h5io_group_create("CellData", loc);
 
     number num_cells = eqns->mesh->cells.off_periodic;
+    equations_boundary(eqns, eqns->variables.data, time);
     write_variables(eqns->variables.name, eqns->variables.type, eqns->variables.data,
                     eqns->variables.num, eqns->variables.stride, num_cells, group);
 
@@ -75,7 +78,13 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
         write_user_variables(eqns, time, num_cells, group);
     }
 
+    scalar *timestep = arena_calloc(num_cells, sizeof(*timestep));
+    equations_timestep(eqns, eqns->variables.data, timestep);
+    h5io_dataset_write("timestep", timestep, num_cells, 1, H5IO_SCALAR, group);
+
     h5io_group_close(group);
+
+    arena_load(save);
 }
 
 void equations_write(const Equations *eqns, scalar time, const char *prefix, number index)

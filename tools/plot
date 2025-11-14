@@ -77,7 +77,7 @@ def show_line(mesh, field):
                 ax.plot(sample.points[:, 0], norm, label=name + " norm", zorder=zorder)
 
     ax.legend()
-    ax.set_xlabel("x")
+    ax.set_xlabel("x-axis")
     ax.set_ylabel(field)
 
     fig.tight_layout()
@@ -100,7 +100,7 @@ def show_field(mesh):
     else:
         pvp.add_mesh(mesh, show_edges=args.edges, cmap=args.cmap)
 
-    pvp.show_bounds()
+    pvp.show_bounds(xtitle="x-axis", ytitle="y-axis", ztitle="z-axis")
     pvp.view_xy()
     pvp.show()
 
