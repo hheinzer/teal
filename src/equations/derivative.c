@@ -96,6 +96,7 @@ void *equations_derivative(const Equations *eqns, void *variable_, scalar time)
     number len = eqns->variables.len;
     scalar(*derivative)[len] = arena_calloc(num, sizeof(*derivative));
 
+    equations_boundary(eqns, variable_, time);
     switch (eqns->space_order) {
         case 1: integrate_convective_flux(eqns, variable_, derivative); break;
         default: error("invalid space order -- '%td'", eqns->space_order);
