@@ -1,5 +1,4 @@
 #include "euler.h"
-#include "euler/riemann.h"
 
 Euler left = {.density = 1, .pressure = 1};
 Euler right = {.density = 0.125, .pressure = 0.1};
@@ -41,5 +40,5 @@ void exact(void *variable_, const void *context_, const scalar *property, vector
     Euler *variable = variable_;
     scalar gamma = property[0];
     scalar location = (center.x - x0) / time;
-    *variable = riemann(&left, &right, gamma, location);
+    *variable = euler_riemann(&left, &right, gamma, location);
 }

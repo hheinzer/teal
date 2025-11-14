@@ -113,13 +113,9 @@ static void matvec(scalar res[5], const scalar mat[5][5], const scalar vec[5], s
     }
 }
 
-static Euler local_to_global(const Euler *local, matrix basis)
+static void local_to_global(Euler *ghost, matrix basis)
 {
-    Euler global = {0};
-    global.density = local->density;
-    global.velocity = matrix_matvec(matrix_transpose(basis), local->velocity);
-    global.pressure = local->pressure;
-    return global;
+    ghost->velocity = matrix_matvec(matrix_transpose(basis), ghost->velocity);
 }
 
 static void farfield(void *ghost_, const void *inner_, const void *reference_,
@@ -136,7 +132,7 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     scalar speed_of_sound2_i = gamma * inner.pressure / inner.density;
     scalar speed_of_sound_i = sqrt(speed_of_sound2_i);
     scalar enthalpy_i = (velocity2_i / 2) + (speed_of_sound2_i / gamma_m1);
-    scalar eigen_vector_inv[5][5] = {
+    scalar eigenvector_inv[5][5] = {
         {
             enthalpy_i + (speed_of_sound_i / gamma_m1 * (inner.velocity.x - speed_of_sound_i)),
             -(inner.velocity.x + (speed_of_sound_i / gamma_m1)),
@@ -183,8 +179,8 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     };
     scalar characteristic_i[5];
     scalar characteristic_g[5];
-    matvec(characteristic_i, eigen_vector_inv, conserved_i, factor);
-    matvec(characteristic_g, eigen_vector_inv, conserved_g, factor);
+    matvec(characteristic_i, eigenvector_inv, conserved_i, factor);
+    matvec(characteristic_g, eigenvector_inv, conserved_g, factor);
 
     scalar speed_of_sound_g = sqrt(gamma * ghost->pressure / ghost->density);
     if (ghost->velocity.x - speed_of_sound_g > 0) {
@@ -199,7 +195,7 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
         characteristic_g[4] = characteristic_i[4];
     }
 
-    scalar eigen_vector[5][5] = {
+    scalar eigenvector[5][5] = {
         {
             1,
             1,
@@ -237,16 +233,16 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
 
         },
     };
-    matvec(conserved_g, eigen_vector, characteristic_g, 1);
+    matvec(conserved_g, eigenvector, characteristic_g, 1);
 
     ghost->density = conserved_g[0];
     ghost->momentum.x = conserved_g[1];
     ghost->momentum.y = conserved_g[2];
     ghost->momentum.z = conserved_g[3];
     ghost->energy = conserved_g[4];
-    ghost->velocity = vector_div(ghost->momentum, ghost->density);
-    ghost->pressure = gamma_m1 * (ghost->energy - vector_dot(ghost->momentum, ghost->velocity) / 2);
-    *ghost = local_to_global(ghost, basis);
+    euler_primitive(ghost, property);
+
+    local_to_global(ghost, basis);
 }
 
 Boundary *euler_boundary(const char *name)

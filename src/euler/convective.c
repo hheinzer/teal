@@ -1,7 +1,7 @@
+#include <math.h>
 #include <string.h>
 
 #include "euler.h"
-#include "riemann.h"
 #include "teal/matrix.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
@@ -21,37 +21,34 @@ typedef struct {
     scalar density;
     vector momentum;
     scalar energy;
-} Flux;
+} Conserved;
 
-static void physical(Flux *flux, const Euler *face)
+static Conserved compute_flux(const Euler *local)
 {
-    flux->density = face->momentum.x;
-    flux->momentum.x = (face->momentum.x * face->velocity.x) + face->pressure;
-    flux->momentum.y = (face->momentum.x * face->velocity.y);
-    flux->momentum.z = (face->momentum.x * face->velocity.z);
-    flux->energy = (face->energy + face->pressure) * face->velocity.x;
+    Conserved flux;
+    flux.density = local->momentum.x;
+    flux.momentum.x = (local->momentum.x * local->velocity.x) + local->pressure;
+    flux.momentum.y = (local->momentum.x * local->velocity.y);
+    flux.momentum.z = (local->momentum.x * local->velocity.z);
+    flux.energy = (local->energy + local->pressure) * local->velocity.x;
+    return flux;
 }
 
-static Flux local_to_global(const Flux *local, matrix basis)
+static void local_to_global(Conserved *flux, matrix basis)
 {
-    Flux global;
-    global.density = local->density;
-    global.momentum = matrix_matvec(matrix_transpose(basis), local->momentum);
-    global.energy = local->energy;
-    return global;
+    flux->momentum = matrix_matvec(matrix_transpose(basis), flux->momentum);
 }
 
 static void godunov(void *flux_, const void *left_, const void *right_, const scalar *property,
                     matrix basis)
 {
-    Flux *flux = flux_;
+    Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);
     Euler right = global_to_local(right_, basis);
     scalar gamma = property[0];
 
-    Euler face = riemann(&left, &right, gamma, 0);
-    face.momentum = vector_mul(face.density, face.velocity);
-    face.energy = (face.pressure / (gamma - 1)) + (vector_dot(face.momentum, face.velocity) / 2);
+    Euler face = euler_riemann(&left, &right, gamma, 0);
+    euler_conserved(&face, property);
 
     physical(flux, &face);
     *flux = local_to_global(flux, basis);

@@ -1,10 +1,9 @@
 /*
  * Toro 1999, sec. 4.9
  */
-#include "riemann.h"
-
 #include <math.h>
 
+#include "euler.h"
 #include "teal/assert.h"
 #include "teal/utils.h"
 
@@ -166,7 +165,7 @@ static Euler sample(const Euler *left, const Euler *right, scalar left_c, scalar
     };
 }
 
-Euler riemann(const Euler *left, const Euler *right, scalar gamma, scalar location)
+Euler euler_riemann(const Euler *left, const Euler *right, scalar gamma, scalar location)
 {
     scalar gam[9] = {
         gamma,
