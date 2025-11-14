@@ -22,10 +22,13 @@ int main(int argc, char **argv)
     equations_set_boundary_condition(eqns, "left", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
     equations_set_initial_condition(eqns, "domain", exact, 0);
+    equations_set_space_order(eqns, 1);
+    equations_set_convective_flux(eqns, "roe");
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_time(sim, max_time);
+    simulation_set_advance(sim, "explicit euler");
     simulation_summary(sim);
 
     scalar time = simulation_run(sim);
