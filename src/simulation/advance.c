@@ -2,12 +2,15 @@
 
 #include <math.h>
 
+#include "teal/arena.h"
 #include "teal/utils.h"
 
 scalar explicit_euler(const Equations *eqns, scalar *time, void *residual_, scalar courant,
                       scalar max_timestep, void *context)
 {
     unused(context);
+
+    Arena save = arena_save();
 
     number num = eqns->mesh->cells.num_inner;
     number len = eqns->variables.len;
@@ -30,5 +33,7 @@ scalar explicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
 
     *time += timestep;
     equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
     return full_timestep;
 }
