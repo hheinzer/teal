@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 
 #include "equations.h"
 #include "teal/assert.h"
@@ -17,12 +18,13 @@ void equations_residual(const Equations *eqns, const void *derivative_, void *re
     const scalar(*derivative)[len] = derivative_;
     scalar *residual = residual_;
 
+    memset(residual, 0, len * sizeof(*residual));
     for (number i = 0; i < num; i++) {
         for (number j = 0; j < len; j++) {
             residual[j] += volume[i] * pow2(derivative[i][j]);
         }
     }
     for (number i = 0; i < len; i++) {
-        residual[i] = sqrt(sync_fsum(residual[i])) / sum_volume;
+        residual[i] = sqrt(sync_fsum(residual[i]) / sum_volume);
     }
 }
