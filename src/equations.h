@@ -34,7 +34,7 @@ typedef void Compute(void *variable_, const void *context_, const scalar *proper
                      scalar time);
 
 typedef void Boundary(void *ghost_, const void *inner_, const void *reference_,
-                      const scalar *property, matrix basis);
+                      const scalar *property, const matrix *basis);
 
 typedef Boundary *BoundarySelect(const char *name);
 
@@ -51,7 +51,7 @@ typedef struct {
 } EquationsBoundary;
 
 typedef void Convective(void *flux_, const void *left_, const void *right_, const scalar *property,
-                        matrix basis);
+                        const matrix *basis);
 
 typedef Convective *ConvectiveSelect(const char *name);
 
@@ -62,7 +62,7 @@ typedef struct {
 } EquationsConvective;
 
 typedef void Viscous(void *flux_, const void *gradient_, const void *variable_,
-                     const scalar *property, matrix basis);
+                     const scalar *property, const matrix *basis);
 
 typedef Viscous *ViscousSelect(const char *name);
 

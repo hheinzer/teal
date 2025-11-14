@@ -31,7 +31,7 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
     for (number i = 0; i < num_inner; i++) {
         number left = cell[i].left;
         number right = cell[i].right;
-        convective(flux, variable[left], variable[right], property, basis[i]);
+        convective(flux, variable[left], variable[right], property, &basis[i]);
         for (number j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
             derivative[right][j] -= flux[j] * area[i];
@@ -40,7 +40,7 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
     for (number i = num_inner; i < off_ghost; i++) {
         number left = cell[i].left;
         number right = cell[i].right;
-        convective(flux, variable[left], variable[right], property, basis[i]);
+        convective(flux, variable[left], variable[right], property, &basis[i]);
         for (number j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
         }
@@ -51,7 +51,7 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
     for (number i = off_ghost; i < num_faces; i++) {
         number left = cell[i].left;
         number right = cell[i].right;
-        convective(flux, variable[left], variable[right], property, basis[i]);
+        convective(flux, variable[left], variable[right], property, &basis[i]);
         for (number j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
         }

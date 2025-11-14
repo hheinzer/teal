@@ -2,17 +2,26 @@
 #include <string.h>
 
 #include "euler.h"
-#include "teal/matrix.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-static Euler global_to_local(const Euler *global, matrix basis)
+static Euler global_to_local(const Euler *global, const matrix *basis)
 {
     Euler local;
     local.density = global->density;
-    local.momentum = matrix_matvec(basis, global->momentum);
+    local.momentum.x = (basis->x.x * global->momentum.x) + (basis->x.y * global->momentum.y) +
+                       (basis->x.z * global->momentum.z);
+    local.momentum.y = (basis->y.x * global->momentum.x) + (basis->y.y * global->momentum.y) +
+                       (basis->y.z * global->momentum.z);
+    local.momentum.z = (basis->z.x * global->momentum.x) + (basis->z.y * global->momentum.y) +
+                       (basis->z.z * global->momentum.z);
     local.energy = global->energy;
-    local.velocity = matrix_matvec(basis, global->velocity);
+    local.velocity.x = (basis->x.x * global->velocity.x) + (basis->x.y * global->velocity.y) +
+                       (basis->x.z * global->velocity.z);
+    local.velocity.y = (basis->y.x * global->velocity.x) + (basis->y.y * global->velocity.y) +
+                       (basis->y.z * global->velocity.z);
+    local.velocity.z = (basis->z.x * global->velocity.x) + (basis->z.y * global->velocity.y) +
+                       (basis->z.z * global->velocity.z);
     local.pressure = global->pressure;
     return local;
 }
@@ -34,13 +43,20 @@ static Conserved compute_flux(const Euler *local)
     return flux;
 }
 
-static void local_to_global(Conserved *flux, matrix basis)
+static void local_to_global(Conserved *flux, const matrix *basis)
 {
-    flux->momentum = matrix_matvec(matrix_transpose(basis), flux->momentum);
+    vector momentum;
+    momentum.x = (basis->x.x * flux->momentum.x) + (basis->y.x * flux->momentum.y) +
+                 (basis->z.x * flux->momentum.z);
+    momentum.y = (basis->x.y * flux->momentum.x) + (basis->y.y * flux->momentum.y) +
+                 (basis->z.y * flux->momentum.z);
+    momentum.z = (basis->x.z * flux->momentum.x) + (basis->y.z * flux->momentum.y) +
+                 (basis->z.z * flux->momentum.z);
+    flux->momentum = momentum;
 }
 
 static void godunov(void *flux_, const void *left_, const void *right_, const scalar *property,
-                    matrix basis)
+                    const matrix *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);
@@ -91,16 +107,16 @@ static Conserved compute_jump(const Euler *left, const Euler *right)
 
 static void matvec(scalar res[5], const scalar mat[5][5], const scalar vec[5])
 {
-    for (number i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         res[i] = 0;
-        for (number j = 0; j < 5; j++) {
+        for (int j = 0; i < 5; i++) {
             res[i] += mat[i][j] * vec[j];
         }
     }
 }
 
 static void roe(void *flux_, const void *left_, const void *right_, const scalar *property,
-                matrix basis)
+                const matrix *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);
@@ -228,7 +244,7 @@ static void average_flux(Conserved *flux, const Euler *left, const Euler *right,
 }
 
 static void hll(void *flux_, const void *left_, const void *right_, const scalar *property,
-                matrix basis)
+                const matrix *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);
@@ -285,7 +301,7 @@ static void contact_flux(Conserved *flux, const Euler *state_k, scalar signal_sp
 }
 
 static void hllc(void *flux_, const void *left_, const void *right_, const scalar *property,
-                 matrix basis)
+                 const matrix *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);
@@ -332,7 +348,7 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
 }
 
 static void hlle(void *flux_, const void *left_, const void *right_, const scalar *property,
-                 matrix basis)
+                 const matrix *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);
@@ -370,7 +386,7 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
 }
 
 static void lxf(void *flux_, const void *left_, const void *right_, const scalar *property,
-                matrix basis)
+                const matrix *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, basis);

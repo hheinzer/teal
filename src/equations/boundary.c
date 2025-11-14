@@ -37,7 +37,7 @@ void equations_boundary(const Equations *eqns, void *variable_, scalar time)
             for (number j = face_off[i]; j < face_off[i + 1]; j++) {
                 number left = cell[j].left;
                 number right = cell[j].right;
-                condition[i](variable[right], variable[left], reference[i], property, basis[j]);
+                condition[i](variable[right], variable[left], reference[i], property, &basis[j]);
                 conserved(variable[right], property);
             }
         }
