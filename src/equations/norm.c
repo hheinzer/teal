@@ -7,9 +7,9 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-void equations_error(const Equations *eqns, void *error_, scalar time)
+void equations_norm(const Equations *eqns, void *norm_, scalar time)
 {
-    assert(eqns && error_);
+    assert(eqns && norm_);
 
     Arena save = arena_save();
 
@@ -25,18 +25,18 @@ void equations_error(const Equations *eqns, void *error_, scalar time)
     Update *conserved = eqns->user.conserved;
 
     scalar *user = arena_calloc(stride, sizeof(*user));
-    scalar *error = error_;
+    scalar *norm = norm_;
 
-    memset(error, 0, stride * sizeof(*error));
+    memset(norm, 0, stride * sizeof(*norm));
     for (number i = 0; i < num; i++) {
         compute(user, variable[i], property, center[i], time);
         conserved(user, property);
         for (number j = 0; j < stride; j++) {
-            error[j] += volume[i] * pow2(user[j] - variable[i][j]);
+            norm[j] += volume[i] * pow2(user[j] - variable[i][j]);
         }
     }
     for (number i = 0; i < stride; i++) {
-        error[i] = sqrt(sync_fsum(error[i]) / sum_volume);
+        norm[i] = sqrt(sync_fsum(norm[i]) / sum_volume);
     }
 
     arena_load(save);
