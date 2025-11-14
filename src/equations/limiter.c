@@ -4,7 +4,6 @@
 #include "teal/arena.h"
 #include "teal/assert.h"
 #include "teal/utils.h"
-#include "teal/vector.h"
 
 scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
               const vector *offset, number beg, number end)
@@ -12,7 +11,8 @@ scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, 
     unused(parameter);
     scalar psi = 1;
     for (number i = beg; i < end; i++) {
-        scalar delta2 = vector_dot(gradient, offset[i]);
+        scalar delta2 =
+            (gradient.x * offset[i].x) + (gradient.y * offset[i].y) + (gradient.z * offset[i].z);
         if (isclose(delta2, 0)) {
             continue;
         }
@@ -27,13 +27,16 @@ scalar venkatakrishnan(vector gradient, scalar variable, scalar minimum, scalar 
 {
     scalar psi = 1;
     for (number i = beg; i < end; i++) {
-        scalar delta2 = vector_dot(gradient, offset[i]);
+        scalar delta2 =
+            (gradient.x * offset[i].x) + (gradient.y * offset[i].y) + (gradient.z * offset[i].z);
         if (isclose(delta2, 0)) {
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
-        scalar numerator = ((pow2(delta1) + parameter) * delta2) + (2 * pow2(delta2) * delta1);
-        scalar denominator = pow2(delta1) + (2 * pow2(delta2)) + (delta1 * delta2) + parameter;
+        scalar delta12 = pow2(delta1);
+        scalar delta22 = pow2(delta2);
+        scalar numerator = ((delta12 + parameter) * delta2) + (2 * delta22 * delta1);
+        scalar denominator = delta12 + (2 * delta22) + (delta1 * delta2) + parameter;
         psi = fmin(psi, numerator / denominator / delta2);
     }
     return psi;
@@ -79,7 +82,9 @@ void equations_limiter(const Equations *eqns, const void *variable_, void *gradi
             }
             scalar psi = compute(gradient[i][j], variable[i][j], minimum, maximum,
                                  parameter ? parameter[i] : 0, offset, beg, end);
-            vector_scale(&gradient[i][j], psi);
+            gradient[i][j].x *= psi;
+            gradient[i][j].y *= psi;
+            gradient[i][j].z *= psi;
         }
     }
 }

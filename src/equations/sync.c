@@ -18,7 +18,6 @@ Request sync_variables(const Equations *eqns, void *variable, number stride)
     Request req;
     req.recv = sync_irecv_scalar(rank, off_recv, variable, num, stride, tag);
     req.send = sync_isend_scalar(rank, off_send, idx_send, variable, num, stride, tag);
-
     return req;
 }
 
@@ -37,7 +36,6 @@ Request sync_gradients(const Equations *eqns, void *gradient, number stride)
     Request req;
     req.recv = sync_irecv_vector(rank, off_recv, gradient, num, stride, tag);
     req.send = sync_isend_vector(rank, off_send, idx_send, gradient, num, stride, tag);
-
     return req;
 }
 

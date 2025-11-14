@@ -2,7 +2,6 @@
 #include "sync.h"
 #include "teal/arena.h"
 #include "teal/assert.h"
-#include "teal/vector.h"
 
 void *equations_gradient(const Equations *eqns, void *variable_)
 {
@@ -27,8 +26,12 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         number right = cell[i].right;
         for (number j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            vector_inc(&gradient[left][j], vector_mul(diff, weight[i]));
-            vector_inc(&gradient[right][j], vector_mul(diff, weight[i]));
+            gradient[left][j].x += diff * weight[i].x;
+            gradient[left][j].y += diff * weight[i].y;
+            gradient[left][j].z += diff * weight[i].z;
+            gradient[right][j].x += diff * weight[i].x;
+            gradient[right][j].y += diff * weight[i].y;
+            gradient[right][j].z += diff * weight[i].z;
         }
     }
     for (number i = num_inner; i < off_ghost; i++) {
@@ -36,7 +39,9 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         number right = cell[i].right;
         for (number j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            vector_inc(&gradient[left][j], vector_mul(diff, weight[i]));
+            gradient[left][j].x += diff * weight[i].x;
+            gradient[left][j].y += diff * weight[i].y;
+            gradient[left][j].z += diff * weight[i].z;
         }
     }
 
@@ -47,8 +52,9 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         number right = cell[i].right;
         for (number j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            vector_inc(&gradient[left][j], vector_mul(diff, weight[i]));
-            // vector_inc(&gradient[right][j], vector_mul(diff, weight[i])); // TODO: needed?
+            gradient[left][j].x += diff * weight[i].x;
+            gradient[left][j].y += diff * weight[i].y;
+            gradient[left][j].z += diff * weight[i].z;
         }
     }
 

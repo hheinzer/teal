@@ -3,25 +3,21 @@
 
 #include "euler.h"
 #include "teal/utils.h"
-#include "teal/vector.h"
+
+static void matvec(vector *res, const matrix *mat, const vector *vec)
+{
+    res->x = (mat->x.x * vec->x) + (mat->x.y * vec->y) + (mat->x.z * vec->z);
+    res->y = (mat->y.x * vec->x) + (mat->y.y * vec->y) + (mat->y.z * vec->z);
+    res->z = (mat->z.x * vec->x) + (mat->z.y * vec->y) + (mat->z.z * vec->z);
+}
 
 static Euler global_to_local(const Euler *global, const matrix *basis)
 {
     Euler local;
     local.density = global->density;
-    local.momentum.x = (basis->x.x * global->momentum.x) + (basis->x.y * global->momentum.y) +
-                       (basis->x.z * global->momentum.z);
-    local.momentum.y = (basis->y.x * global->momentum.x) + (basis->y.y * global->momentum.y) +
-                       (basis->y.z * global->momentum.z);
-    local.momentum.z = (basis->z.x * global->momentum.x) + (basis->z.y * global->momentum.y) +
-                       (basis->z.z * global->momentum.z);
+    matvec(&local.momentum, basis, &global->momentum);
     local.energy = global->energy;
-    local.velocity.x = (basis->x.x * global->velocity.x) + (basis->x.y * global->velocity.y) +
-                       (basis->x.z * global->velocity.z);
-    local.velocity.y = (basis->y.x * global->velocity.x) + (basis->y.y * global->velocity.y) +
-                       (basis->y.z * global->velocity.z);
-    local.velocity.z = (basis->z.x * global->velocity.x) + (basis->z.y * global->velocity.y) +
-                       (basis->z.z * global->velocity.z);
+    matvec(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
     return local;
 }
@@ -43,15 +39,17 @@ static Conserved compute_flux(const Euler *local)
     return flux;
 }
 
+static void matvec_t(vector *res, const matrix *mat, const vector *vec)
+{
+    res->x = (mat->x.x * vec->x) + (mat->y.x * vec->y) + (mat->z.x * vec->z);
+    res->y = (mat->x.y * vec->x) + (mat->y.y * vec->y) + (mat->z.y * vec->z);
+    res->z = (mat->x.z * vec->x) + (mat->y.z * vec->y) + (mat->z.z * vec->z);
+}
+
 static void local_to_global(Conserved *flux, const matrix *basis)
 {
     vector momentum;
-    momentum.x = (basis->x.x * flux->momentum.x) + (basis->y.x * flux->momentum.y) +
-                 (basis->z.x * flux->momentum.z);
-    momentum.y = (basis->x.y * flux->momentum.x) + (basis->y.y * flux->momentum.y) +
-                 (basis->z.y * flux->momentum.z);
-    momentum.z = (basis->x.z * flux->momentum.x) + (basis->y.z * flux->momentum.y) +
-                 (basis->z.z * flux->momentum.z);
+    matvec_t(&momentum, basis, &flux->momentum);
     flux->momentum = momentum;
 }
 
@@ -85,13 +83,13 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
         right->velocity.x + speed_of_sound_r,
     };
     for (number i = 0; i < 3; i++) {
-        scalar delta =
-            fmax(0, fmax(eigenvalue[i] - eigenvalue_l[i], eigenvalue_r[i] - eigenvalue[i]));
-        if (fabs(eigenvalue[i]) < delta) {
-            eigenvalue[i] = ((pow2(eigenvalue[i]) / delta) + delta) / 2;
+        scalar lambda = eigenvalue[i];
+        scalar delta = fmax(0, fmax(lambda - eigenvalue_l[i], eigenvalue_r[i] - lambda));
+        if (fabs(lambda) < delta) {
+            eigenvalue[i] = ((pow2(lambda) / delta) + delta) / 2;
         }
         else {
-            eigenvalue[i] = fabs(eigenvalue[i]);
+            eigenvalue[i] = fabs(lambda);
         }
     }
 }
@@ -100,19 +98,21 @@ static Conserved compute_jump(const Euler *left, const Euler *right)
 {
     Conserved jump;
     jump.density = right->density - left->density;
-    jump.momentum = vector_sub(right->momentum, left->momentum);
+    jump.momentum.x = right->momentum.x - left->momentum.x;
+    jump.momentum.y = right->momentum.y - left->momentum.y;
+    jump.momentum.z = right->momentum.z - left->momentum.z;
     jump.energy = right->energy - left->energy;
     return jump;
 }
 
-static void matvec(scalar res[5], const scalar mat[5][5], const scalar vec[5])
+static vector roe_velocity(scalar weight, scalar sqrt_density_l, scalar sqrt_density_r,
+                           const Euler *left, const Euler *right)
 {
-    for (int i = 0; i < 5; i++) {
-        res[i] = 0;
-        for (int j = 0; i < 5; i++) {
-            res[i] += mat[i][j] * vec[j];
-        }
-    }
+    vector velocity;
+    velocity.x = weight * (sqrt_density_l * left->velocity.x + sqrt_density_r * right->velocity.x);
+    velocity.y = weight * (sqrt_density_l * left->velocity.y + sqrt_density_r * right->velocity.y);
+    velocity.z = weight * (sqrt_density_l * left->velocity.z + sqrt_density_r * right->velocity.z);
+    return velocity;
 }
 
 static void roe(void *flux_, const void *left_, const void *right_, const scalar *property,
@@ -130,11 +130,11 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
     scalar sqrt_density_l = sqrt(left.density);
     scalar sqrt_density_r = sqrt(right.density);
     scalar weight = 1 / (sqrt_density_l + sqrt_density_r);
-    vector velocity = vector_mul(weight, vector_add(vector_mul(sqrt_density_l, left.velocity),
-                                                    vector_mul(sqrt_density_r, right.velocity)));
+    vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
-    scalar velocity2 = vector_dot(velocity, velocity);
-    scalar speed_of_sound = sqrt(gamma_m1 * (enthalpy - velocity2 / 2));
+    scalar velocity2 = pow2(velocity.x) + pow2(velocity.y) + pow2(velocity.z);
+    scalar speed_of_sound2 = gamma_m1 * (enthalpy - velocity2 / 2);
+    scalar speed_of_sound = sqrt(speed_of_sound2);
 
     scalar eigenvalue[3] = {
         velocity.x - speed_of_sound,
@@ -148,7 +148,7 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
     wave_strength[2] = jump.momentum.y - (velocity.y * jump.density);
     wave_strength[3] = jump.momentum.z - (velocity.z * jump.density);
     wave_strength[1] =
-        gamma_m1 / pow2(speed_of_sound) *
+        gamma_m1 / speed_of_sound2 *
         (jump.density * (enthalpy - pow2(velocity.x)) + velocity.x * jump.momentum.x - jump.energy +
          wave_strength[2] * velocity.y + wave_strength[3] * velocity.z);
     wave_strength[0] = (jump.density * (velocity.x + speed_of_sound) - jump.momentum.x -
@@ -199,7 +199,13 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
         wave_strength[2] * eigenvalue[1], wave_strength[3] * eigenvalue[1],
         wave_strength[4] * eigenvalue[2],
     };
-    matvec(dissipation, eigenvector, characteristic);
+
+    for (int i = 0; i < 5; i++) {
+        dissipation[i] = 0;
+        for (int j = 0; j < 5; j++) {
+            dissipation[i] += eigenvector[i][j] * characteristic[j];
+        }
+    }
 
     Conserved flux_l = compute_flux(&left);
     Conserved flux_r = compute_flux(&right);
@@ -257,10 +263,9 @@ static void hll(void *flux_, const void *left_, const void *right_, const scalar
     scalar sqrt_density_l = sqrt(left.density);
     scalar sqrt_density_r = sqrt(right.density);
     scalar weight = 1 / (sqrt_density_l + sqrt_density_r);
-    vector velocity = vector_mul(weight, vector_add(vector_mul(sqrt_density_l, left.velocity),
-                                                    vector_mul(sqrt_density_r, right.velocity)));
+    vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
-    scalar velocity2 = vector_dot(velocity, velocity);
+    scalar velocity2 = pow2(velocity.x) + pow2(velocity.y) + pow2(velocity.z);
     scalar speed_of_sound = sqrt((gamma - 1) * (enthalpy - velocity2 / 2));
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
@@ -314,10 +319,9 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
     scalar sqrt_density_l = sqrt(left.density);
     scalar sqrt_density_r = sqrt(right.density);
     scalar weight = 1 / (sqrt_density_l + sqrt_density_r);
-    vector velocity = vector_mul(weight, vector_add(vector_mul(sqrt_density_l, left.velocity),
-                                                    vector_mul(sqrt_density_r, right.velocity)));
+    vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
-    scalar velocity2 = vector_dot(velocity, velocity);
+    scalar velocity2 = pow2(velocity.x) + pow2(velocity.y) + pow2(velocity.z);
     scalar speed_of_sound = sqrt((gamma - 1) * (enthalpy - velocity2 / 2));
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
@@ -361,10 +365,12 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
     scalar velocity_x =
         weight * (sqrt_density_l * left.velocity.x + sqrt_density_r * right.velocity.x);
 
-    scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
-    scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);
-    scalar speed_of_sound2 = weight * (sqrt_density_l * pow2(speed_of_sound_l) +
-                                       sqrt_density_r * pow2(speed_of_sound_r));
+    scalar speed_of_sound2_l = gamma * left.pressure / left.density;
+    scalar speed_of_sound_l = sqrt(speed_of_sound2_l);
+    scalar speed_of_sound2_r = gamma * right.pressure / right.density;
+    scalar speed_of_sound_r = sqrt(speed_of_sound2_r);
+    scalar speed_of_sound2 =
+        weight * (sqrt_density_l * speed_of_sound2_l + sqrt_density_r * speed_of_sound2_r);
 
     scalar velocity_jump = pow2(weight) * sqrt_density_l * sqrt_density_r *
                            pow2(right.velocity.x - left.velocity.x) / 2;

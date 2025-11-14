@@ -1,14 +1,19 @@
 #include "euler.h"
-#include "teal/vector.h"
 
 void euler_conserved(void *variable_, const scalar *property)
 {
     Euler *variable = variable_;
     scalar gamma = property[0];
 
-    variable->momentum = vector_mul(variable->density, variable->velocity);
-    variable->energy = (variable->pressure / (gamma - 1)) +
-                       (vector_dot(variable->momentum, variable->velocity) / 2);
+    variable->momentum.x = variable->density * variable->velocity.x;
+    variable->momentum.y = variable->density * variable->velocity.y;
+    variable->momentum.z = variable->density * variable->velocity.z;
+
+    scalar kinetic_energy = ((variable->momentum.x * variable->velocity.x) +
+                             (variable->momentum.y * variable->velocity.y) +
+                             (variable->momentum.z * variable->velocity.z)) /
+                            2;
+    variable->energy = (variable->pressure / (gamma - 1)) + kinetic_energy;
 }
 
 void euler_primitive(void *variable_, const scalar *property)
@@ -16,7 +21,14 @@ void euler_primitive(void *variable_, const scalar *property)
     Euler *variable = variable_;
     scalar gamma = property[0];
 
-    variable->velocity = vector_div(variable->momentum, variable->density);
-    variable->pressure =
-        (gamma - 1) * (variable->energy - (vector_dot(variable->momentum, variable->velocity) / 2));
+    scalar factor = 1 / variable->density;
+    variable->velocity.x = factor * variable->momentum.x;
+    variable->velocity.y = factor * variable->momentum.y;
+    variable->velocity.z = factor * variable->momentum.z;
+
+    scalar kinetic_energy = ((variable->momentum.x * variable->velocity.x) +
+                             (variable->momentum.y * variable->velocity.y) +
+                             (variable->momentum.z * variable->velocity.z)) /
+                            2;
+    variable->pressure = (gamma - 1) * (variable->energy - kinetic_energy);
 }

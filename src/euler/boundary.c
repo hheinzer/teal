@@ -3,7 +3,6 @@
 
 #include "euler.h"
 #include "teal/utils.h"
-#include "teal/vector.h"
 
 static void symmetry(void *ghost_, const void *inner_, const void *reference_,
                      const scalar *property, const matrix *basis)
@@ -15,9 +14,13 @@ static void symmetry(void *ghost_, const void *inner_, const void *reference_,
     const Euler *inner = inner_;
     vector normal = basis->x;
 
-    scalar velocity = vector_dot(inner->velocity, normal);
+    scalar velocity = (inner->velocity.x * normal.x) + (inner->velocity.y * normal.y) +
+                      (inner->velocity.z * normal.z);
+
     ghost->density = inner->density;
-    ghost->velocity = vector_sub(inner->velocity, vector_mul(2 * velocity, normal));
+    ghost->velocity.x = inner->velocity.x - (2 * velocity * normal.x);
+    ghost->velocity.y = inner->velocity.y - (2 * velocity * normal.y);
+    ghost->velocity.z = inner->velocity.z - (2 * velocity * normal.z);
     ghost->pressure = inner->pressure;
 }
 
@@ -61,15 +64,22 @@ static void subsonic_inflow(void *ghost_, const void *inner_, const void *refere
     vector normal = basis->x;
 
     scalar density = inner->density;
-    scalar speed_of_sound = sqrt(gamma * inner->pressure / inner->density);
-    scalar velocity_diff = vector_dot(vector_sub(reference->velocity, inner->velocity), normal);
-    ghost->pressure =
-        (reference->pressure + inner->pressure - density * speed_of_sound * velocity_diff) / 2;
+    scalar speed_of_sound2 = gamma * inner->pressure / inner->density;
+    scalar speed_of_sound = sqrt(speed_of_sound2);
+
+    scalar velocity = ((reference->velocity.x - inner->velocity.x) * normal.x) +
+                      ((reference->velocity.y - inner->velocity.y) * normal.y) +
+                      ((reference->velocity.z - inner->velocity.z) * normal.z);
+
+    scalar factor1 = density * speed_of_sound;
+    ghost->pressure = (reference->pressure + inner->pressure - factor1 * velocity) / 2;
     ghost->density =
-        reference->density + ((ghost->pressure - reference->pressure) / pow2(speed_of_sound));
-    ghost->velocity = vector_sub(
-        reference->velocity,
-        vector_mul((reference->pressure - ghost->pressure) / (density * speed_of_sound), normal));
+        reference->density + ((ghost->pressure - reference->pressure) / speed_of_sound2);
+
+    scalar factor2 = (reference->pressure - ghost->pressure) / factor1;
+    ghost->velocity.x = reference->velocity.x - (factor2 * normal.x);
+    ghost->velocity.y = reference->velocity.y - (factor2 * normal.y);
+    ghost->velocity.z = reference->velocity.z - (factor2 * normal.z);
 }
 
 static void subsonic_outflow(void *ghost_, const void *inner_, const void *reference_,
@@ -82,55 +92,47 @@ static void subsonic_outflow(void *ghost_, const void *inner_, const void *refer
     vector normal = basis->x;
 
     scalar density = inner->density;
-    scalar speed_of_sound = sqrt(gamma * inner->pressure / inner->density);
+    scalar speed_of_sound2 = gamma * inner->pressure / inner->density;
+    scalar speed_of_sound = sqrt(speed_of_sound2);
+
     ghost->pressure = reference->pressure;
-    ghost->density = inner->density + ((ghost->pressure - inner->pressure) / pow2(speed_of_sound));
-    ghost->velocity = vector_sub(
-        inner->velocity,
-        vector_mul((inner->pressure - ghost->pressure) / (density * speed_of_sound), normal));
+    ghost->density = inner->density + ((ghost->pressure - inner->pressure) / speed_of_sound2);
+
+    scalar factor = (inner->pressure - ghost->pressure) / (density * speed_of_sound);
+    ghost->velocity.x = inner->velocity.x - (factor * normal.x);
+    ghost->velocity.y = inner->velocity.y - (factor * normal.y);
+    ghost->velocity.z = inner->velocity.z - (factor * normal.z);
+}
+
+static void matvec(vector *res, const matrix *mat, const vector *vec)
+{
+    res->x = (mat->x.x * vec->x) + (mat->x.y * vec->y) + (mat->x.z * vec->z);
+    res->y = (mat->y.x * vec->x) + (mat->y.y * vec->y) + (mat->y.z * vec->z);
+    res->z = (mat->z.x * vec->x) + (mat->z.y * vec->y) + (mat->z.z * vec->z);
 }
 
 static Euler global_to_local(const Euler *global, const matrix *basis)
 {
     Euler local;
     local.density = global->density;
-    local.momentum.x = (basis->x.x * global->momentum.x) + (basis->x.y * global->momentum.y) +
-                       (basis->x.z * global->momentum.z);
-    local.momentum.y = (basis->y.x * global->momentum.x) + (basis->y.y * global->momentum.y) +
-                       (basis->y.z * global->momentum.z);
-    local.momentum.z = (basis->z.x * global->momentum.x) + (basis->z.y * global->momentum.y) +
-                       (basis->z.z * global->momentum.z);
+    matvec(&local.momentum, basis, &global->momentum);
     local.energy = global->energy;
-    local.velocity.x = (basis->x.x * global->velocity.x) + (basis->x.y * global->velocity.y) +
-                       (basis->x.z * global->velocity.z);
-    local.velocity.y = (basis->y.x * global->velocity.x) + (basis->y.y * global->velocity.y) +
-                       (basis->y.z * global->velocity.z);
-    local.velocity.z = (basis->z.x * global->velocity.x) + (basis->z.y * global->velocity.y) +
-                       (basis->z.z * global->velocity.z);
+    matvec(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
     return local;
 }
 
-static void matvec(scalar res[5], const scalar mat[5][5], const scalar vec[5], scalar factor)
+static void matvec_t(vector *res, const matrix *mat, const vector *vec)
 {
-    for (int i = 0; i < 5; i++) {
-        res[i] = 0;
-        for (int j = 0; j < 5; j++) {
-            res[i] += mat[i][j] * vec[j];
-        }
-        res[i] *= factor;
-    }
+    res->x = (mat->x.x * vec->x) + (mat->y.x * vec->y) + (mat->z.x * vec->z);
+    res->y = (mat->x.y * vec->x) + (mat->y.y * vec->y) + (mat->z.y * vec->z);
+    res->z = (mat->x.z * vec->x) + (mat->y.z * vec->y) + (mat->z.z * vec->z);
 }
 
 static void local_to_global(Euler *ghost, const matrix *basis)
 {
     vector velocity;
-    velocity.x = (basis->x.x * ghost->velocity.x) + (basis->y.x * ghost->velocity.y) +
-                 (basis->z.x * ghost->velocity.z);
-    velocity.y = (basis->x.y * ghost->velocity.x) + (basis->y.y * ghost->velocity.y) +
-                 (basis->z.y * ghost->velocity.z);
-    velocity.z = (basis->x.z * ghost->velocity.x) + (basis->y.z * ghost->velocity.y) +
-                 (basis->z.z * ghost->velocity.z);
+    matvec_t(&velocity, basis, &ghost->velocity);
     ghost->velocity = velocity;
 }
 
@@ -144,7 +146,8 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     Euler inner = global_to_local(inner_, basis);
     *ghost = global_to_local(reference_, basis);
 
-    scalar velocity2_i = vector_dot(inner.velocity, inner.velocity);
+    scalar velocity2_i = pow2(inner.velocity.x) + pow2(inner.velocity.y) + pow2(inner.velocity.z);
+
     scalar speed_of_sound2_i = gamma * inner.pressure / inner.density;
     scalar speed_of_sound_i = sqrt(speed_of_sound2_i);
     scalar enthalpy_i = (velocity2_i / 2) + (speed_of_sound2_i / gamma_m1);
@@ -195,8 +198,17 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     };
     scalar characteristic_i[5];
     scalar characteristic_g[5];
-    matvec(characteristic_i, eigenvector_inv, conserved_i, factor);
-    matvec(characteristic_g, eigenvector_inv, conserved_g, factor);
+
+    for (int i = 0; i < 5; i++) {
+        characteristic_i[i] = 0;
+        characteristic_g[i] = 0;
+        for (int j = 0; j < 5; j++) {
+            characteristic_i[i] += eigenvector_inv[i][j] * conserved_i[j];
+            characteristic_g[i] += eigenvector_inv[i][j] * conserved_g[j];
+        }
+        characteristic_i[i] *= factor;
+        characteristic_g[i] *= factor;
+    }
 
     scalar speed_of_sound_g = sqrt(gamma * ghost->pressure / ghost->density);
     if (ghost->velocity.x - speed_of_sound_g > 0) {
@@ -249,7 +261,13 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
 
         },
     };
-    matvec(conserved_g, eigenvector, characteristic_g, 1);
+
+    for (int i = 0; i < 5; i++) {
+        conserved_g[i] = 0;
+        for (int j = 0; j < 5; j++) {
+            conserved_g[i] += eigenvector[i][j] * characteristic_g[j];
+        }
+    }
 
     ghost->density = conserved_g[0];
     ghost->momentum.x = conserved_g[1];
