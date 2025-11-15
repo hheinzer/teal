@@ -72,6 +72,10 @@ typedef struct {
 } Adjacent;
 
 typedef struct {
+    vector left, right;
+} Offset;
+
+typedef struct {
     number num;
     number num_inner;
     number off_ghost;  // num_inner + num_ghost
@@ -81,6 +85,7 @@ typedef struct {
     vector *center;
     matrix *basis;   // local orthonormal basis (x: normal; y,z: tangents)
     vector *weight;  // least-squares weights for gradient reconstruction
+    Offset *offset;  // cell-to-face offset
 } MeshFaces;
 
 typedef char Name[128];

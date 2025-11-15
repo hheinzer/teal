@@ -699,6 +699,18 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
     faces->weight = arena_smuggle(weight, faces->num, sizeof(*weight));
 }
 
+void compute_face_offsets(const MeshCells *cells, MeshFaces *faces)
+{
+    Offset *offset = arena_malloc(faces->num, sizeof(*offset));
+    for (number i = 0; i < faces->num; i++) {
+        number left = faces->cell[i].left;
+        number right = faces->cell[i].right;
+        offset[i].left = vector_sub(faces->center[i], cells->center[left]);
+        offset[i].right = vector_sub(faces->center[i], cells->center[right]);
+    }
+    faces->offset = offset;
+}
+
 void mesh_generate(Mesh *mesh)
 {
     assert(mesh);
@@ -720,4 +732,5 @@ void mesh_generate(Mesh *mesh)
 
     compute_cell_offsets(&mesh->nodes, &mesh->cells);
     compute_face_weights(&mesh->cells, &mesh->faces);
+    compute_face_offsets(&mesh->cells, &mesh->faces);
 }

@@ -63,6 +63,81 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
     arena_load(save);
 }
 
+static void reconstruct(scalar *variable_k, const scalar *variable, const vector *gradient,
+                        const vector *offset, number stride)
+{
+    for (number i = 0; i < stride; i++) {
+        variable_k[i] = variable[i] + ((gradient[i].x * offset->x) + (gradient[i].y * offset->y) +
+                                       (gradient[i].z * offset->z));
+    }
+}
+
+static void integrate_reconstructed_convective_flux(const Equations *eqns, void *variable_,
+                                                    void *derivative_, void *gradient_)
+{
+    Arena save = arena_save();
+
+    number num_faces = eqns->mesh->faces.num;
+    number num_inner = eqns->mesh->faces.num_inner;
+    number off_ghost = eqns->mesh->faces.off_ghost;
+    Adjacent *cell = eqns->mesh->faces.cell;
+    scalar *area = eqns->mesh->faces.area;
+    matrix *basis = eqns->mesh->faces.basis;
+    Offset *offset = eqns->mesh->faces.offset;
+
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Convective *convective = eqns->convective.flux;
+
+    scalar(*variable)[stride] = variable_;
+    scalar(*derivative)[len] = derivative_;
+    vector(*gradient)[stride] = gradient_;
+    scalar *variable_l = arena_malloc(stride, sizeof(*variable_l));
+    scalar *variable_r = arena_malloc(stride, sizeof(*variable_r));
+    scalar *flux = arena_malloc(len, sizeof(*flux));
+
+    Request req = sync_gradients(eqns, gradient, stride);
+
+    for (number i = 0; i < num_inner; i++) {
+        number left = cell[i].left;
+        number right = cell[i].right;
+        reconstruct(variable_l, variable[left], gradient[left], &offset[i].left, stride);
+        reconstruct(variable_r, variable[right], gradient[right], &offset[i].right, stride);
+        convective(flux, variable_l, variable_r, property, &basis[i]);
+        for (number j = 0; j < len; j++) {
+            derivative[left][j] += flux[j] * area[i];
+            derivative[right][j] -= flux[j] * area[i];
+        }
+    }
+    for (number i = num_inner; i < off_ghost; i++) {
+        number left = cell[i].left;
+        number right = cell[i].right;
+        reconstruct(variable_l, variable[left], gradient[left], &offset[i].left, stride);
+        convective(flux, variable_l, variable[right], property, &basis[i]);
+        for (number j = 0; j < len; j++) {
+            derivative[left][j] += flux[j] * area[i];
+        }
+    }
+
+    sync_wait(eqns, req.recv);
+
+    for (number i = off_ghost; i < num_faces; i++) {
+        number left = cell[i].left;
+        number right = cell[i].right;
+        reconstruct(variable_l, variable[left], gradient[left], &offset[i].left, stride);
+        reconstruct(variable_r, variable[right], gradient[right], &offset[i].right, stride);
+        convective(flux, variable_l, variable_r, property, &basis[i]);
+        for (number j = 0; j < len; j++) {
+            derivative[left][j] += flux[j] * area[i];
+        }
+    }
+
+    sync_wait(eqns, req.send);
+
+    arena_load(save);
+}
+
 static void evaluate_source(const Equations *eqns, void *variable_, void *derivative_, scalar time)
 {
     Arena save = arena_save();
@@ -104,7 +179,26 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
 
     equations_boundary(eqns, variable_, time);
     switch (eqns->space_order) {
-        case 1: integrate_convective_flux(eqns, variable_, derivative); break;
+        case 1: {
+            integrate_convective_flux(eqns, variable_, derivative);
+            break;
+        }
+        case 2: {
+            void *gradient_ = equations_gradient(eqns, variable_);
+            if (eqns->limiter.compute) {
+                equations_limiter(eqns, variable_, gradient_);
+            }
+            if (eqns->convective.flux && eqns->viscous.flux) {
+                assert(false);
+            }
+            else if (eqns->convective.flux) {
+                integrate_reconstructed_convective_flux(eqns, variable_, derivative, gradient_);
+            }
+            else if (eqns->viscous.flux) {
+                assert(false);
+            }
+            break;
+        }
         default: error("invalid space order -- '%td'", eqns->space_order);
     }
 

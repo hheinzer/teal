@@ -84,17 +84,16 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar couran
 
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*variable0)[stride] = arena_memdup(variable, num, sizeof(*variable));
-    scalar(*derivative)[len] = 0;
+    scalar(*derivative)[len] = arena_malloc(num, sizeof(*derivative));
 
     scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
     scalar timestep = fmin(full_timestep, max_timestep);
 
     for (number i = 0; i < num_stages; i++) {
-        derivative =
-            equations_derivative(eqns, variable, derivative, *time + (alpha[i] * timestep));
+        equations_derivative(eqns, variable, derivative, *time + (alpha[i] * timestep));
         for (number j = 0; j < num; j++) {
             for (number k = 0; k < len; k++) {
-                variable[j][k] = variable0[j][k] + (alpha[i + 1] * derivative[j][k] * timestep);
+                variable[j][k] = variable0[j][k] + (derivative[j][k] * alpha[i + 1] * timestep);
             }
             primitive(variable[j], property);
         }

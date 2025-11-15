@@ -8,12 +8,11 @@ void euler_conserved(void *variable_, const scalar *property)
     variable->momentum.x = variable->density * variable->velocity.x;
     variable->momentum.y = variable->density * variable->velocity.y;
     variable->momentum.z = variable->density * variable->velocity.z;
-
-    scalar kinetic_energy = ((variable->momentum.x * variable->velocity.x) +
-                             (variable->momentum.y * variable->velocity.y) +
-                             (variable->momentum.z * variable->velocity.z)) /
-                            2;
-    variable->energy = (variable->pressure / (gamma - 1)) + kinetic_energy;
+    variable->energy =
+        (variable->pressure / (gamma - 1)) + (((variable->momentum.x * variable->velocity.x) +
+                                               (variable->momentum.y * variable->velocity.y) +
+                                               (variable->momentum.z * variable->velocity.z)) /
+                                              2);
 }
 
 void euler_primitive(void *variable_, const scalar *property)
@@ -25,10 +24,9 @@ void euler_primitive(void *variable_, const scalar *property)
     variable->velocity.x = factor * variable->momentum.x;
     variable->velocity.y = factor * variable->momentum.y;
     variable->velocity.z = factor * variable->momentum.z;
-
-    scalar kinetic_energy = ((variable->momentum.x * variable->velocity.x) +
-                             (variable->momentum.y * variable->velocity.y) +
-                             (variable->momentum.z * variable->velocity.z)) /
-                            2;
-    variable->pressure = (gamma - 1) * (variable->energy - kinetic_energy);
+    variable->pressure =
+        (gamma - 1) * (variable->energy - ((variable->momentum.x * variable->velocity.x) +
+                                           (variable->momentum.y * variable->velocity.y) +
+                                           (variable->momentum.z * variable->velocity.z)) /
+                                              2);
 }
