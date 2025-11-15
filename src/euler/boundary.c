@@ -115,10 +115,12 @@ static Euler global_to_local(const Euler *global, const matrix *basis)
 {
     Euler local;
     local.density = global->density;
-    matvec(&local.momentum, basis, &global->momentum);
-    local.energy = global->energy;
     matvec(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
+    local.momentum.x = local.density * local.velocity.x;
+    local.momentum.y = local.density * local.velocity.y;
+    local.momentum.z = local.density * local.velocity.z;
+    local.energy = global->energy;
     return local;
 }
 

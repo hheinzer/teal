@@ -11,14 +11,13 @@ static void matvec(vector *res, const matrix *mat, const vector *vec)
     res->z = (mat->z.x * vec->x) + (mat->z.y * vec->y) + (mat->z.z * vec->z);
 }
 
-static Euler global_to_local(const Euler *global, const matrix *basis)
+static Euler global_to_local(const Euler *global, const scalar *property, const matrix *basis)
 {
     Euler local;
     local.density = global->density;
-    matvec(&local.momentum, basis, &global->momentum);
-    local.energy = global->energy;
     matvec(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
+    euler_conserved(&local, property);
     return local;
 }
 
@@ -57,8 +56,8 @@ static void godunov(void *flux_, const void *left_, const void *right_, const sc
                     const matrix *basis)
 {
     Conserved *flux = flux_;
-    Euler left = global_to_local(left_, basis);
-    Euler right = global_to_local(right_, basis);
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
     scalar gamma = property[0];
 
     Euler face = euler_riemann(&left, &right, gamma, 0);
@@ -86,7 +85,8 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
         scalar lambda = eigenvalue[i];
         scalar delta = fmax(0, fmax(lambda - eigenvalue_l[i], eigenvalue_r[i] - lambda));
         if (fabs(lambda) < delta) {
-            eigenvalue[i] = ((pow2(lambda) / delta) + delta) / 2;
+            eigenvalue[i] = delta;
+            // eigenvalue[i] = ((pow2(lambda) / delta) + delta) / 2;
         }
         else {
             eigenvalue[i] = fabs(lambda);
@@ -119,8 +119,8 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
                 const matrix *basis)
 {
     Conserved *flux = flux_;
-    Euler left = global_to_local(left_, basis);
-    Euler right = global_to_local(right_, basis);
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
     scalar gamma = property[0];
     scalar gamma_m1 = gamma - 1;
 
@@ -253,8 +253,8 @@ static void hll(void *flux_, const void *left_, const void *right_, const scalar
                 const matrix *basis)
 {
     Conserved *flux = flux_;
-    Euler left = global_to_local(left_, basis);
-    Euler right = global_to_local(right_, basis);
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
     scalar gamma = property[0];
 
     scalar enthalpy_l = (left.energy + left.pressure) / left.density;
@@ -309,8 +309,8 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
                  const matrix *basis)
 {
     Conserved *flux = flux_;
-    Euler left = global_to_local(left_, basis);
-    Euler right = global_to_local(right_, basis);
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
     scalar gamma = property[0];
 
     scalar enthalpy_l = (left.energy + left.pressure) / left.density;
@@ -355,8 +355,8 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
                  const matrix *basis)
 {
     Conserved *flux = flux_;
-    Euler left = global_to_local(left_, basis);
-    Euler right = global_to_local(right_, basis);
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
     scalar gamma = property[0];
 
     scalar sqrt_density_l = sqrt(left.density);
@@ -395,8 +395,8 @@ static void lxf(void *flux_, const void *left_, const void *right_, const scalar
                 const matrix *basis)
 {
     Conserved *flux = flux_;
-    Euler left = global_to_local(left_, basis);
-    Euler right = global_to_local(right_, basis);
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
     scalar gamma = property[0];
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
