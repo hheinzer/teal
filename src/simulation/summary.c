@@ -15,7 +15,6 @@ void simulation_summary(const Simulation *sim)
         println("\t prefix           : %s", sim->prefix);
     }
     println("\t courant          : %g", sim->courant);
-    println("\t time order       : %td", sim->time_order);
 
     if (isfinite(sim->time.max)) {
         println("\t max time         : %g", sim->time.max);
@@ -37,9 +36,6 @@ void simulation_summary(const Simulation *sim)
     }
 
     println("\t advance          : %s", sim->advance.name);
-    if (!strcmp(sim->advance.name, "lserk")) {
-        println("\t number of stages : %td", sim->advance.context.lserk.num_stages);
-    }
 
     scalar timestep = equations_timestep(sim->eqns, sim->eqns->variables.data, 0);
     println("\t initial timestep : %g", sim->courant * timestep);

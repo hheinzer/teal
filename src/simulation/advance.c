@@ -5,11 +5,10 @@
 #include "teal/arena.h"
 #include "teal/utils.h"
 
-scalar explicit_euler(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-                      scalar max_timestep, Context *context)
+scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+             scalar max_timestep, const void *context_)
 {
-    unused(context);
-
+    unused(context_);
     Arena save = arena_save();
 
     number num = eqns->mesh->cells.num_inner;
@@ -38,14 +37,351 @@ scalar explicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
     return full_timestep;
 }
 
-scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-             scalar max_timestep, Context *context)
+scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+                scalar max_timestep, const void *context_)
 {
-    unused(context);
-
+    unused(context_);
     Arena save = arena_save();
 
-    static const scalar van_leer[3][6][7] = {
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * timestep / 2);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (timestep / 2));
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] += derivative1[i][j] * timestep;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+            scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * timestep);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + timestep);
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] += (derivative[i][j] + derivative1[i][j]) * timestep / 2;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+               scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * 2 * timestep / 3);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] =
+        equations_derivative(eqns, variable1, 0, *time + (2 * timestep / 3));
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] += timestep * (derivative[i][j] + 3 * derivative1[i][j]) / 4;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+              scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * timestep);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + timestep);
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] = (variable[i][j] + variable1[i][j] + timestep * derivative1[i][j]) / 2;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+              scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * timestep);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + timestep);
+
+    scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable2[i][j] =
+                (3 * variable[i][j] + variable1[i][j] + timestep * derivative1[i][j]) / 4;
+        }
+        primitive(variable2[i], property);
+    }
+    scalar(*derivative2)[len] = equations_derivative(eqns, variable2, 0, *time + (timestep / 2));
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] =
+                (variable[i][j] + 2 * (variable2[i][j] + timestep * derivative2[i][j])) / 3;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+           scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * timestep / 2);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (timestep / 2));
+
+    scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable2[i][j] =
+                variable[i][j] - (derivative[i][j] * timestep) + (derivative1[i][j] * 2 * timestep);
+        }
+        primitive(variable2[i], property);
+    }
+    scalar(*derivative2)[len] = equations_derivative(eqns, variable2, 0, *time + timestep);
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] +=
+                timestep * (derivative[i][j] + 4 * derivative1[i][j] + derivative2[i][j]) / 6;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+           scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    number num_cells = eqns->mesh->cells.num;
+    number num = eqns->mesh->cells.num_inner;
+    number len = eqns->variables.len;
+    number stride = eqns->variables.stride;
+    scalar *property = eqns->properties.data;
+    Update *primitive = eqns->variables.primitive;
+
+    scalar(*variable)[stride] = eqns->variables.data;
+    scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
+
+    scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
+    scalar timestep = fmin(full_timestep, max_timestep);
+
+    scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable1[i][j] = variable[i][j] + (derivative[i][j] * timestep / 2);
+        }
+        primitive(variable1[i], property);
+    }
+    scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (timestep / 2));
+
+    scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable2[i][j] = variable[i][j] + (derivative1[i][j] * timestep / 2);
+        }
+        primitive(variable2[i], property);
+    }
+    scalar(*derivative2)[len] = equations_derivative(eqns, variable2, 0, *time + (timestep / 2));
+
+    scalar(*variable3)[stride] = arena_malloc(num_cells, sizeof(*variable3));
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable3[i][j] = variable[i][j] + (derivative2[i][j] * timestep);
+        }
+        primitive(variable3[i], property);
+    }
+    scalar(*derivative3)[len] = equations_derivative(eqns, variable3, 0, *time + timestep);
+
+    for (number i = 0; i < num; i++) {
+        for (number j = 0; j < len; j++) {
+            variable[i][j] += timestep *
+                              (derivative[i][j] + 2 * (derivative1[i][j] + derivative2[i][j]) +
+                               derivative3[i][j]) /
+                              6;
+        }
+        primitive(variable[i], property);
+    }
+
+    *time += timestep;
+    equations_residual(eqns, derivative, residual_);
+
+    arena_load(save);
+    return full_timestep;
+}
+
+scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+             scalar max_timestep, const void *context_)
+{
+    unused(context_);
+    Arena save = arena_save();
+
+    static const scalar alpha_[3][6][7] = {
         {
             {0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
             {0.0000, 0.3333, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000},
@@ -72,9 +408,10 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar couran
         },
     };
 
-    number time_order = *context->lserk.time_order;
-    number num_stages = context->lserk.num_stages;
-    const scalar *alpha = van_leer[time_order - 1][num_stages - 1];
+    const Lserk *context = context_;
+    number time_order = context->time_order;
+    number num_stages = context->num_stages;
+    const scalar *alpha = alpha_[time_order - 1][num_stages - 1];
 
     number num = eqns->mesh->cells.num_inner;
     number len = eqns->variables.len;
@@ -83,12 +420,12 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar couran
     Update *primitive = eqns->variables.primitive;
 
     scalar(*variable)[stride] = eqns->variables.data;
-    scalar(*variable0)[stride] = arena_memdup(variable, num, sizeof(*variable));
     scalar(*derivative)[len] = arena_malloc(num, sizeof(*derivative));
 
     scalar full_timestep = courant * equations_timestep(eqns, variable, 0);
     scalar timestep = fmin(full_timestep, max_timestep);
 
+    scalar(*variable0)[stride] = arena_memdup(variable, num, sizeof(*variable));
     for (number i = 0; i < num_stages; i++) {
         equations_derivative(eqns, variable, derivative, *time + (alpha[i] * timestep));
         for (number j = 0; j < num; j++) {

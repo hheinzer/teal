@@ -2,6 +2,7 @@
 
 #include "advance.h"
 #include "simulation.h"
+#include "teal/arena.h"
 #include "teal/assert.h"
 #include "teal/utils.h"
 
@@ -9,12 +10,6 @@ void simulation_set_courant(Simulation *sim, scalar courant)
 {
     assert(sim && courant > 0);
     sim->courant = courant;
-}
-
-void simulation_set_time_order(Simulation *sim, number time_order)
-{
-    assert(sim && 1 <= time_order && time_order <= 3);
-    sim->time_order = time_order;
 }
 
 void simulation_set_max_time(Simulation *sim, scalar time)
@@ -90,41 +85,47 @@ void simulation_set_advance(Simulation *sim, const char *name)
 {
     assert(sim && name);
     strcpy(sim->advance.name, name);
-    if (!strcmp(name, "explicit euler")) {
-        sim->time_order = 1;
-        sim->advance.method = explicit_euler;
+    if (!strcmp(name, "euler")) {
+        sim->advance.method = euler;
         return;
     }
-    if (!strcmp(name, "lserk")) {
-        sim->time_order = sim->eqns->space_order;
-        sim->advance.context.lserk.time_order = &sim->time_order;
-        sim->advance.context.lserk.num_stages = sim->time_order + 1;
+    if (!strcmp(name, "midpoint")) {
+        sim->advance.method = midpoint;
+        return;
+    }
+    if (!strcmp(name, "heun")) {
+        sim->advance.method = heun;
+        return;
+    }
+    if (!strcmp(name, "ralston")) {
+        sim->advance.method = ralston;
+        return;
+    }
+    if (!strcmp(name, "ssprk2")) {
+        sim->advance.method = ssprk2;
+        return;
+    }
+    if (!strcmp(name, "ssprk3")) {
+        sim->advance.method = ssprk3;
+        return;
+    }
+    if (!strcmp(name, "rk3")) {
+        sim->advance.method = rk3;
+        return;
+    }
+    if (!strcmp(name, "rk4")) {
+        sim->advance.method = rk4;
+        return;
+    }
+    if (!strncmp(name, "lserk", 5)) {
+        Lserk *context = arena_malloc(1, sizeof(*context));
+        context->time_order = name[5] - '0';
+        context->num_stages = name[6] - '0';
+        assert(1 <= context->time_order && context->time_order <= 3);
+        assert(1 <= context->num_stages && context->num_stages <= 6);
+        sim->advance.context_ = context;
         sim->advance.method = lserk;
         return;
     }
     error("invalid advance method -- '%s'", name);
-}
-
-void simulation_set_lserk_num_stages(Simulation *sim, number num_stages)
-{
-    assert(sim && 1 <= num_stages && num_stages <= 6);
-    sim->advance.context.lserk.num_stages = num_stages;
-}
-
-void simulation_set_newton_tolerance(Simulation *sim, scalar tolerance)
-{
-    assert(sim && tolerance > 0);
-    sim->advance.context.implicit_euler.tol_newton = tolerance;
-}
-
-void simulation_set_krylov_tolerance(Simulation *sim, scalar tolerance)
-{
-    assert(sim && tolerance > 0);
-    sim->advance.context.implicit_euler.tol_krylov = tolerance;
-}
-
-void simulation_set_krylov_dimension(Simulation *sim, number dimension)
-{
-    assert(sim && dimension > 0);
-    sim->advance.context.implicit_euler.dim_krylov = dimension;
 }

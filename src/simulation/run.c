@@ -37,7 +37,7 @@ scalar simulation_run(Simulation *sim)
     const char *term_condition = sim->termination.condition;
     number term_variable = sim->termination.variable;
     scalar term_residual = sim->termination.residual;
-    Context context = sim->advance.context;
+    const void *context = sim->advance.context_;
     Advance *advance = sim->advance.method;
 
     scalar time;
@@ -62,7 +62,7 @@ scalar simulation_run(Simulation *sim)
     bool has_converged = false;
     while (iter < max_iter && time < max_time && !has_converged && !sig_terminate) {
         scalar max_timestep = fmin(max_time, out_time) - time;
-        scalar timestep = advance(eqns, &time, residual, courant, max_timestep, &context);
+        scalar timestep = advance(eqns, &time, residual, courant, max_timestep, context);
 
         assert(isfinite(timestep));
         for (number i = 0; i < len; i++) {
