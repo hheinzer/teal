@@ -27,7 +27,7 @@ void *equations_norm(const Equations *eqns, scalar time)
     scalar *user = arena_calloc(stride, sizeof(*user));
 
     for (number i = 0; i < num; i++) {
-        compute(user, variable[i], property, center[i], time);
+        compute(user, property, center[i], time, variable[i]);
         conserved(user, property);
         for (number j = 0; j < stride; j++) {
             norm[j] += volume[i] * pow2(user[j] - variable[i][j]);

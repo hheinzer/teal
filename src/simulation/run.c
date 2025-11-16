@@ -26,7 +26,6 @@ scalar simulation_run(Simulation *sim)
 
     const Equations *eqns = sim->eqns;
     number len = eqns->variables.len;
-    scalar *residual = arena_malloc(len, sizeof(*residual));
 
     const char *prefix = sim->prefix;
     scalar courant = sim->courant;
@@ -37,7 +36,7 @@ scalar simulation_run(Simulation *sim)
     const char *term_condition = sim->termination.condition;
     number term_variable = sim->termination.variable;
     scalar term_residual = sim->termination.residual;
-    const void *context = sim->advance.context_;
+    const void *ctx = sim->advance.ctx;
     Advance *advance = sim->advance.method;
 
     scalar time;
@@ -49,8 +48,11 @@ scalar simulation_run(Simulation *sim)
     }
     out_time += time;
 
+    bool has_converged = false;
+    scalar *residual = arena_malloc(len, sizeof(*residual));
+
     println("Running simulation");
-    println("\t %13s %13s %13s %13s %13s", "iter", "time", "timestep", "residual", "wtime");
+    println("\t %13s %13s %13s %13s %13s", "iter", "time", "step", "residual", "wtime");
 
     signal(SIGINT, handler);
     signal(SIGTERM, handler);
@@ -58,16 +60,14 @@ scalar simulation_run(Simulation *sim)
     scalar wtime_beg = MPI_Wtime();
     scalar wtime_last = wtime_beg;
 
-    number iter = 0;
-    bool has_converged = false;
-    while (iter < max_iter && time < max_time && !has_converged && !sig_terminate) {
-        scalar max_timestep = fmin(max_time, out_time) - time;
-        scalar timestep = advance(eqns, &time, residual, courant, max_timestep, context);
+    for (number iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
+        scalar max_step = fmin(max_time, out_time) - time;
+        scalar step0 = advance(eqns, &time, residual, courant, max_step, ctx);
 
-        assert(isfinite(timestep));
-        for (number i = 0; i < len; i++) {
-            assert(isfinite(residual[i]));
+        if (!isfinite(step0)) {
+            error("invalid timestep at iter = %td", iter);
         }
+
         iter += 1;
 
         scalar max_residual = array_fmax(residual, len);
@@ -91,7 +91,7 @@ scalar simulation_run(Simulation *sim)
             if (sim->iter.output < PTRDIFF_MAX) {
                 out_iter = iter + sim->iter.output;
             }
-            println("\t %13td %13g %13g %13g %13g", iter, time, timestep, max_residual, wtime);
+            println("\t %13td %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
             wtime_last = wtime_now;
         }
     }

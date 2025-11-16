@@ -378,7 +378,6 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
 scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar courant,
              scalar max_timestep, const void *context_)
 {
-    unused(context_);
     Arena save = arena_save();
 
     static const scalar alpha_[3][6][7] = {
@@ -408,7 +407,7 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar couran
         },
     };
 
-    const Lserk *context = context_;
+    const RungeKutta *context = context_;
     number time_order = context->time_order;
     number num_stages = context->num_stages;
     const scalar *alpha = alpha_[time_order - 1][num_stages - 1];

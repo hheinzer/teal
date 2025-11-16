@@ -120,7 +120,7 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
     for (number i = 0; i < num; i++) {
         if (!strcmp(name[i], entity)) {
             for (number j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                compute(variable[j], 0, property, center[j], time);
+                compute(variable[j], property, center[j], time, 0);
                 if (conserved) {
                     conserved(variable[j], property);
                 }

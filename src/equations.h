@@ -30,8 +30,8 @@ typedef struct {
 typedef scalar Timestep(const void *variable_, const scalar *property, scalar volume,
                         vector projection);
 
-typedef void Compute(void *variable_, const void *context_, const scalar *property, vector center,
-                     scalar time);
+typedef void Compute(void *variable_, const scalar *property, vector center, scalar time,
+                     const void *ctx_);
 
 typedef void Boundary(void *ghost_, const void *inner_, const void *reference_,
                       const scalar *property, const matrix *basis);
@@ -154,7 +154,7 @@ void equations_summary(const Equations *eqns);
 
 void equations_restart(const Equations *eqns, scalar *time, number *index);
 
-scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *value);
+scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *step);
 
 void equations_boundary(const Equations *eqns, void *variable_, scalar time);
 

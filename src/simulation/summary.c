@@ -36,7 +36,18 @@ void simulation_summary(const Simulation *sim)
     }
 
     println("\t advance          : %s", sim->advance.name);
+    if (!strcmp(sim->advance.name, "lserk")) {
+        const RungeKutta *ctx = sim->advance.ctx;
+        println("\t time order       : %td", ctx->time_order);
+        println("\t number of stages : %td", ctx->num_stages);
+    }
+    if (!strcmp(sim->advance.name, "implicit euler")) {
+        const NewtonKrylov *ctx = sim->advance.ctx;
+        println("\t newton tolerance : %g", ctx->newton_tolerance);
+        println("\t krylov tolerance : %g", ctx->krylov_tolerance);
+        println("\t krylov dimension : %td", ctx->krylov_dimension);
+    }
 
-    scalar timestep = equations_timestep(sim->eqns, sim->eqns->variables.data, 0);
-    println("\t initial timestep : %g", sim->courant * timestep);
+    scalar step0 = sim->courant * equations_timestep(sim->eqns, sim->eqns->variables.data, 0);
+    println("\t initial timestep : %g", step0);
 }

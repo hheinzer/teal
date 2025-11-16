@@ -81,7 +81,7 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
     error("invalid variable -- '%.*s'", len, condition);
 }
 
-void simulation_set_advance(Simulation *sim, const char *name)
+void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
 {
     assert(sim && name);
     strcpy(sim->advance.name, name);
@@ -117,14 +117,31 @@ void simulation_set_advance(Simulation *sim, const char *name)
         sim->advance.method = rk4;
         return;
     }
-    if (!strncmp(name, "lserk", 5)) {
-        Lserk *context = arena_malloc(1, sizeof(*context));
-        context->time_order = name[5] - '0';
-        context->num_stages = name[6] - '0';
-        assert(1 <= context->time_order && context->time_order <= 3);
-        assert(1 <= context->num_stages && context->num_stages <= 6);
-        sim->advance.context_ = context;
+    if (!strcmp(name, "lserk")) {
+        const RungeKutta *ctx = ctx_;
+        if (!(1 <= ctx->time_order && ctx->time_order <= 3)) {
+            error("invalid time order -- '%td'", ctx->time_order);
+        }
+        if (!(1 <= ctx->num_stages && ctx->num_stages <= 6)) {
+            error("invalid number of stages -- '%td'", ctx->num_stages);
+        }
+        sim->advance.ctx = arena_memdup(ctx, 1, sizeof(*ctx));
         sim->advance.method = lserk;
+        return;
+    }
+    if (!strcmp(name, "implicit euler")) {
+        const NewtonKrylov *ctx = ctx_;
+        if (ctx->newton_tolerance <= 0) {
+            error("invalid newton tolerance -- '%g'", ctx->newton_tolerance);
+        }
+        if (ctx->krylov_tolerance <= 0) {
+            error("invalid krylov tolerance -- '%g'", ctx->krylov_tolerance);
+        }
+        if (ctx->krylov_dimension <= 0) {
+            error("invalid krylov dimension -- '%td'", ctx->krylov_dimension);
+        }
+        sim->advance.ctx = arena_memdup(ctx, 1, sizeof(*ctx));
+        sim->advance.method = implicit_euler;
         return;
     }
     error("invalid advance method -- '%s'", name);
