@@ -1,25 +1,18 @@
 #include <string.h>
 
 #include "simulation.h"
-#include "teal/arena.h"
-#include "teal/array.h"
 #include "teal/assert.h"
 #include "teal/utils.h"
 
-scalar simulation_error(const Simulation *sim, scalar time)
+void *simulation_error(const Simulation *sim, scalar time)
 {
     assert(sim);
 
-    Arena save = arena_save();
-
     number num = sim->eqns->variables.num;
-    number stride = sim->eqns->variables.stride;
     Name *name = sim->eqns->variables.name;
     Type *type = sim->eqns->variables.type;
 
-    scalar *norm = arena_malloc(stride, sizeof(*norm));
-    equations_norm(sim->eqns, norm, time);
-    scalar max_norm = array_fmax(norm, stride);
+    scalar *norm = equations_norm(sim->eqns, time);
 
     int len = 0;
     for (number i = 0; i < num; i++) {
@@ -42,6 +35,5 @@ scalar simulation_error(const Simulation *sim, scalar time)
         }
     }
 
-    arena_load(save);
-    return max_norm;
+    return norm;
 }

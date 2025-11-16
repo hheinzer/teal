@@ -57,4 +57,4 @@ void simulation_summary(const Simulation *sim);
 
 scalar simulation_run(Simulation *sim);
 
-scalar simulation_error(const Simulation *sim, scalar time);
+void *simulation_error(const Simulation *sim, scalar time);

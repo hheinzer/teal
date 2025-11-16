@@ -1,5 +1,4 @@
 #include <math.h>
-#include <string.h>
 
 #include "equations.h"
 #include "teal/arena.h"
@@ -7,9 +6,9 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-void equations_norm(const Equations *eqns, void *norm_, scalar time)
+void *equations_norm(const Equations *eqns, scalar time)
 {
-    assert(eqns && norm_);
+    assert(eqns);
 
     Arena save = arena_save();
 
@@ -24,10 +23,9 @@ void equations_norm(const Equations *eqns, void *norm_, scalar time)
     Compute *compute = eqns->user.compute;
     Update *conserved = eqns->user.conserved;
 
+    scalar *norm = arena_calloc(stride, sizeof(*norm));
     scalar *user = arena_calloc(stride, sizeof(*user));
-    scalar *norm = norm_;
 
-    memset(norm, 0, stride * sizeof(*norm));
     for (number i = 0; i < num; i++) {
         compute(user, variable[i], property, center[i], time);
         conserved(user, property);
@@ -40,4 +38,5 @@ void equations_norm(const Equations *eqns, void *norm_, scalar time)
     }
 
     arena_load(save);
+    return arena_smuggle(norm, stride, sizeof(*norm));
 }

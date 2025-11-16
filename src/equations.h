@@ -168,6 +168,6 @@ void equations_residual(const Equations *eqns, const void *derivative_, void *re
 
 void *equations_average(const Equations *eqns, const char *entity, const void *variable_);
 
-void equations_norm(const Equations *eqns, void *norm_, scalar time);
+void *equations_norm(const Equations *eqns, scalar time);
 
 void equations_write(const Equations *eqns, scalar time, const char *prefix, number index);
