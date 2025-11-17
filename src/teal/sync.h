@@ -39,6 +39,9 @@ vector sync_vector_sum(vector val);
 
 number sync_lexsum(number val);
 
+scalar sync_fdot(const scalar *lhs, const scalar *rhs, number num);
+scalar sync_fnorm(const scalar *arr, number num);
+
 MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_, number num,
                                number stride, int tag);
 MPI_Request *sync_isend_scalar(const number *rank, const number *off, const number *idx,

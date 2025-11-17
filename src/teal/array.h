@@ -14,3 +14,6 @@ void array_lunique(number *arr, number *num);
 
 /* Return index of first `arr[i] > val` in sorted array; if beyond bounds return `0` or `num`. */
 number array_ldigitize(const number *arr, number val, number num);
+
+scalar array_fdot(const scalar *lhs, const scalar *rhs, number num);
+scalar array_fnorm(const scalar *arr, number num);

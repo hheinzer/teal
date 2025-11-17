@@ -34,8 +34,7 @@ int main(int argc, char **argv)
     teal_finalize();
 }
 
-void exact(void *variable_, const void *context_, const scalar *property, vector center,
-           scalar time)
+void exact(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
     Euler *variable = variable_;
     scalar gamma = property[0];

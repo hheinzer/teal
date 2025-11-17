@@ -108,3 +108,18 @@ number array_ldigitize(const number *arr, number val, number num)
     }
     return left;
 }
+
+scalar array_fdot(const scalar *lhs, const scalar *rhs, number num)
+{
+    assert((lhs || rhs) ? (num >= 0) : (num == 0));
+    double dot = 0;
+    for (number i = 0; i < num; i++) {
+        dot += lhs[i] * rhs[i];
+    }
+    return dot;
+}
+
+scalar array_fnorm(const scalar *arr, number num)
+{
+    return sqrt(array_fdot(arr, arr, num));
+}

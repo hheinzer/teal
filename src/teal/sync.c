@@ -1,10 +1,12 @@
 #include "sync.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "assert.h"
 #include "teal/arena.h"
+#include "teal/array.h"
 
 Sync sync = {0};
 
@@ -114,6 +116,16 @@ number sync_lexsum(number val)
     number exsum = 0;
     MPI_Exscan(&val, &exsum, 1, MPI_NUMBER, MPI_SUM, sync.comm);
     return (sync.rank == 0) ? 0 : exsum;
+}
+
+scalar sync_fdot(const scalar *lhs, const scalar *rhs, number num)
+{
+    return sync_fsum(array_fdot(lhs, rhs, num));
+}
+
+scalar sync_fnorm(const scalar *arr, number num)
+{
+    return sqrt(sync_fdot(arr, arr, num));
 }
 
 MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_, number num,
