@@ -13,7 +13,7 @@ scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, 
     for (number i = beg; i < end; i++) {
         scalar delta2 =
             (gradient.x * offset[i].x) + (gradient.y * offset[i].y) + (gradient.z * offset[i].z);
-        if (isclose(delta2, 0)) {
+        if (delta2 == 0) {
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
@@ -29,7 +29,7 @@ scalar venkatakrishnan(vector gradient, scalar variable, scalar minimum, scalar 
     for (number i = beg; i < end; i++) {
         scalar delta2 =
             (gradient.x * offset[i].x) + (gradient.y * offset[i].y) + (gradient.z * offset[i].z);
-        if (isclose(delta2, 0)) {
+        if (delta2 == 0) {
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
