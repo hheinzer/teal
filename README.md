@@ -1,4 +1,4 @@
-![teal](.logo.svg)
+![teal](img/teal.svg)
 
 Teal is a general-purpose computational fluid dynamics library for solving hyperbolic-parabolic
 conservation laws on 3D unstructured meshes using the finite-volume method. It includes a simple
