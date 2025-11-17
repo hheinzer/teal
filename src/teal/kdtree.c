@@ -9,6 +9,8 @@
 #include "utils.h"
 #include "vector.h"
 
+#define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
+
 Kdtree *kdtree_create(number size_val)
 {
     assert(size_val >= 0);

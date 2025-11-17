@@ -7,6 +7,8 @@
 #include "assert.h"
 #include "utils.h"
 
+#define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
+
 enum { WIDTH = countof((DictItem){0}.child) };
 STATIC_ASSERT(WIDTH == 2 || WIDTH == 4 || WIDTH == 8);
 

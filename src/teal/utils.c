@@ -10,6 +10,39 @@
 #include "option.h"
 #include "sync.h"
 
+scalar pow2(scalar val)
+{
+    return val * val;
+}
+
+scalar pow3(scalar val)
+{
+    return val * val * val;
+}
+
+number lmin(number lhs, number rhs)
+{
+    return (lhs < rhs) ? lhs : rhs;
+}
+
+number lmax(number lhs, number rhs)
+{
+    return (lhs > rhs) ? lhs : rhs;
+}
+
+bool isclose(scalar lhs, scalar rhs)
+{
+    if (lhs == rhs) {
+        return true;
+    }
+    if (!isfinite(lhs) || !isfinite(rhs)) {
+        return false;
+    }
+    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
+    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
+    return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
+}
+
 void println(const char *fmt, ...)
 {
     assert(fmt);
@@ -49,39 +82,6 @@ void error(const char *fmt, ...)
         fflush(stderr);
     }
     sync_abort();
-}
-
-scalar pow2(scalar val)
-{
-    return val * val;
-}
-
-scalar pow3(scalar val)
-{
-    return val * val * val;
-}
-
-number lmin(number lhs, number rhs)
-{
-    return (lhs < rhs) ? lhs : rhs;
-}
-
-number lmax(number lhs, number rhs)
-{
-    return (lhs > rhs) ? lhs : rhs;
-}
-
-bool isclose(scalar lhs, scalar rhs)
-{
-    if (lhs == rhs) {
-        return true;
-    }
-    if (!isfinite(lhs) || !isfinite(rhs)) {
-        return false;
-    }
-    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
-    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
-    return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
 }
 
 int cmp_number(const void *lhs_, const void *rhs_)
@@ -152,7 +152,7 @@ void swap_bytes(void *lhs_, void *rhs_, number size)
 }
 
 static const char *suffix = "\0KMGTPE";  // ready for exascale computing
-static const number base = 1000;
+static const int base = 1000;
 
 scalar str_to_size(const char *str)
 {
@@ -171,10 +171,39 @@ scalar str_to_size(const char *str)
 void size_to_str(char *str, scalar size)
 {
     assert(str && size >= 0);
-    number idx = 0;
+    int idx = 0;
     while (size >= base && suffix[idx + 1]) {
         size /= base;
         idx += 1;
     }
     sprintf(str, "%.4g%c", size, suffix[idx]);
+}
+
+void seconds_to_str(char *str, scalar seconds)
+{
+    assert(str && seconds >= 0);
+    static const int seconds_per_minute = 60;
+    static const int seconds_per_hour = 60 * seconds_per_minute;
+    static const int seconds_per_day = 24 * seconds_per_hour;
+
+    int days = seconds / seconds_per_day;
+    seconds -= days * seconds_per_day;
+
+    int hours = seconds / seconds_per_hour;
+    seconds -= hours * seconds_per_hour;
+
+    int minutes = seconds / seconds_per_minute;
+    seconds -= minutes * seconds_per_minute;
+
+    int len = 0;
+    if (days > 0) {
+        len += sprintf(str + len, "%dd", days);
+    }
+    if (hours > 0) {
+        len += sprintf(str + len, "%s%dh", len ? " " : "", hours);
+    }
+    if (minutes > 0) {
+        len += sprintf(str + len, "%s%dm", len ? " " : "", minutes);
+    }
+    sprintf(str + len, "%s%gs", len ? " " : "", seconds);
 }

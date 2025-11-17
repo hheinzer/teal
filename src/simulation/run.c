@@ -67,6 +67,11 @@ scalar simulation_run(Simulation *sim)
         if (!isfinite(step0)) {
             error("invalid timestep at iter = %td", iter);
         }
+        for (number i = 0; i < len; i++) {
+            if (!isfinite(residual[i])) {
+                error("invalid residual at iter = %td", iter);
+            }
+        }
 
         iter += 1;
 
@@ -101,7 +106,9 @@ scalar simulation_run(Simulation *sim)
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
 
-    println("\t computation time : %g", wtime_end - wtime_beg);
+    char wtime[128];
+    seconds_to_str(wtime, wtime_end - wtime_beg);
+    println("\t computation time : %s", wtime);
 
     arena_load(save);
     return time;
