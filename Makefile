@@ -7,18 +7,23 @@ LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
 CONFIG ?= debug
 CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Isrc
 ifeq ($(CONFIG), debug)
-CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
+	CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
 endif
 ifeq ($(CONFIG), valgrind)
-CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
+	CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 endif
 ifneq (,$(filter $(CONFIG), release gprof))
-CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
+	CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
 endif
 ifeq ($(CONFIG), gprof)
-CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
+	CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
 endif
 CFLAGS += -DCONFIG=\"$(CONFIG)\"
+
+# gcc/tcc specific flags (silence bogous warnings)
+ifneq (,$(filter $(CC), gcc tcc))
+	CFLAGS += -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare
+endif
 
 # build info
 COMPILER := $(shell $(CC) --version | head -n1)
