@@ -1,7 +1,6 @@
 #include <math.h>
 #include <mpi.h>
 #include <signal.h>
-#include <stdint.h>
 
 #include "simulation.h"
 #include "teal/arena.h"
@@ -93,7 +92,7 @@ scalar simulation_run(Simulation *sim)
             if (isfinite(sim->time.output)) {
                 out_time = time + sim->time.output;
             }
-            if (sim->iter.output < PTRDIFF_MAX) {
+            if (sim->iter.output < NUMBER_MAX) {
                 out_iter = iter + sim->iter.output;
             }
             println("\t %13td %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);

@@ -1,5 +1,4 @@
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
 
 #include "simulation.h"
@@ -23,10 +22,10 @@ void simulation_summary(const Simulation *sim)
         println("\t output time      : %g", sim->time.output);
     }
 
-    if (sim->iter.max < PTRDIFF_MAX) {
+    if (sim->iter.max < NUMBER_MAX) {
         println("\t max iter         : %td", sim->iter.max);
     }
-    if (sim->iter.output < PTRDIFF_MAX) {
+    if (sim->iter.output < NUMBER_MAX) {
         println("\t output iter      : %td", sim->iter.output);
     }
 

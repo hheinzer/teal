@@ -1,6 +1,11 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "teal.h"
+
+#define NUMBER_MIN (sizeof(number) == sizeof(int32_t) ? INT32_MIN : INT64_MIN)
+#define NUMBER_MAX (sizeof(number) == sizeof(int32_t) ? INT32_MAX : INT64_MAX)
 
 #define unused(val) ((void)(val))
 

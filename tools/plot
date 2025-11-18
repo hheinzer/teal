@@ -1,26 +1,38 @@
 #!/bin/python
 
 from argparse import ArgumentParser, BooleanOptionalAction as Boolean
+from pathlib import Path
+import subprocess
+
 import h5py
+import matplotlib.pyplot as plt
+from mpi4py import MPI
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import pyvista as pv
-import matplotlib.pyplot as plt
 
-parser = ArgumentParser(description="Visualize an unstructured grid")
-parser.add_argument("fname", help="Input file")
-parser.add_argument("field", nargs="?", default=None, help="Field to plot")
-parser.add_argument("-l", "--list", action=Boolean, help="List all plottable fields")
-parser.add_argument("-p", "--points", action=Boolean, help="Interpolate to points")
-parser.add_argument("-x", "--explode", action=Boolean, help="Explode cells")
-parser.add_argument("-c", "--clip", action=Boolean, help="Add clip plane")
-parser.add_argument("-e", "--edges", action=Boolean, help="Show edges")
-parser.add_argument("--crinkle", action=Boolean, help="Crinkle clip")
-parser.add_argument("--line", action=Boolean, help="Plot over line")
-parser.add_argument("--cmap", default="coolwarm", help="Colormap")
-args = parser.parse_args()
+
+def parse_args():
+    parser = ArgumentParser(description="Visualize an unstructured grid")
+    parser.add_argument("fnames", nargs="+", help="Input file(s)")
+    parser.add_argument("-f", "--field", help="Field to plot")
+    parser.add_argument("-l", "--list", action=Boolean, help="List all plottable fields")
+    parser.add_argument("--points", action=Boolean, help="Interpolate to points")
+    parser.add_argument("--explode", action=Boolean, help="Explode cells")
+    parser.add_argument("--edges", action=Boolean, help="Show edges")
+    parser.add_argument("--clip", action=Boolean, help="Add clip plane")
+    parser.add_argument("--crinkle", action=Boolean, help="Crinkle clip")
+    parser.add_argument("--line", action=Boolean, help="Plot over line")
+    parser.add_argument("--vmin", type=float, help="Minimum field value")
+    parser.add_argument("--vmax", type=float, help="Maximum field value")
+    parser.add_argument("--cmap", default="coolwarm", help="Colormap")
+    return parser.parse_args()
 
 
 def read_mesh(fname):
+    if not fname.endswith("_mesh.h5"):
+        return pv.read(fname)
+
     with h5py.File(fname, "r") as file:
         coords = file["nodes/coord"][...]
         node_offs = file["cells/node/off"][...]
@@ -44,10 +56,27 @@ def read_mesh(fname):
     return mesh
 
 
-def show_line(mesh, field):
+def prepare_mesh(mesh, args):
+    mesh.set_active_scalars(args.field)
+
+    if args.points:
+        mesh = mesh.cell_data_to_point_data()
+
+    if args.explode:
+        mesh = mesh.explode()
+    else:
+        vol_types = np.array([10, 12, 13, 14], dtype=np.uint8)
+        keep = np.where(np.isin(mesh.celltypes, vol_types))[0]
+        mesh = mesh.extract_cells(keep).clean()
+
+    return mesh
+
+
+def plot_line(mesh, args, fname=None):
     xmin = mesh.points.min(axis=0)[0]
     xmax = mesh.points.max(axis=0)[0]
     mean = mesh.points.mean(axis=0)
+
     pointa = (xmin, mean[1], mean[2])
     pointb = (xmax, mean[1], mean[2])
     sample = mesh.sample_over_line(pointa, pointb, resolution=1000)
@@ -55,71 +84,161 @@ def show_line(mesh, field):
     fig, ax = plt.subplots()
 
     for name in sample.array_names:
-        if field in name:
-            zorder = 1 if "exact" in name else 2
-            if sample[name].ndim == 1:
-                ax.plot(sample.points[:, 0], sample[name], label=name, zorder=zorder)
-            elif sample[name].ndim == 2:
-                if sample[name].shape[1] == 3:
-                    for i, dim in enumerate([" x", " y", " z"]):
-                        ax.plot(
-                            sample.points[:, 0], sample[name][:, i], label=name + dim, zorder=zorder
-                        )
-                elif sample[name].shape[1] == 9:
-                    for i, dim in enumerate(
-                        [" xx", " xy", " xz", " yx", " yy", " yz", " zx", " zy", " zz"]
-                    ):
-                        ax.plot(
-                            sample.points[:, 0], sample[name][:, i], label=name + dim, zorder=zorder
-                        )
-            else:
-                norm = np.linalg.norm(sample[name], axis=-1)
-                ax.plot(sample.points[:, 0], norm, label=name + " norm", zorder=zorder)
+        if args.field not in name:
+            continue
+
+        zorder = 1 if "exact" in name else 2
+        data = sample[name]
+
+        if data.ndim == 1:
+            ax.plot(sample.points[:, 0], data, label=name, zorder=zorder)
+        elif data.ndim == 2:
+            if data.shape[1] == 3:
+                for i, dim in enumerate([" x", " y", " z"]):
+                    ax.plot(sample.points[:, 0], data[:, i], label=name + dim, zorder=zorder)
+            elif data.shape[1] == 9:
+                for i, dim in enumerate(
+                    [" xx", " xy", " xz", " yx", " yy", " yz", " zx", " zy", " zz"]
+                ):
+                    ax.plot(sample.points[:, 0], data[:, i], label=name + dim, zorder=zorder)
+        else:
+            norm = np.linalg.norm(data, axis=-1)
+            ax.plot(sample.points[:, 0], norm, label=name + " norm", zorder=zorder)
+
+    ax.set_ylim(args.vmin, args.vmax)
 
     ax.legend()
     ax.set_xlabel("x-axis")
-    ax.set_ylabel(field)
+    ax.set_ylabel(args.field)
 
     fig.tight_layout()
-    plt.show()
+    if fname is None:
+        plt.show()
+    else:
+        fname = Path(fname).with_suffix(".png")
+        fig.savefig(fname, dpi=600, bbox_inches="tight")
+        plt.close()
 
 
-def show_field(mesh):
-    pvp = pv.Plotter(lighting="three lights")
+def save_screenshot(img, bounds, vmin, vmax, args, fname):
+    fig, ax = plt.subplots()
+
+    xmin, xmax, ymin, ymax, _, _ = bounds
+    im = ax.imshow(
+        img,
+        cmap=args.cmap,
+        extent=(xmin, xmax, ymin, ymax),
+        vmin=vmin,
+        vmax=vmax,
+        interpolation="none",
+    )
+
+    div = make_axes_locatable(ax)
+    cax = div.append_axes("right", size=0.15, pad=0.1)
+    cb = plt.colorbar(im, cax=cax)
+    cb.set_label(args.field)
+
+    ax.set_xlabel("x-axis")
+    ax.set_ylabel("y-axis")
+
+    fig.tight_layout()
+    fname = Path(fname).with_suffix(".png")
+    fig.savefig(fname, dpi=600, bbox_inches="tight")
+    plt.close()
+
+
+def plot_field(mesh, args, fname=None):
+    if fname is None:
+        plotter = pv.Plotter(lighting="three lights")
+    else:
+        plotter = pv.Plotter(lighting="three lights", off_screen=True, window_size=[4000, 4000])
 
     if args.explode:
-        mesh = mesh.explode()
-        pvp.disable_ssao()
-    else:
-        vol_types = np.array([10, 12, 13, 14], dtype=np.uint8)
-        keep = np.where(np.isin(mesh.celltypes, vol_types))[0]
-        mesh = mesh.extract_cells(keep).clean()
+        plotter.disable_ssao()
 
+    vmin, vmax = mesh.get_data_range()
+    if args.vmin is not None:
+        vmin = args.vmin
+    if args.vmax is not None:
+        vmax = args.vmax
+
+    kwargs = dict(
+        show_edges=args.edges,
+        clim=(vmin, vmax),
+        cmap=args.cmap,
+        show_scalar_bar=fname is None,
+    )
     if args.clip:
-        pvp.add_mesh_clip_plane(mesh, show_edges=args.edges, crinkle=args.crinkle, cmap=args.cmap)
+        plotter.add_mesh_clip_plane(mesh, crinkle=args.crinkle, **kwargs)
     else:
-        pvp.add_mesh(mesh, show_edges=args.edges, cmap=args.cmap)
+        plotter.add_mesh(mesh, **kwargs)
 
-    pvp.show_bounds(xtitle="x-axis", ytitle="y-axis", ztitle="z-axis")
-    pvp.view_xy()
-    pvp.show()
+    plotter.view_xy()
+    if fname is None:
+        plotter.show_bounds(xtitle="x-axis", ytitle="y-axis", ztitle="z-axis")
+        plotter.show()
+    else:
+        plotter.camera.tight()
+        img = plotter.screenshot(None, transparent_background=True, return_img=True)
+        plotter.close()
+        save_screenshot(img, mesh.bounds, vmin, vmax, args, fname)
+
+
+def make_video(args):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    for fname in args.fnames[rank::size]:
+        mesh = read_mesh(fname)
+        mesh = prepare_mesh(mesh, args)
+        if args.line and args.field:
+            plot_line(mesh, args, fname)
+        else:
+            plot_field(mesh, args, fname)
+        print(rank, fname)
+
+    comm.Barrier()
+    if rank == 0:
+        prefix = "_".join(args.fnames[0].split("_")[:-1])
+        command = [
+            "ffmpeg",
+            "-y",
+            "-framerate",
+            "20",
+            "-i",
+            f"{prefix}_%05d.png",
+            "-pix_fmt",
+            "yuv420p",
+            "-vf",
+            "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+            "-r",
+            "60",
+            f"{prefix}_{args.field}.mp4",
+        ]
+        subprocess.run(command)
 
 
 def main():
-    mesh = read_mesh(args.fname) if "_mesh.h5" in args.fname else pv.read(args.fname)
-    mesh.set_active_scalars(args.field)
+    args = parse_args()
+    fnames = args.fnames
 
     if args.list:
+        mesh = read_mesh(fnames[0])
         print("\n".join(mesh.array_names))
         return
 
-    if args.points:
-        mesh = mesh.cell_data_to_point_data()
+    if len(fnames) == 1:
+        mesh = read_mesh(fnames[0])
+        mesh = prepare_mesh(mesh, args)
+        if args.line and args.field:
+            plot_line(mesh, args)
+        else:
+            plot_field(mesh, args)
+        return
 
-    if args.line and args.field:
-        show_line(mesh, args.field)
-    else:
-        show_field(mesh)
+    if args.field:
+        make_video(args)
 
 
 if __name__ == "__main__":

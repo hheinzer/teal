@@ -80,7 +80,7 @@ $(STAMP):
 
 # suffix rules
 .SUFFIXES:
-obj/%.o: src/%.c $(STAMP)
+obj/%.o: src/%.c $(STAMP) Makefile
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) -c $< -o $@
 

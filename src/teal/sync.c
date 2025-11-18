@@ -128,23 +128,27 @@ scalar sync_fnorm(const scalar *arr, number num)
     return sqrt(sync_fdot(arr, arr, num));
 }
 
-MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_, number num,
-                               number stride, int tag)
+MPI_Request *sync_irecv(const number *rank, const number *off, void *arr_, number num,
+                        number stride, MPI_Datatype type, int tag)
 {
-    scalar(*arr)[stride] = arr_;
+    int size;
+    MPI_Type_size(type, &size);
+    char (*arr)[stride * size] = arr_;
     MPI_Request *req = arena_malloc(num, sizeof(*req));
     for (number i = 0; i < num; i++) {
         number count = (off[i + 1] - off[i]) * stride;
-        MPI_Irecv(arr[off[i]], count, MPI_SCALAR, rank[i], tag, sync.comm, &req[i]);
+        MPI_Irecv(arr[off[i]], count, type, rank[i], tag, sync.comm, &req[i]);
     }
     return req;
 }
 
-MPI_Request *sync_isend_scalar(const number *rank, const number *off, const number *idx,
-                               const void *arr_, number num, number stride, int tag)
+MPI_Request *sync_isend(const number *rank, const number *off, const number *idx, const void *arr_,
+                        number num, number stride, MPI_Datatype type, int tag)
 {
-    const scalar(*arr)[stride] = arr_;
-    scalar(*buf)[stride] = arena_malloc(off[num], sizeof(*buf));
+    int size;
+    MPI_Type_size(type, &size);
+    const char (*arr)[stride * size] = arr_;
+    char (*buf)[stride * size] = arena_malloc(off[num], sizeof(*buf));
     for (number i = 0; i < num; i++) {
         for (number j = off[i]; j < off[i + 1]; j++) {
             memcpy(buf[j], arr[idx[j]], sizeof(*arr));
@@ -153,21 +157,9 @@ MPI_Request *sync_isend_scalar(const number *rank, const number *off, const numb
     MPI_Request *req = arena_malloc(num, sizeof(*req));
     for (number i = 0; i < num; i++) {
         number count = (off[i + 1] - off[i]) * stride;
-        MPI_Isend(buf[off[i]], count, MPI_SCALAR, rank[i], tag, sync.comm, &req[i]);
+        MPI_Isend(buf[off[i]], count, type, rank[i], tag, sync.comm, &req[i]);
     }
     return req;
-}
-
-MPI_Request *sync_irecv_vector(const number *rank, const number *off, void *arr_, number num,
-                               number stride, int tag)
-{
-    return sync_irecv_scalar(rank, off, arr_, num, stride * 3, tag);
-}
-
-MPI_Request *sync_isend_vector(const number *rank, const number *off, const number *idx,
-                               const void *arr_, number num, number stride, int tag)
-{
-    return sync_isend_scalar(rank, off, idx, arr_, num, stride * 3, tag);
 }
 
 void sync_finalize(void)

@@ -1,9 +1,9 @@
 #include <math.h>
-#include <stdint.h>
 
 #include "simulation.h"
 #include "teal/arena.h"
 #include "teal/assert.h"
+#include "teal/utils.h"
 
 Simulation *simulation_create(const Equations *eqns, const char *prefix)
 {
@@ -18,8 +18,8 @@ Simulation *simulation_create(const Equations *eqns, const char *prefix)
     sim->time.max = INFINITY;
     sim->time.output = INFINITY;
 
-    sim->iter.max = PTRDIFF_MAX;
-    sim->iter.output = PTRDIFF_MAX;
+    sim->iter.max = NUMBER_MAX;
+    sim->iter.output = NUMBER_MAX;
 
     RungeKutta ctx = {
         .time_order = eqns->space_order,

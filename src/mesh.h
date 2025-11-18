@@ -34,8 +34,6 @@
  */
 #pragma once
 
-#include <stdio.h>
-
 #include "teal.h"
 
 enum { MAX_CELL_NODES = 8 };

@@ -1,7 +1,6 @@
 #include "array.h"
 
 #include <math.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #include "assert.h"
@@ -10,7 +9,7 @@
 number array_lmin(const number *arr, number num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    number min = PTRDIFF_MAX;
+    number min = NUMBER_MAX;
     for (number i = 0; i < num; i++) {
         min = lmin(min, arr[i]);
     }
@@ -20,7 +19,7 @@ number array_lmin(const number *arr, number num)
 number array_lmax(const number *arr, number num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    number max = PTRDIFF_MIN;
+    number max = NUMBER_MIN;
     for (number i = 0; i < num; i++) {
         max = lmax(max, arr[i]);
     }

@@ -42,14 +42,9 @@ number sync_lexsum(number val);
 scalar sync_fdot(const scalar *lhs, const scalar *rhs, number num);
 scalar sync_fnorm(const scalar *arr, number num);
 
-MPI_Request *sync_irecv_scalar(const number *rank, const number *off, void *arr_, number num,
-                               number stride, int tag);
-MPI_Request *sync_isend_scalar(const number *rank, const number *off, const number *idx,
-                               const void *arr_, number num, number stride, int tag);
-
-MPI_Request *sync_irecv_vector(const number *rank, const number *off, void *arr_, number num,
-                               number stride, int tag);
-MPI_Request *sync_isend_vector(const number *rank, const number *off, const number *idx,
-                               const void *arr_, number num, number stride, int tag);
+MPI_Request *sync_irecv(const number *rank, const number *off, void *arr_, number num,
+                        number stride, MPI_Datatype type, int tag);
+MPI_Request *sync_isend(const number *rank, const number *off, const number *idx, const void *arr_,
+                        number num, number stride, MPI_Datatype type, int tag);
 
 void sync_finalize(void);
