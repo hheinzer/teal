@@ -640,7 +640,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         int left = faces->cell[i].left;
         int right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = pow2(1 / vector_norm(delta));
+        scalar theta2 = sq(1 / vector_norm(delta));
         r11[left] += theta2 * delta.x * delta.x;
         r12[left] += theta2 * delta.x * delta.y;
         r22[left] += theta2 * delta.y * delta.y;
@@ -659,10 +659,10 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
     for (int i = 0; i < cells->num_inner; i++) {
         r11[i] = sqrt(r11[i]);
         r12[i] = r12[i] / r11[i];
-        r22[i] = sqrt(r22[i] - pow2(r12[i]));
+        r22[i] = sqrt(r22[i] - sq(r12[i]));
         r13[i] = r13[i] / r11[i];
         r23[i] = (r23[i] - r12[i] * r13[i]) / r22[i];
-        r33[i] = sqrt(r33[i] - (pow2(r13[i]) + pow2(r23[i])));
+        r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i])));
     }
 
     vector *weight = arena_calloc(faces->num, sizeof(*weight));
@@ -670,12 +670,12 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         int left = faces->cell[i].left;
         int right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = pow2(1 / vector_norm(delta));
+        scalar theta2 = sq(1 / vector_norm(delta));
         scalar beta = (r12[left] * r23[left] - r13[left] * r22[left]) / (r11[left] * r22[left]);
         vector alpha;
-        alpha.x = delta.x / pow2(r11[left]);
-        alpha.y = (delta.y - r12[left] / r11[left] * delta.x) / pow2(r22[left]);
-        alpha.z = (delta.z - r23[left] / r22[left] * delta.y + beta * delta.x) / pow2(r33[left]);
+        alpha.x = delta.x / sq(r11[left]);
+        alpha.y = (delta.y - r12[left] / r11[left] * delta.x) / sq(r22[left]);
+        alpha.z = (delta.z - r23[left] / r22[left] * delta.y + beta * delta.x) / sq(r33[left]);
         if (!isclose(cells->center[left].x, cells->center[right].x)) {
             weight[i].x += alpha.x;
         }

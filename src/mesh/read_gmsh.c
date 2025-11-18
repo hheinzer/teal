@@ -235,9 +235,9 @@ static int read_node_block(NodeBlock *block, int beg, int end, int off, ParseMod
     parse(mode, SIZE, &block->num_nodes, 1, swap, file);
 
     int tot_nodes = parse_data_to_int(SIZE, &block->num_nodes, 0);
-    int beg_nodes = lmax(beg, off);
-    int end_nodes = lmin(end, off + tot_nodes);
-    int num_nodes = lmax(0, end_nodes - beg_nodes);
+    int beg_nodes = max(beg, off);
+    int end_nodes = min(end, off + tot_nodes);
+    int num_nodes = max(0, end_nodes - beg_nodes);
     assert(tot_nodes == sync_lsum(num_nodes));
 
     switch (SIZE) {
@@ -335,9 +335,9 @@ static int read_element_block(ElementBlock *block, int beg, int end, int off, Pa
     parse(mode, SIZE, &block->num_elements, 1, swap, file);
 
     int tot_elements = parse_data_to_int(SIZE, &block->num_elements, 0);
-    int beg_elements = lmax(beg, off);
-    int end_elements = lmin(end, off + tot_elements);
-    int num_elements = lmax(0, end_elements - beg_elements);
+    int beg_elements = max(beg, off);
+    int end_elements = min(end, off + tot_elements);
+    int num_elements = max(0, end_elements - beg_elements);
     assert(tot_elements == sync_lsum(num_elements));
 
     int len = num_node_tags(block->element_type);

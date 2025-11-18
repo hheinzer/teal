@@ -10,26 +10,6 @@
 #include "option.h"
 #include "sync.h"
 
-scalar pow2(scalar val)
-{
-    return val * val;
-}
-
-scalar pow3(scalar val)
-{
-    return val * val * val;
-}
-
-int lmin(int lhs, int rhs)
-{
-    return (lhs < rhs) ? lhs : rhs;
-}
-
-int lmax(int lhs, int rhs)
-{
-    return (lhs > rhs) ? lhs : rhs;
-}
-
 bool isclose(scalar lhs, scalar rhs)
 {
     if (lhs == rhs) {

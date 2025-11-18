@@ -21,7 +21,7 @@ void equations_residual(const Equations *eqns, const void *derivative_, void *re
     memset(residual, 0, len * sizeof(*residual));
     for (int i = 0; i < num; i++) {
         for (int j = 0; j < len; j++) {
-            residual[j] += volume[i] * pow2(derivative[i][j]);
+            residual[j] += volume[i] * sq(derivative[i][j]);
         }
     }
     for (int i = 0; i < len; i++) {

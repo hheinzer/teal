@@ -12,7 +12,7 @@
 /* Factor `sync.size` into a Cartesian grid, biased by global cell counts to balance work. */
 static void compute_dims(tuple num_cells, int ndims, int *dims)
 {
-    int cells[3] = {lmax(1, num_cells.x), lmax(1, num_cells.y), lmax(1, num_cells.z)};
+    int cells[3] = {max(1, num_cells.x), max(1, num_cells.y), max(1, num_cells.z)};
     dims[0] = dims[1] = dims[2] = 1;
 
     // sort axes by descending global cell count (try larger cuts first)
@@ -67,7 +67,7 @@ static void split_bounds(scalar *min_coord, scalar *max_coord, int *num_cells, i
         scalar width = (*max_coord - *min_coord) / *num_cells;
         int base = *num_cells / dims[dim];
         int extra = *num_cells % dims[dim];
-        int offset = (coords[dim] * base) + lmin(coords[dim], extra);
+        int offset = (coords[dim] * base) + min(coords[dim], extra);
         *num_cells = base + (coords[dim] < extra);
         *min_coord = offset * width;
         *max_coord = *min_coord + (*num_cells * width);
@@ -334,7 +334,7 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
 {
     Arena save = arena_save();
 
-    int num = lmax(nodes->num, cells->num);
+    int num = max(nodes->num, cells->num);
     int *map = arena_malloc(num, sizeof(*map));
 
     compute_node_map(nodes, num_nodes, coords, map);
@@ -445,7 +445,7 @@ static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, t
 
 Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, flags periodic)
 {
-    assert(sync.size <= lmax(1, num_cells.x) * lmax(1, num_cells.y) * lmax(1, num_cells.z));
+    assert(sync.size <= max(1, num_cells.x) * max(1, num_cells.y) * max(1, num_cells.z));
 
     Mesh *mesh = arena_calloc(1, sizeof(*mesh));
 

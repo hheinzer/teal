@@ -30,7 +30,7 @@ void *equations_norm(const Equations *eqns, scalar time)
         compute(user, property, center[i], time, variable[i]);
         conserved(user, property);
         for (int j = 0; j < stride; j++) {
-            norm[j] += volume[i] * pow2(user[j] - variable[i][j]);
+            norm[j] += volume[i] * sq(user[j] - variable[i][j]);
         }
     }
     for (int i = 0; i < stride; i++) {

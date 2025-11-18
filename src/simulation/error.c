@@ -16,7 +16,7 @@ void *simulation_error(const Simulation *sim, scalar time)
 
     int len = 0;
     for (int i = 0; i < num; i++) {
-        len = lmax(len, strlen(name[i]));
+        len = max(len, (int)strlen(name[i]));
     }
 
     println("Simulation error");

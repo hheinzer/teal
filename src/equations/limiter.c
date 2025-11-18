@@ -33,8 +33,8 @@ scalar venkatakrishnan(vector gradient, scalar variable, scalar minimum, scalar 
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
-        scalar delta12 = pow2(delta1);
-        scalar delta22 = pow2(delta2);
+        scalar delta12 = sq(delta1);
+        scalar delta22 = sq(delta2);
         scalar numerator = ((delta12 + parameter) * delta2) + (2 * delta22 * delta1);
         scalar denominator = delta12 + (2 * delta22) + (delta1 * delta2) + parameter;
         psi = fmin(psi, numerator / denominator / delta2);
@@ -49,7 +49,7 @@ scalar *venkatakrishnan_parameter(const Equations *eqns, scalar parameter)
     scalar *volume = eqns->mesh->cells.volume;
     scalar *eps2 = arena_malloc(num, sizeof(*eps2));
     for (int i = 0; i < num; i++) {
-        eps2[i] = pow3(parameter * cbrt(volume[i]));
+        eps2[i] = cb(parameter * cbrt(volume[i]));
     }
     return eps2;
 }

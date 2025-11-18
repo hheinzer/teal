@@ -1106,7 +1106,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         for (int i = 0; i < cap; i++) {
             int key = node[i].old;
             if (key != -1 && bsearch(&key, global, num, sizeof(*global), cmp_int)) {
-                node[i].rank = lmin(node[i].rank, sync.rank);
+                node[i].rank = min(node[i].rank, sync.rank);
             }
         }
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);

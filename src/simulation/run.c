@@ -83,7 +83,7 @@ scalar simulation_run(Simulation *sim)
             has_converged = (max_residual < term_residual);
         }
 
-        if (time >= fmin(max_time, out_time) || iter >= lmin(max_iter, out_iter) || has_converged ||
+        if (time >= fmin(max_time, out_time) || iter >= min(max_iter, out_iter) || has_converged ||
             sig_terminate) {
             scalar wtime_now = MPI_Wtime();
             scalar wtime = wtime_now - wtime_last;

@@ -148,7 +148,7 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     Euler inner = global_to_local(inner_, basis);
     *ghost = global_to_local(reference_, basis);
 
-    scalar velocity2_i = pow2(inner.velocity.x) + pow2(inner.velocity.y) + pow2(inner.velocity.z);
+    scalar velocity2_i = sq(inner.velocity.x) + sq(inner.velocity.y) + sq(inner.velocity.z);
 
     scalar speed_of_sound2_i = gamma * inner.pressure / inner.density;
     scalar speed_of_sound_i = sqrt(speed_of_sound2_i);

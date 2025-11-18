@@ -104,7 +104,7 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
             hess[i][iter] = tmp;
         }
 
-        scalar rot = sqrt(pow2(hess[iter][iter]) + pow2(hess[iter + 1][iter]));
+        scalar rot = sqrt(sq(hess[iter][iter]) + sq(hess[iter + 1][iter]));
         cosine[iter] = hess[iter][iter] / rot;
         sine[iter] = hess[iter + 1][iter] / rot;
         hess[iter][iter] = rot;
