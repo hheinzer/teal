@@ -9,9 +9,9 @@
 #include "utils.h"
 #include "vector.h"
 
-#define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
+#define NON_NULL ((void *)(int)1)  // NOLINT(performance-no-int-to-ptr)
 
-Kdtree *kdtree_create(number size_val)
+Kdtree *kdtree_create(int size_val)
 {
     assert(size_val >= 0);
     Kdtree *tree = arena_calloc(1, sizeof(*tree));
@@ -20,7 +20,7 @@ Kdtree *kdtree_create(number size_val)
     return tree;
 }
 
-static int veccmp(vector lhs, vector rhs, number depth)
+static int veccmp(vector lhs, vector rhs, int depth)
 {
     switch (depth % 3) {
         case 0: return isclose(lhs.x, rhs.x) ? 0 : cmp_asc(lhs.x, rhs.x);
@@ -30,13 +30,14 @@ static int veccmp(vector lhs, vector rhs, number depth)
     }
 }
 
-static int keycmp(vector lhs, vector rhs, number depth)
+static int keycmp(vector lhs, vector rhs, int depth)
 {
     int cmp = veccmp(lhs, rhs, depth);
     if (cmp) {
         return cmp;
     }
-    if ((cmp = veccmp(lhs, rhs, depth + 1))) {
+    cmp = veccmp(lhs, rhs, depth + 1);
+    if (cmp) {
         return cmp;
     }
     return veccmp(lhs, rhs, depth + 2);
@@ -47,7 +48,7 @@ void *kdtree_insert(Kdtree *self, vector key, const void *val)
     assert(self && (val || self->size_val == 0));
 
     KdtreeItem **item = &self->beg;
-    number depth = 0;
+    int depth = 0;
     while (*item) {
         int cmp = keycmp(key, (*item)->key, depth);
         if (!cmp) {
@@ -72,7 +73,7 @@ void *kdtree_lookup(const Kdtree *self, vector key)
 {
     assert(self);
     KdtreeItem *item = self->beg;
-    number depth = 0;
+    int depth = 0;
     while (item) {
         int cmp = keycmp(key, item->key, depth);
         if (!cmp) {
@@ -91,18 +92,18 @@ static scalar squared_distance(vector lhs, vector rhs)
 }
 
 static void heap_replace(const void *item_val, scalar item_metric, void *val_, scalar *metric,
-                         number num, number size)
+                         int num, int size)
 {
     char (*val)[size] = val_;
 
     memcpy(val[0], item_val, size);
     metric[0] = item_metric;
 
-    number idx = 0;
-    number left = 1;
+    int idx = 0;
+    int left = 1;
     while (left < num) {
-        number right = left + 1;
-        number max = idx;
+        int right = left + 1;
+        int max = idx;
         if (metric[left] > metric[max]) {
             max = left;
         }
@@ -121,7 +122,7 @@ static void heap_replace(const void *item_val, scalar item_metric, void *val_, s
     }
 }
 
-static scalar delta(vector lhs, vector rhs, number depth)
+static scalar delta(vector lhs, vector rhs, int depth)
 {
     switch (depth % 3) {
         case 0: return lhs.x - rhs.x;
@@ -133,21 +134,21 @@ static scalar delta(vector lhs, vector rhs, number depth)
 
 typedef struct {
     KdtreeItem *item;
-    number depth;
+    int depth;
 } Stack;
 
-void kdtree_nearest(const Kdtree *self, vector key, void *val, number num)
+void kdtree_nearest(const Kdtree *self, vector key, void *val, int num)
 {
     assert(self && self->beg && self->size_val > 0 && val && 0 < num && num <= self->num);
     Arena save = arena_save();
 
     scalar *metric = arena_malloc(num, sizeof(*metric));
-    for (number i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         metric[i] = INFINITY;
     }
 
     Stack *stack = arena_malloc(self->num, sizeof(*stack));
-    number top = 0;
+    int top = 0;
 
     stack[top++] = (Stack){self->beg, 0};
     while (top) {
@@ -174,17 +175,17 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, number num)
     arena_load(save);
 }
 
-number kdtree_radius(const Kdtree *self, vector key, void *val_, number cap, scalar radius)
+int kdtree_radius(const Kdtree *self, vector key, void *val_, int cap, scalar radius)
 {
     assert(self && self->beg && self->size_val > 0 && val_ && 0 < cap && radius >= 0);
     Arena save = arena_save();
 
     char (*val)[self->size_val] = val_;
     scalar metric = pow2(radius);
-    number num = 0;
+    int num = 0;
 
     Stack *stack = arena_malloc(self->num, sizeof(*stack));
-    number top = 0;
+    int top = 0;
 
     stack[top++] = (Stack){self->beg, 0};
     while (top && num < cap) {

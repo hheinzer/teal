@@ -7,24 +7,24 @@ void *equations_gradient(const Equations *eqns, void *variable_)
 {
     assert(eqns && variable_);
 
-    number num = eqns->mesh->cells.num;
+    int num = eqns->mesh->cells.num;
 
-    number num_faces = eqns->mesh->faces.num;
-    number num_inner = eqns->mesh->faces.num_inner;
-    number off_ghost = eqns->mesh->faces.off_ghost;
+    int num_faces = eqns->mesh->faces.num;
+    int num_inner = eqns->mesh->faces.num_inner;
+    int off_ghost = eqns->mesh->faces.off_ghost;
     Adjacent *cell = eqns->mesh->faces.cell;
     vector *weight = eqns->mesh->faces.weight;
 
-    number stride = eqns->variables.stride;
+    int stride = eqns->variables.stride;
     scalar(*variable)[stride] = variable_;
     vector(*gradient)[stride] = arena_calloc(num, sizeof(*gradient));
 
     Request req = sync_variables(eqns, variable, stride);
 
-    for (number i = 0; i < num_inner; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
-        for (number j = 0; j < stride; j++) {
+    for (int i = 0; i < num_inner; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
+        for (int j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
             gradient[left][j].x += diff * weight[i].x;
             gradient[left][j].y += diff * weight[i].y;
@@ -34,10 +34,10 @@ void *equations_gradient(const Equations *eqns, void *variable_)
             gradient[right][j].z += diff * weight[i].z;
         }
     }
-    for (number i = num_inner; i < off_ghost; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
-        for (number j = 0; j < stride; j++) {
+    for (int i = num_inner; i < off_ghost; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
+        for (int j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
             gradient[left][j].x += diff * weight[i].x;
             gradient[left][j].y += diff * weight[i].y;
@@ -47,10 +47,10 @@ void *equations_gradient(const Equations *eqns, void *variable_)
 
     sync_wait(eqns, req.recv);
 
-    for (number i = off_ghost; i < num_faces; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
-        for (number j = 0; j < stride; j++) {
+    for (int i = off_ghost; i < num_faces; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
+        for (int j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
             gradient[left][j].x += diff * weight[i].x;
             gradient[left][j].y += diff * weight[i].y;

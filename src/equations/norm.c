@@ -12,12 +12,12 @@ void *equations_norm(const Equations *eqns, scalar time)
 
     Arena save = arena_save();
 
-    number num = eqns->mesh->cells.num_inner;
+    int num = eqns->mesh->cells.num_inner;
     vector *center = eqns->mesh->cells.center;
     scalar *volume = eqns->mesh->cells.volume;
     scalar sum_volume = eqns->mesh->cells.sum_volume;
 
-    number stride = eqns->variables.stride;
+    int stride = eqns->variables.stride;
     scalar(*variable)[stride] = eqns->variables.data;
     scalar *property = eqns->properties.data;
     Compute *compute = eqns->user.compute;
@@ -26,14 +26,14 @@ void *equations_norm(const Equations *eqns, scalar time)
     scalar *norm = arena_calloc(stride, sizeof(*norm));
     scalar *user = arena_calloc(stride, sizeof(*user));
 
-    for (number i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         compute(user, property, center[i], time, variable[i]);
         conserved(user, property);
-        for (number j = 0; j < stride; j++) {
+        for (int j = 0; j < stride; j++) {
             norm[j] += volume[i] * pow2(user[j] - variable[i][j]);
         }
     }
-    for (number i = 0; i < stride; i++) {
+    for (int i = 0; i < stride; i++) {
         norm[i] = sqrt(sync_fsum(norm[i]) / sum_volume);
     }
 

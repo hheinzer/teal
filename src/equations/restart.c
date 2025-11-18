@@ -2,7 +2,7 @@
 #include "teal/assert.h"
 #include "teal/option.h"
 
-void equations_restart(const Equations *eqns, scalar *time, number *index)
+void equations_restart(const Equations *eqns, scalar *time, int *index)
 {
     assert(eqns && time && index);
     if (!option.restart) {

@@ -14,7 +14,7 @@ void teal_finalize(void)
     size_to_str(min, sync_lmin(arena_size()));
 
     char max[128];
-    size_to_str(max, sync_lmax(arena_size_max()));
+    size_to_str(max, sync_lmax(arena_size()));
 
     char sum[128];
     size_to_str(sum, sync_lsum(arena_size()));

@@ -11,15 +11,15 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
 {
     Arena save = arena_save();
 
-    number num_faces = eqns->mesh->faces.num;
-    number num_inner = eqns->mesh->faces.num_inner;
-    number off_ghost = eqns->mesh->faces.off_ghost;
+    int num_faces = eqns->mesh->faces.num;
+    int num_inner = eqns->mesh->faces.num_inner;
+    int off_ghost = eqns->mesh->faces.off_ghost;
     Adjacent *cell = eqns->mesh->faces.cell;
     scalar *area = eqns->mesh->faces.area;
     matrix *basis = eqns->mesh->faces.basis;
 
-    number len = eqns->variables.len;
-    number stride = eqns->variables.stride;
+    int len = eqns->variables.len;
+    int stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
     Convective *convective = eqns->convective.flux;
 
@@ -29,31 +29,31 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
 
     Request req = sync_variables(eqns, variable, stride);
 
-    for (number i = 0; i < num_inner; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
+    for (int i = 0; i < num_inner; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
         convective(flux, variable[left], variable[right], property, &basis[i]);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
             derivative[right][j] -= flux[j] * area[i];
         }
     }
-    for (number i = num_inner; i < off_ghost; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
+    for (int i = num_inner; i < off_ghost; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
         convective(flux, variable[left], variable[right], property, &basis[i]);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
         }
     }
 
     sync_wait(eqns, req.recv);
 
-    for (number i = off_ghost; i < num_faces; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
+    for (int i = off_ghost; i < num_faces; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
         convective(flux, variable[left], variable[right], property, &basis[i]);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
         }
     }
@@ -64,9 +64,9 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
 }
 
 static void reconstruct(scalar *variable_k, const scalar *variable, const vector *gradient,
-                        const vector *offset, number stride)
+                        const vector *offset, int stride)
 {
-    for (number i = 0; i < stride; i++) {
+    for (int i = 0; i < stride; i++) {
         variable_k[i] = variable[i] + ((gradient[i].x * offset->x) + (gradient[i].y * offset->y) +
                                        (gradient[i].z * offset->z));
     }
@@ -77,16 +77,16 @@ static void integrate_reconstructed_convective_flux(const Equations *eqns, void 
 {
     Arena save = arena_save();
 
-    number num_faces = eqns->mesh->faces.num;
-    number num_inner = eqns->mesh->faces.num_inner;
-    number off_ghost = eqns->mesh->faces.off_ghost;
+    int num_faces = eqns->mesh->faces.num;
+    int num_inner = eqns->mesh->faces.num_inner;
+    int off_ghost = eqns->mesh->faces.off_ghost;
     Adjacent *cell = eqns->mesh->faces.cell;
     scalar *area = eqns->mesh->faces.area;
     matrix *basis = eqns->mesh->faces.basis;
     Offset *offset = eqns->mesh->faces.offset;
 
-    number len = eqns->variables.len;
-    number stride = eqns->variables.stride;
+    int len = eqns->variables.len;
+    int stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
     Convective *convective = eqns->convective.flux;
 
@@ -99,36 +99,36 @@ static void integrate_reconstructed_convective_flux(const Equations *eqns, void 
 
     Request req = sync_gradients(eqns, gradient, stride);
 
-    for (number i = 0; i < num_inner; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
+    for (int i = 0; i < num_inner; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
         reconstruct(variable_l, variable[left], gradient[left], &offset[i].left, stride);
         reconstruct(variable_r, variable[right], gradient[right], &offset[i].right, stride);
         convective(flux, variable_l, variable_r, property, &basis[i]);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
             derivative[right][j] -= flux[j] * area[i];
         }
     }
-    for (number i = num_inner; i < off_ghost; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
+    for (int i = num_inner; i < off_ghost; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
         reconstruct(variable_l, variable[left], gradient[left], &offset[i].left, stride);
         convective(flux, variable_l, variable[right], property, &basis[i]);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
         }
     }
 
     sync_wait(eqns, req.recv);
 
-    for (number i = off_ghost; i < num_faces; i++) {
-        number left = cell[i].left;
-        number right = cell[i].right;
+    for (int i = off_ghost; i < num_faces; i++) {
+        int left = cell[i].left;
+        int right = cell[i].right;
         reconstruct(variable_l, variable[left], gradient[left], &offset[i].left, stride);
         reconstruct(variable_r, variable[right], gradient[right], &offset[i].right, stride);
         convective(flux, variable_l, variable_r, property, &basis[i]);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[left][j] += flux[j] * area[i];
         }
     }
@@ -142,11 +142,11 @@ static void evaluate_source(const Equations *eqns, void *variable_, void *deriva
 {
     Arena save = arena_save();
 
-    number num = eqns->mesh->cells.num_inner;
+    int num = eqns->mesh->cells.num_inner;
     vector *center = eqns->mesh->cells.center;
 
-    number len = eqns->variables.len;
-    number stride = eqns->variables.stride;
+    int len = eqns->variables.len;
+    int stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
     Source *compute = eqns->source;
 
@@ -154,9 +154,9 @@ static void evaluate_source(const Equations *eqns, void *variable_, void *deriva
     scalar(*derivative)[len] = derivative_;
     scalar *source = arena_malloc(len, sizeof(*source));
 
-    for (number i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         compute(source, variable[i], property, center[i], time);
-        for (number j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             derivative[i][j] += source[j];
         }
     }
@@ -168,8 +168,8 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
 {
     assert(eqns && variable_ && isfinite(time) && time >= 0);
 
-    number num = eqns->mesh->cells.num_inner;
-    number len = eqns->variables.len;
+    int num = eqns->mesh->cells.num_inner;
+    int len = eqns->variables.len;
 
     scalar(*derivative)[len] = derivative_;
     if (!derivative) {
@@ -199,12 +199,12 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
             }
             break;
         }
-        default: error("invalid space order -- '%td'", eqns->space_order);
+        default: error("invalid space order -- '%d'", eqns->space_order);
     }
 
     scalar *volume = eqns->mesh->cells.volume;
-    for (number i = 0; i < num; i++) {
-        for (number j = 0; j < len; j++) {
+    for (int i = 0; i < num; i++) {
+        for (int j = 0; j < len; j++) {
             derivative[i][j] = -derivative[i][j] / volume[i];
         }
     }

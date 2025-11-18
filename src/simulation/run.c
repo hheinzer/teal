@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <math.h>
 #include <mpi.h>
 #include <signal.h>
@@ -24,22 +25,22 @@ scalar simulation_run(Simulation *sim)
     Arena save = arena_save();
 
     const Equations *eqns = sim->eqns;
-    number len = eqns->variables.len;
+    int len = eqns->variables.len;
 
     const char *prefix = sim->prefix;
     scalar courant = sim->courant;
     scalar max_time = sim->time.max;
     scalar out_time = sim->time.output;
-    number max_iter = sim->iter.max;
-    number out_iter = sim->iter.output;
+    int max_iter = sim->iter.max;
+    int out_iter = sim->iter.output;
     const char *term_condition = sim->termination.condition;
-    number term_variable = sim->termination.variable;
+    int term_variable = sim->termination.variable;
     scalar term_residual = sim->termination.residual;
     const void *ctx = sim->advance.ctx;
     Advance *advance = sim->advance.method;
 
     scalar time;
-    number index;
+    int index;
     equations_restart(eqns, &time, &index);
     if (prefix) {
         mesh_write(eqns->mesh, prefix);
@@ -59,16 +60,16 @@ scalar simulation_run(Simulation *sim)
     scalar wtime_beg = MPI_Wtime();
     scalar wtime_last = wtime_beg;
 
-    for (number iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
+    for (int iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
         scalar max_step = fmin(max_time, out_time) - time;
         scalar step0 = advance(eqns, &time, residual, courant, max_step, ctx);
 
         if (!isfinite(step0)) {
-            error("invalid timestep at iter = %td", iter);
+            error("invalid timestep at iter = %d", iter);
         }
-        for (number i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
             if (!isfinite(residual[i])) {
-                error("invalid residual at iter = %td", iter);
+                error("invalid residual at iter = %d", iter);
             }
         }
 
@@ -92,10 +93,10 @@ scalar simulation_run(Simulation *sim)
             if (isfinite(sim->time.output)) {
                 out_time = time + sim->time.output;
             }
-            if (sim->iter.output < NUMBER_MAX) {
+            if (sim->iter.output < INT_MAX) {
                 out_iter = iter + sim->iter.output;
             }
-            println("\t %13td %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
+            println("\t %13d %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
             wtime_last = wtime_now;
         }
     }

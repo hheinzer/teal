@@ -11,9 +11,9 @@ typedef enum {
 typedef void Update(void *variable_, const scalar *property);
 
 typedef struct {
-    number num;
-    number len;
-    number stride;
+    int num;
+    int len;
+    int stride;
     Name *name;
     Type *type;
     void *data;
@@ -22,7 +22,7 @@ typedef struct {
 } EquationsVariables;
 
 typedef struct {
-    number num;
+    int num;
     Name *name;
     scalar *data;
 } EquationsProperties;
@@ -39,10 +39,10 @@ typedef void Boundary(void *ghost_, const void *inner_, const void *reference_,
 typedef Boundary *BoundarySelect(const char *name);
 
 typedef struct {
-    number num;
+    int num;
     const Name *entity;
-    const number *cell_off;
-    const number *face_off;
+    const int *cell_off;
+    const int *face_off;
     Name *name;
     const void **reference;
     Compute **custom;
@@ -73,7 +73,7 @@ typedef struct {
 } EquationsViscous;
 
 typedef scalar Limiter(vector gradient, scalar variable, scalar minimum, scalar maximum,
-                       scalar parameter, const vector *offset, number beg, number end);
+                       scalar parameter, const vector *offset, int beg, int end);
 
 typedef struct {
     Name name;
@@ -82,8 +82,8 @@ typedef struct {
 } EquationsLimiter;
 
 typedef struct {
-    number num;
-    number stride;
+    int num;
+    int stride;
     Name *name;
     Type *type;
     Compute *compute;
@@ -96,7 +96,7 @@ typedef void Source(void *source_, const void *variable_, const scalar *property
 typedef struct {
     const Mesh *mesh;
     Name name;
-    number space_order;
+    int space_order;
     EquationsVariables variables;
     EquationsProperties properties;
     Timestep *timestep;
@@ -111,18 +111,17 @@ typedef struct {
 Equations *equations_create(const Mesh *mesh, const char *name);
 
 void equations_create_variables(Equations *eqns, const char **name, const Type *type,
-                                Update *conserved, Update *primitive, number num_conserved,
-                                number num);
+                                Update *conserved, Update *primitive, int num_conserved, int num);
 
 void equations_create_properties(Equations *eqns, const char **name, const scalar *property,
-                                 number num);
+                                 int num);
 
 void equations_create_user_variables(Equations *eqns, const char **name, const Type *type,
-                                     Compute *compute, number num);
+                                     Compute *compute, int num);
 
 void equations_create_exact_solution(Equations *eqns, Compute *compute);
 
-void equations_set_space_order(Equations *eqns, number space_order);
+void equations_set_space_order(Equations *eqns, int space_order);
 
 void equations_set_timestep(Equations *eqns, Timestep *timestep);
 
@@ -152,7 +151,7 @@ void equations_set_user_source(Equations *eqns, Source *source);
 
 void equations_summary(const Equations *eqns);
 
-void equations_restart(const Equations *eqns, scalar *time, number *index);
+void equations_restart(const Equations *eqns, scalar *time, int *index);
 
 scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *step);
 
@@ -170,4 +169,4 @@ void *equations_average(const Equations *eqns, const char *entity, const void *v
 
 void *equations_norm(const Equations *eqns, scalar time);
 
-void equations_write(const Equations *eqns, scalar time, const char *prefix, number index);
+void equations_write(const Equations *eqns, scalar time, const char *prefix, int index);

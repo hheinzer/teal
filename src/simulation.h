@@ -8,25 +8,25 @@ typedef struct {
 } SimulationTime;
 
 typedef struct {
-    number max;
-    number output;
+    int max;
+    int output;
 } SimulationIter;
 
 typedef struct {
     const char *condition;
-    number variable;
+    int variable;
     scalar residual;
 } SimulationTermination;
 
 typedef struct {
-    number time_order;
-    number num_stages;
+    int time_order;
+    int num_stages;
 } RungeKutta;
 
 typedef struct {
     scalar newton_tolerance;
     scalar krylov_tolerance;
-    number krylov_dimension;
+    int krylov_dimension;
 } NewtonKrylov;
 
 typedef scalar Advance(const Equations *eqns, scalar *time, void *residual_, scalar courant,
@@ -56,9 +56,9 @@ void simulation_set_max_time(Simulation *sim, scalar time);
 
 void simulation_set_output_time(Simulation *sim, scalar time);
 
-void simulation_set_max_iter(Simulation *sim, number iter);
+void simulation_set_max_iter(Simulation *sim, int iter);
 
-void simulation_set_output_iter(Simulation *sim, number iter);
+void simulation_set_output_iter(Simulation *sim, int iter);
 
 void simulation_set_termination(Simulation *sim, const char *condition, scalar residual);
 

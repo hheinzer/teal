@@ -26,7 +26,7 @@ void teal_init(int *argc, char ***argv)
     char now[128];
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
-    number capacity = option.capacity ? option.capacity : str_to_size("1G");
+    int capacity = option.capacity ? option.capacity : str_to_size("1G");
     arena_init(capacity);
 
     char cap[128];
@@ -40,7 +40,7 @@ void teal_init(int *argc, char ***argv)
     println("\t number of ranks   : %d", sync.size);
     println("\t arena capacity    : %s", cap);
     if (option.num_refines > 0) {
-        println("\t number of refines : %td", option.num_refines);
+        println("\t int of refines : %d", option.num_refines);
     }
     if (option.restart) {
         println("\t restart file      : %s", option.restart);

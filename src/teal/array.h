@@ -2,18 +2,18 @@
 
 #include "teal.h"
 
-number array_lmin(const number *arr, number num);
-number array_lmax(const number *arr, number num);
-number array_lsum(const number *arr, number num);
+int array_lmin(const int *arr, int num);
+int array_lmax(const int *arr, int num);
+int array_lsum(const int *arr, int num);
 
-scalar array_fmin(const scalar *arr, number num);
-scalar array_fmax(const scalar *arr, number num);
-scalar array_fsum(const scalar *arr, number num);
+scalar array_fmin(const scalar *arr, int num);
+scalar array_fmax(const scalar *arr, int num);
+scalar array_fsum(const scalar *arr, int num);
 
-void array_lunique(number *arr, number *num);
+void array_lunique(int *arr, int *num);
 
 /* Return index of first `arr[i] > val` in sorted array; if beyond bounds return `0` or `num`. */
-number array_ldigitize(const number *arr, number val, number num);
+int array_ldigitize(const int *arr, int val, int num);
 
-scalar array_fdot(const scalar *lhs, const scalar *rhs, number num);
-scalar array_fnorm(const scalar *arr, number num);
+scalar array_fdot(const scalar *lhs, const scalar *rhs, int num);
+scalar array_fnorm(const scalar *arr, int num);

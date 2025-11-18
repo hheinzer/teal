@@ -3,15 +3,15 @@
 #include "teal/assert.h"
 #include "teal/sync.h"
 
-Request sync_variables(const Equations *eqns, void *variable, number stride)
+Request sync_variables(const Equations *eqns, void *variable, int stride)
 {
     assert(eqns && variable && stride > 0);
 
-    number num = eqns->mesh->neighbors.num;
-    number *rank = eqns->mesh->neighbors.rank;
-    number *off_recv = eqns->mesh->neighbors.recv_off;
-    number *off_send = eqns->mesh->neighbors.send.off;
-    number *idx_send = eqns->mesh->neighbors.send.idx;
+    int num = eqns->mesh->neighbors.num;
+    int *rank = eqns->mesh->neighbors.rank;
+    int *off_recv = eqns->mesh->neighbors.recv_off;
+    int *off_send = eqns->mesh->neighbors.send.off;
+    int *idx_send = eqns->mesh->neighbors.send.idx;
 
     int tag = sync_tag();
 
@@ -21,15 +21,15 @@ Request sync_variables(const Equations *eqns, void *variable, number stride)
     return req;
 }
 
-Request sync_gradients(const Equations *eqns, void *gradient, number stride)
+Request sync_gradients(const Equations *eqns, void *gradient, int stride)
 {
     assert(eqns && gradient && stride > 0);
 
-    number num = eqns->mesh->neighbors.num;
-    number *rank = eqns->mesh->neighbors.rank;
-    number *off_recv = eqns->mesh->neighbors.recv_off;
-    number *off_send = eqns->mesh->neighbors.send.off;
-    number *idx_send = eqns->mesh->neighbors.send.idx;
+    int num = eqns->mesh->neighbors.num;
+    int *rank = eqns->mesh->neighbors.rank;
+    int *off_recv = eqns->mesh->neighbors.recv_off;
+    int *off_send = eqns->mesh->neighbors.send.off;
+    int *idx_send = eqns->mesh->neighbors.send.idx;
 
     int tag = sync_tag();
 
@@ -42,6 +42,6 @@ Request sync_gradients(const Equations *eqns, void *gradient, number stride)
 void sync_wait(const Equations *eqns, MPI_Request *req)
 {
     assert(eqns && req);
-    number num = eqns->mesh->neighbors.num;
+    int num = eqns->mesh->neighbors.num;
     MPI_Waitall(num, req, MPI_STATUSES_IGNORE);
 }

@@ -5,7 +5,6 @@
 
 #include "teal.h"
 
-#define MPI_NUMBER (sizeof(number) == sizeof(int32_t) ? MPI_INT32_T : MPI_INT64_T)
 #define MPI_SCALAR (sizeof(scalar) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE)
 
 enum { MPI_TAG_UB_MIN = 32767 };
@@ -25,9 +24,9 @@ void sync_reinit(MPI_Comm comm);
 void sync_exit(int status) __attribute((noreturn));
 void sync_abort(void) __attribute((noreturn));
 
-number sync_lmin(number val);
-number sync_lmax(number val);
-number sync_lsum(number val);
+int sync_lmin(int val);
+int sync_lmax(int val);
+int sync_lsum(int val);
 
 scalar sync_fmin(scalar val);
 scalar sync_fmax(scalar val);
@@ -37,14 +36,14 @@ vector sync_vector_min(vector val);
 vector sync_vector_max(vector val);
 vector sync_vector_sum(vector val);
 
-number sync_lexsum(number val);
+int sync_lexsum(int val);
 
-scalar sync_fdot(const scalar *lhs, const scalar *rhs, number num);
-scalar sync_fnorm(const scalar *arr, number num);
+scalar sync_fdot(const scalar *lhs, const scalar *rhs, int num);
+scalar sync_fnorm(const scalar *arr, int num);
 
-MPI_Request *sync_irecv(const number *rank, const number *off, void *arr_, number num,
-                        number stride, MPI_Datatype type, int tag);
-MPI_Request *sync_isend(const number *rank, const number *off, const number *idx, const void *arr_,
-                        number num, number stride, MPI_Datatype type, int tag);
+MPI_Request *sync_irecv(const int *rank, const int *off, void *arr_, int num, int stride,
+                        MPI_Datatype type, int tag);
+MPI_Request *sync_isend(const int *rank, const int *off, const int *idx, const void *arr_, int num,
+                        int stride, MPI_Datatype type, int tag);
 
 void sync_finalize(void);

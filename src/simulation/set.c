@@ -24,19 +24,19 @@ void simulation_set_output_time(Simulation *sim, scalar time)
     sim->time.output = time;
 }
 
-void simulation_set_max_iter(Simulation *sim, number iter)
+void simulation_set_max_iter(Simulation *sim, int iter)
 {
     assert(sim && iter > 0);
     sim->iter.max = iter;
 }
 
-void simulation_set_output_iter(Simulation *sim, number iter)
+void simulation_set_output_iter(Simulation *sim, int iter)
 {
     assert(sim && iter > 0);
     sim->iter.output = iter;
 }
 
-static number component_index(char chr)
+static int component_index(char chr)
 {
     switch (chr) {
         case 'x': return 0;
@@ -57,7 +57,7 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
         return;
     }
 
-    number idx = 0;
+    int idx = 0;
     int len = strlen(condition);
     if (condition[len - 1] == '-') {
         idx = component_index(condition[len]);
@@ -68,11 +68,11 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
         len -= 3;
     }
 
-    number num = sim->eqns->variables.num;
+    int num = sim->eqns->variables.num;
     Name *name = sim->eqns->variables.name;
     Type *type = sim->eqns->variables.type;
 
-    for (number j = 0, i = 0; i < num; j += type[i++]) {
+    for (int j = 0, i = 0; i < num; j += type[i++]) {
         if (!strncmp(name[i], condition, len)) {
             sim->termination.variable = j + idx;
             return;
@@ -120,10 +120,10 @@ void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
     if (!strcmp(name, "lserk")) {
         const RungeKutta *ctx = ctx_;
         if (!(1 <= ctx->time_order && ctx->time_order <= 3)) {
-            error("invalid time order -- '%td'", ctx->time_order);
+            error("invalid time order -- '%d'", ctx->time_order);
         }
         if (!(1 <= ctx->num_stages && ctx->num_stages <= 6)) {
-            error("invalid number of stages -- '%td'", ctx->num_stages);
+            error("invalid int of stages -- '%d'", ctx->num_stages);
         }
         sim->advance.ctx = arena_memdup(ctx, 1, sizeof(*ctx));
         sim->advance.method = lserk;
@@ -138,7 +138,7 @@ void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
             error("invalid krylov tolerance -- '%g'", ctx->krylov_tolerance);
         }
         if (ctx->krylov_dimension <= 0) {
-            error("invalid krylov dimension -- '%td'", ctx->krylov_dimension);
+            error("invalid krylov dimension -- '%d'", ctx->krylov_dimension);
         }
         sim->advance.ctx = arena_memdup(ctx, 1, sizeof(*ctx));
         sim->advance.method = implicit_euler;

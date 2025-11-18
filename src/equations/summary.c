@@ -9,18 +9,18 @@ void equations_summary(const Equations *eqns)
     assert(eqns);
 
     int len = 16;
-    for (number i = 0; i < eqns->properties.num; i++) {
+    for (int i = 0; i < eqns->properties.num; i++) {
         len = lmax(len, strlen(eqns->properties.name[i]));
     }
 
     println("Equations summary");
     println("\t %-*s : %s", len, "name", eqns->name);
 
-    for (number i = 0; i < eqns->properties.num; i++) {
+    for (int i = 0; i < eqns->properties.num; i++) {
         println("\t %-*s : %g", len, eqns->properties.name[i], eqns->properties.data[i]);
     }
 
-    println("\t %-*s : %td", len, "space order", eqns->space_order);
+    println("\t %-*s : %d", len, "space order", eqns->space_order);
     if (*eqns->convective.name) {
         println("\t %-*s : %s", len, "convective flux", eqns->convective.name);
     }
@@ -32,15 +32,15 @@ void equations_summary(const Equations *eqns)
     }
 
     len = 0;
-    for (number i = eqns->mesh->entities.num_inner; i < eqns->mesh->entities.num; i++) {
+    for (int i = eqns->mesh->entities.num_inner; i < eqns->mesh->entities.num; i++) {
         len = lmax(len, strlen(eqns->mesh->entities.name[i]));
     }
 
     println("\t boundary conditions");
-    for (number i = 0; i < eqns->boundary.num; i++) {
+    for (int i = 0; i < eqns->boundary.num; i++) {
         println("\t\t %-*s : %s", len, eqns->boundary.entity[i], eqns->boundary.name[i]);
     }
-    for (number i = eqns->mesh->entities.off_ghost; i < eqns->mesh->entities.num; i++) {
+    for (int i = eqns->mesh->entities.off_ghost; i < eqns->mesh->entities.num; i++) {
         println("\t\t %-*s : %s", len, eqns->mesh->entities.name[i], "periodic");
     }
 }

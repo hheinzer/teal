@@ -20,12 +20,12 @@ scalar pow3(scalar val)
     return val * val * val;
 }
 
-number lmin(number lhs, number rhs)
+int lmin(int lhs, int rhs)
 {
     return (lhs < rhs) ? lhs : rhs;
 }
 
-number lmax(number lhs, number rhs)
+int lmax(int lhs, int rhs)
 {
     return (lhs > rhs) ? lhs : rhs;
 }
@@ -84,11 +84,11 @@ void error(const char *fmt, ...)
     sync_abort();
 }
 
-int cmp_number(const void *lhs_, const void *rhs_)
+int cmp_int(const void *lhs_, const void *rhs_)
 {
     assert(lhs_ && rhs_);
-    const number *lhs = lhs_;
-    const number *rhs = rhs_;
+    const int *lhs = lhs_;
+    const int *rhs = rhs_;
     return cmp_asc(*lhs, *rhs);
 }
 
@@ -109,16 +109,17 @@ int cmp_vector(const void *lhs_, const void *rhs_)
     if (cmp) {
         return cmp;
     }
-    if ((cmp = cmp_scalar(&lhs->y, &rhs->y))) {
+    cmp = cmp_scalar(&lhs->y, &rhs->y);
+    if (cmp) {
         return cmp;
     }
     return cmp_scalar(&lhs->z, &rhs->z);
 }
 
-void swap_number(number *lhs, number *rhs)
+void swap_int(int *lhs, int *rhs)
 {
     assert(lhs && rhs);
-    number swap = *lhs;
+    int swap = *lhs;
     *lhs = *rhs;
     *rhs = swap;
 }
@@ -139,12 +140,12 @@ void swap_vector(vector *lhs, vector *rhs)
     *rhs = swap;
 }
 
-void swap_bytes(void *lhs_, void *rhs_, number size)
+void swap_bytes(void *lhs_, void *rhs_, int size)
 {
     assert((lhs_ || rhs_) ? (lhs_ && rhs_ && size >= 0) : (size == 0));
     char *lhs = lhs_;
     char *rhs = rhs_;
-    for (number i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         char swap = lhs[i];
         lhs[i] = rhs[i];
         rhs[i] = swap;

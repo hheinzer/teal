@@ -6,10 +6,10 @@ typedef struct Kdtree Kdtree;
 typedef struct KdtreeItem KdtreeItem;
 
 struct Kdtree {
-    number num;
+    int num;
     KdtreeItem *beg;
     KdtreeItem **end;
-    number size_val;
+    int size_val;
 };
 
 struct KdtreeItem {
@@ -21,7 +21,7 @@ struct KdtreeItem {
 };
 
 /* Returns empty kd-tree; if `size_val == 0` it behaves as a set of points (values ignored). */
-Kdtree *kdtree_create(number size_val);
+Kdtree *kdtree_create(int size_val);
 
 /* Returns pointer to stored value if `key` is already present; else inserts and returns `0`. */
 void *kdtree_insert(Kdtree *self, vector key, const void *val);
@@ -30,7 +30,7 @@ void *kdtree_insert(Kdtree *self, vector key, const void *val);
 void *kdtree_lookup(const Kdtree *self, vector key);
 
 /* Writes up to `num` nearest values to `key` into `val` (unsorted). */
-void kdtree_nearest(const Kdtree *self, vector key, void *val, number num);
+void kdtree_nearest(const Kdtree *self, vector key, void *val, int num);
 
 /* Writes up to `cap` values within `radius` to `key` into `val` (unsorted); returns count. */
-number kdtree_radius(const Kdtree *self, vector key, void *val_, number cap, scalar radius);
+int kdtree_radius(const Kdtree *self, vector key, void *val_, int cap, scalar radius);

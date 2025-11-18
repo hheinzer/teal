@@ -6,11 +6,11 @@ typedef struct Dict Dict;
 typedef struct DictItem DictItem;
 
 struct Dict {
-    number num;
+    int num;
     DictItem *beg;
     DictItem **end;
-    number size_key;
-    number size_val;
+    int size_key;
+    int size_val;
 };
 
 struct DictItem {
@@ -21,7 +21,7 @@ struct DictItem {
 };
 
 /* Returns empty dictionary; if `size_val == 0` it behaves as a set (values ignored). */
-Dict *dict_create(number size_key, number size_val);
+Dict *dict_create(int size_key, int size_val);
 
 /* Returns pointer to stored value if `key` is already present; else inserts and returns `0`. */
 void *dict_insert(Dict *self, const void *key, const void *val);

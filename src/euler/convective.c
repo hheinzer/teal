@@ -81,7 +81,7 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
         right->velocity.x,
         right->velocity.x + speed_of_sound_r,
     };
-    for (number i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++) {
         scalar lambda = eigenvalue[i];
         scalar delta = fmax(0, fmax(lambda - eigenvalue_l[i], eigenvalue_r[i] - lambda));
         if (fabs(lambda) < delta) {

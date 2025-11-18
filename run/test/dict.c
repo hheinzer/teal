@@ -8,26 +8,26 @@ static void test_basic_insert_lookup(void)
 {
     Arena save = arena_save();
 
-    Dict *dict = dict_create(sizeof(number), sizeof(number));
+    Dict *dict = dict_create(sizeof(int), sizeof(int));
     assert(dict);
 
-    number num = 1024;
+    int num = 1024;
 
-    for (number i = 0; i < num; i++) {
-        number key = i;
-        number val = i * 10;
+    for (int i = 0; i < num; i++) {
+        int key = i;
+        int val = i * 10;
         assert(!dict_insert(dict, &key, &val));
     }
 
     assert(dict->num == num);
 
-    for (number i = 0; i < num; i++) {
-        number key = i;
-        number *val = dict_lookup(dict, &key);
+    for (int i = 0; i < num; i++) {
+        int key = i;
+        int *val = dict_lookup(dict, &key);
         assert(val && *val == i * 10);
     }
 
-    number miss = -1;
+    int miss = -1;
     assert(!dict_lookup(dict, &miss));
 
     arena_load(save);
@@ -37,22 +37,22 @@ static void test_duplicate_behaviour(void)
 {
     Arena save = arena_save();
 
-    Dict *dict = dict_create(sizeof(number), sizeof(number));
+    Dict *dict = dict_create(sizeof(int), sizeof(int));
     assert(dict);
 
-    number key = 42;
-    number val1 = 1111;
-    number val2 = 2222;
+    int key = 42;
+    int val1 = 1111;
+    int val2 = 2222;
 
     assert(!dict_insert(dict, &key, &val1));
-    number num = dict->num;
+    int num = dict->num;
 
-    number *insert = dict_insert(dict, &key, &val2);
+    int *insert = dict_insert(dict, &key, &val2);
     assert(insert && *insert == 1111);
 
     assert(dict->num == num);
 
-    number *lookup = dict_lookup(dict, &key);
+    int *lookup = dict_lookup(dict, &key);
     assert(lookup == insert && *lookup == 1111);
 
     arena_load(save);
@@ -62,15 +62,15 @@ static void test_set_mode(void)
 {
     Arena save = arena_save();
 
-    Dict *set = dict_create(sizeof(number), 0);
+    Dict *set = dict_create(sizeof(int), 0);
     assert(set);
 
-    number key = 42;
+    int key = 42;
     assert(!dict_insert(set, &key, 0));
     assert(dict_insert(set, &key, 0));
     assert(dict_lookup(set, &key));
 
-    number miss = 24;
+    int miss = 24;
     assert(!dict_lookup(set, &miss));
 
     arena_load(save);
@@ -80,15 +80,15 @@ static void test_key_by_value_not_pointer(void)
 {
     Arena save = arena_save();
 
-    Dict *dict = dict_create(sizeof(number), sizeof(number));
+    Dict *dict = dict_create(sizeof(int), sizeof(int));
     assert(dict);
 
-    number key = 42;
-    number val = 1111;
+    int key = 42;
+    int val = 1111;
     assert(!dict_insert(dict, &key, &val));
 
-    number same_key = 42;
-    number *same_val = dict_lookup(dict, &same_key);
+    int same_key = 42;
+    int *same_val = dict_lookup(dict, &same_key);
     assert(same_val && *same_val == 1111);
 
     arena_load(save);
@@ -98,28 +98,28 @@ static void test_pointer_stability_under_growth(void)
 {
     Arena save = arena_save();
 
-    Dict *dict = dict_create(sizeof(number), sizeof(number));
+    Dict *dict = dict_create(sizeof(int), sizeof(int));
     assert(dict);
 
-    number key1 = 42;
-    number val1 = 1111;
+    int key1 = 42;
+    int val1 = 1111;
     assert(!dict_insert(dict, &key1, &val1));
 
-    number *ptr1 = dict_lookup(dict, &key1);
+    int *ptr1 = dict_lookup(dict, &key1);
     assert(ptr1);
 
-    number addr1 = (number)ptr1;
+    uintptr_t addr1 = (uintptr_t)ptr1;
 
-    for (number i = 0; i < 1000; i++) {
-        number key = i + 420;
-        number val = i * i;
+    for (int i = 0; i < 1000; i++) {
+        int key = i + 420;
+        int val = i * i;
         dict_insert(dict, &key, &val);
     }
 
-    number *ptr2 = dict_lookup(dict, &key1);
+    int *ptr2 = dict_lookup(dict, &key1);
     assert(ptr2);
 
-    number addr2 = (number)ptr2;
+    uintptr_t addr2 = (uintptr_t)ptr2;
     assert(addr1 == addr2);
     assert(*ptr2 == 1111);
 
@@ -130,22 +130,22 @@ static void test_many_keys(void)
 {
     Arena save = arena_save();
 
-    Dict *dict = dict_create(sizeof(number), sizeof(number));
+    Dict *dict = dict_create(sizeof(int), sizeof(int));
     assert(dict);
 
-    number num = 32749;    // prime
-    number stride = 7919;  // coprime
+    int num = 32749;    // prime
+    int stride = 7919;  // coprime
 
-    for (number i = 0; i < num; i++) {
-        number key = (i * stride) % num;
-        number val = key * 3;
+    for (int i = 0; i < num; i++) {
+        int key = (i * stride) % num;
+        int val = key * 3;
         dict_insert(dict, &key, &val);
     }
     assert(dict->num == num);
 
-    for (number i = 0; i < 100; i++) {
-        number key = (i * 97) % num;
-        number *val = dict_lookup(dict, &key);
+    for (int i = 0; i < 100; i++) {
+        int key = (i * 97) % num;
+        int *val = dict_lookup(dict, &key);
         assert(val && *val == key * 3);
     }
 

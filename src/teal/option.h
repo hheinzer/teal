@@ -7,8 +7,8 @@
 typedef struct {
     bool quiet;
     bool verbose;
-    number capacity;
-    number num_refines;
+    int capacity;
+    int num_refines;
     const char *restart;
 } Option;
 

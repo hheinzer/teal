@@ -43,84 +43,64 @@ STATIC_ASSERT(REDZONE == 0 || REDZONE % ALIGN == 0);
 static Arena arena = {0};
 static char *arena_base = 0;
 static char *arena_end = 0;
-static number size_max = 0;
 
-void arena_init(number capacity)
+void arena_init(ptrdiff_t capacity)
 {
     assert(capacity > 0);
-
     arena_base = malloc(capacity);
-    assert(arena_base);
-
+    if (!arena_base) {
+        error("could not allocate arena base memory");
+    }
     arena.beg = arena_base;
     arena_end = arena_base + capacity;
     MAKE_REGION_NOACCESS(arena_base, capacity);
 }
 
-void *arena_malloc(number num, number size)
+void *arena_malloc(int num, ptrdiff_t size)
 {
     assert(num >= 0 && size > 0);
-
-    number available = arena_end - arena.beg;
-    number padding = -(number)arena.beg & (ALIGN - 1);  // round up to next aligned location
+    ptrdiff_t available = arena_end - arena.beg;
+    ptrdiff_t padding = -(uintptr_t)arena.beg & (ALIGN - 1);
     if (num > (available - padding - REDZONE) / size) {
-        error("out of memory trying to allocate %td blocks of size %td", num, size);
+        error("out of memory trying to allocate %d blocks of size %td", num, size);
     }
-
     arena.last = arena.beg + padding + REDZONE;
     arena.beg = arena.last + (num * size);
     MAKE_REGION_ADDRESSABLE(arena.last, num * size);
-
-    size_max = lmax(size_max, arena_size());
     return arena.last;
 }
 
-void *arena_calloc(number num, number size)
+void *arena_calloc(int num, ptrdiff_t size)
 {
+    assert(num >= 0 && size > 0);
     void *ptr = arena_malloc(num, size);
     return memset(ptr, 0, num * size);
 }
 
-void *arena_memdup(const void *ptr, number num, number size)
+void *arena_memdup(const void *ptr, int num, ptrdiff_t size)
 {
-    assert(ptr);
+    assert(ptr && num >= 0 && size > 0);
     void *dup = arena_malloc(num, size);
     return memcpy(dup, ptr, num * size);
 }
 
-char *arena_strdup(const char *str, number len)
-{
-    if (len < 0) {
-        len = strlen(str);
-    }
-    char *dup = arena_malloc(len + 1, sizeof(*dup));
-    memcpy(dup, str, len);
-    dup[len] = 0;
-    return dup;
-}
-
-void *arena_resize(const void *ptr, number num, number size)
+void *arena_resize(const void *ptr, int num, ptrdiff_t size)
 {
     if (ptr == arena.last) {
         assert(num >= 0 && size > 0);
-
-        number available = arena_end - arena.last;
+        ptrdiff_t available = arena_end - arena.last;
         if (num > available / size) {
-            error("out of memory trying to allocate %td blocks of size %td", num, size);
+            error("out of memory trying to allocate %d blocks of size %td", num, size);
         }
-
-        number old_size = arena.beg - arena.last;
-        number new_size = num * size;
+        ptrdiff_t old_size = arena.beg - arena.last;
+        ptrdiff_t new_size = num * size;
         arena.beg = arena.last + new_size;
-
         if (old_size < new_size) {
             MAKE_REGION_ADDRESSABLE(arena.last + old_size, new_size - old_size);
         }
         else {
             MAKE_REGION_NOACCESS(arena.last + new_size, old_size - new_size);
         }
-
-        size_max = lmax(size_max, arena_size());
         return arena.last;
     }
     return 0;
@@ -128,17 +108,18 @@ void *arena_resize(const void *ptr, number num, number size)
 
 static void *(*const volatile force_memmove)(void *, const void *, size_t) = memmove;
 
-void *arena_smuggle(const void *ptr, number num, number size)
+void *arena_smuggle(const void *ptr, int num, ptrdiff_t size)
 {
-    void *new = arena_malloc(num, size);
-    assert((char *)new <= (const char *)ptr && (const char *)ptr < arena_end);
+    assert(num >= 0 && size > 0);
+    char *new = arena_malloc(num, size);
+    assert(new <= (const char *)ptr && (const char *)ptr < arena_end);
     MAKE_REGION_DEFINED(ptr, num * size);
     if (new == ptr) {
         return new;
     }
-    if ((const char *)ptr - (char *)new < num * size) {
-        force_memmove(new, ptr, num * size);  // avoid compiler folding into memcpy
-        MAKE_REGION_NOACCESS((char *)new + (num * size), (const char *)ptr - (char *)new);
+    if ((const char *)ptr - new < num * size) {
+        force_memmove(new, ptr, num * size);
+        MAKE_REGION_NOACCESS(new + (num * size), (const char *)ptr - new);
     }
     else {
         memcpy(new, ptr, num * size);
@@ -159,14 +140,9 @@ void arena_load(Arena save)
     arena = save;
 }
 
-number arena_size(void)
+ptrdiff_t arena_size(void)
 {
     return arena.beg - arena_base;
-}
-
-number arena_size_max(void)
-{
-    return size_max;
 }
 
 void arena_finalize(void)

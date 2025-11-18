@@ -1,9 +1,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stddef.h>
-
-typedef ptrdiff_t number;
 
 typedef double scalar;
 
@@ -16,7 +13,7 @@ typedef struct {
 } matrix;
 
 typedef struct {
-    number x, y, z;
+    int x, y, z;
 } tuple;
 
 typedef struct {

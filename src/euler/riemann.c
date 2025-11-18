@@ -9,7 +9,7 @@
 
 static const scalar pvrs_threshold = 2;
 static const scalar prel_tolerance = 1e-6;
-static const number max_newton = 20;
+static const int max_newton = 20;
 
 /* Return a robust starting value for the Newton solve of the star pressure. */
 static scalar guess_pressure(const Euler *left, const Euler *right, scalar left_c, scalar right_c,
@@ -66,7 +66,7 @@ static void solve(scalar *star_u, scalar *star_p, const Euler *left, const Euler
 {
     scalar diff = right->velocity.x - left->velocity.x;
     scalar pold = guess_pressure(left, right, left_c, right_c, gam);
-    for (number iter = 0; iter < max_newton; iter++) {
+    for (int iter = 0; iter < max_newton; iter++) {
         scalar left_f;
         scalar left_df;
         prefun(&left_f, &left_df, pold, left, left_c, gam);
@@ -83,7 +83,7 @@ static void solve(scalar *star_u, scalar *star_p, const Euler *left, const Euler
         }
         pold = fmax(prel_tolerance, pnew);
     }
-    error("newton solver did not converge after %td iterations", max_newton);
+    error("newton solver did not converge after %d iterations", max_newton);
 }
 
 /* Return Euler state at the query location loc = x/t. */

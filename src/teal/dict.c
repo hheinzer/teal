@@ -7,7 +7,7 @@
 #include "assert.h"
 #include "utils.h"
 
-#define NON_NULL ((void *)(number)1)  // NOLINT(performance-no-int-to-ptr)
+#define NON_NULL ((void *)(int)1)  // NOLINT(performance-no-int-to-ptr)
 
 enum { WIDTH = countof((DictItem){0}.child) };
 STATIC_ASSERT(WIDTH == 2 || WIDTH == 4 || WIDTH == 8);
@@ -15,7 +15,7 @@ STATIC_ASSERT(WIDTH == 2 || WIDTH == 4 || WIDTH == 8);
 enum { SHIFT = (WIDTH == 2) ? 1 : (WIDTH == 4) ? 2 : (WIDTH == 8) ? 3 : -1 };
 enum { SELECT = (8 * sizeof(uint64_t)) - SHIFT };
 
-Dict *dict_create(number size_key, number size_val)
+Dict *dict_create(int size_key, int size_val)
 {
     assert(size_key > 0 && size_val >= 0);
     Dict *dict = arena_calloc(1, sizeof(*dict));
@@ -25,13 +25,13 @@ Dict *dict_create(number size_key, number size_val)
     return dict;
 }
 
-static uint64_t fnv1a(const void *ptr, number size)
+static uint64_t fnv1a(const void *ptr, int size)
 {
     static const uint64_t basis = 0xcbf29ce484222325;
     static const uint64_t prime = 0x00000100000001b3;
     const char *byte = ptr;
     uint64_t hash = basis;
-    for (number i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         hash ^= byte[i];
         hash *= prime;
     }
