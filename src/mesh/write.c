@@ -1,8 +1,10 @@
+#include <assert.h>
+
 #include "mesh.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
+#include "teal/utils.h"
 
 static void write_nodes(const MeshNodes *nodes, hid_t loc)
 {
@@ -85,7 +87,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                     case 5: type[num] = VTK_PYRAMID; break;
                     case 6: type[num] = VTK_WEDGE; break;
                     case 8: type[num] = VTK_HEXAHEDRON; break;
-                    default: assert(false);
+                    default: error("invalid number of nodes -- '%d'", num_nodes);
                 }
             }
             else {
@@ -93,7 +95,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                 switch (num_nodes) {
                     case 3: type[num] = VTK_TRIANGLE; break;
                     case 4: type[num] = VTK_QUAD; break;
-                    default: assert(false);
+                    default: error("invalid number of nodes -- '%d'", num_nodes);
                 }
             }
             entity[num] = i;

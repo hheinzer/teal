@@ -1,9 +1,9 @@
+#include <assert.h>
 #include <stdlib.h>
 
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
 

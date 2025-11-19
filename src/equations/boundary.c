@@ -1,7 +1,7 @@
+#include <assert.h>
 #include <math.h>
 
 #include "equations.h"
-#include "teal/assert.h"
 
 void equations_boundary(const Equations *eqns, void *variable_, scalar time)
 {

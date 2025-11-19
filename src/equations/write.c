@@ -1,9 +1,9 @@
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
 #include "equations.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
 

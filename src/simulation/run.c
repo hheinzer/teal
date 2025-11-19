@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <limits.h>
 #include <math.h>
 #include <mpi.h>
@@ -6,7 +7,6 @@
 #include "simulation.h"
 #include "teal/arena.h"
 #include "teal/array.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 static volatile sig_atomic_t sig_terminate = 0;

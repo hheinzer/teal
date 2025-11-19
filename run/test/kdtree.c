@@ -1,9 +1,9 @@
 #include "teal/kdtree.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
 

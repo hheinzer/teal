@@ -1,8 +1,8 @@
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
 #include "equations.h"
-#include "teal/assert.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 

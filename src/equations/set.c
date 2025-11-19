@@ -1,8 +1,8 @@
+#include <assert.h>
 #include <string.h>
 
 #include "equations.h"
 #include "limiter.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 void equations_set_space_order(Equations *eqns, int space_order)

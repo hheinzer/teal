@@ -1,6 +1,7 @@
 #include "sync.h"
 
-#include "teal/assert.h"
+#include <assert.h>
+
 #include "teal/sync.h"
 
 Request sync_variables(const Equations *eqns, void *variable, int stride)

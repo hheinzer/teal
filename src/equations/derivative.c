@@ -1,10 +1,10 @@
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
 #include "equations.h"
 #include "sync.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 static void integrate_convective_flux(const Equations *eqns, void *variable_, void *derivative_)
@@ -189,13 +189,13 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
                 equations_limiter(eqns, variable_, gradient_);
             }
             if (eqns->convective.flux && eqns->viscous.flux) {
-                assert(false);
+                error("TODO");
             }
             else if (eqns->convective.flux) {
                 integrate_reconstructed_convective_flux(eqns, variable_, derivative, gradient_);
             }
             else if (eqns->viscous.flux) {
-                assert(false);
+                error("TODO");
             }
             break;
         }

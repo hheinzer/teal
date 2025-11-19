@@ -1,10 +1,10 @@
 /*
  * Toro 1999, sec. 4.9
  */
+#include <assert.h>
 #include <math.h>
 
 #include "euler.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 static const scalar pvrs_threshold = 2;

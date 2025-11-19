@@ -1,7 +1,7 @@
+#include <assert.h>
 #include <math.h>
 
 #include "equations.h"
-#include "teal/assert.h"
 #include "teal/sync.h"
 
 scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *step)

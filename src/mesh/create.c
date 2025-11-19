@@ -1,10 +1,10 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
@@ -159,7 +159,7 @@ static int num_cells_side(tuple num_cells, int idx)
         case 0: return num_cells.y * num_cells.z;
         case 1: return num_cells.z * num_cells.x;
         case 2: return num_cells.x * num_cells.y;
-        default: assert(false);
+        default: error("invalid index -- '%d'", idx);
     }
 }
 
@@ -353,7 +353,7 @@ static vector compute_translation(vector del_coord, int idx)
         case 0: return (vector){sign * del_coord.x, 0, 0};
         case 1: return (vector){0, sign * del_coord.y, 0};
         case 2: return (vector){0, 0, sign * del_coord.z};
-        default: assert(false);
+        default: error("invalid index -- '%d'", idx);
     }
 }
 

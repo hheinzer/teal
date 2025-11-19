@@ -1,5 +1,6 @@
+#include <assert.h>
+
 #include "mesh.h"
-#include "teal/assert.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
 

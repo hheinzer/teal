@@ -1,10 +1,10 @@
 #include "sync.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "assert.h"
 #include "teal/arena.h"
 #include "teal/array.h"
 

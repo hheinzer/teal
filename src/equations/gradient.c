@@ -1,7 +1,8 @@
+#include <assert.h>
+
 #include "equations.h"
 #include "sync.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 
 void *equations_gradient(const Equations *eqns, void *variable_)
 {

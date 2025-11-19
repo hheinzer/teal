@@ -1,7 +1,8 @@
 #include "teal/dict.h"
 
+#include <assert.h>
+
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 static void test_basic_insert_lookup(void)

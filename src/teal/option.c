@@ -1,10 +1,10 @@
 #include "option.h"
 
+#include <assert.h>
 #include <getopt.h>
 #include <mpi.h>
 #include <stdlib.h>
 
-#include "assert.h"
 #include "sync.h"
 #include "utils.h"
 
@@ -46,7 +46,7 @@ void option_init(int *argc, char ***argv)
                 println("option requires argument -- '%c'", optopt);
                 help(argv, EXIT_FAILURE);
                 break;
-            default: assert(false);
+            default: abort();
         }
     }
 

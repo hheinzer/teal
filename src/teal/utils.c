@@ -1,12 +1,12 @@
 #include "utils.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "assert.h"
 #include "option.h"
 #include "sync.h"
 

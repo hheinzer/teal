@@ -1,8 +1,8 @@
 #include "vector.h"
 
+#include <assert.h>
 #include <math.h>
 
-#include "assert.h"
 #include "utils.h"
 
 vector vector_add(vector lhs, vector rhs)

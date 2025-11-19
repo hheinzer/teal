@@ -1,7 +1,7 @@
+#include <assert.h>
 #include <string.h>
 
 #include "equations.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 void equations_summary(const Equations *eqns)

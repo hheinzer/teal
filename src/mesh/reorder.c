@@ -1,10 +1,10 @@
 #include "reorder.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "teal/arena.h"
 #include "teal/array.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 static bool is_valid(const int *map, int num)

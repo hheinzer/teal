@@ -1,11 +1,12 @@
 #include "kdtree.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "arena.h"
-#include "assert.h"
 #include "utils.h"
 #include "vector.h"
 
@@ -26,7 +27,7 @@ static int veccmp(vector lhs, vector rhs, int depth)
         case 0: return isclose(lhs.x, rhs.x) ? 0 : cmp_asc(lhs.x, rhs.x);
         case 1: return isclose(lhs.y, rhs.y) ? 0 : cmp_asc(lhs.y, rhs.y);
         case 2: return isclose(lhs.z, rhs.z) ? 0 : cmp_asc(lhs.z, rhs.z);
-        default: assert(false);
+        default: abort();
     }
 }
 
@@ -128,7 +129,7 @@ static scalar delta(vector lhs, vector rhs, int depth)
         case 0: return lhs.x - rhs.x;
         case 1: return lhs.y - rhs.y;
         case 2: return lhs.z - rhs.z;
-        default: assert(false);
+        default: abort();
     }
 }
 

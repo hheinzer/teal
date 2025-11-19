@@ -1,8 +1,8 @@
 #include "h5io.h"
 
+#include <assert.h>
 #include <string.h>
 
-#include "assert.h"
 #include "sync.h"
 
 hid_t h5io_file_open(const char *name)

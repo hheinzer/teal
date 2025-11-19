@@ -1,5 +1,6 @@
 #include "parse.h"
 
+#include <assert.h>
 #include <byteswap.h>
 #include <ctype.h>
 #include <errno.h>
@@ -8,8 +9,8 @@
 #include <string.h>
 
 #include "arena.h"
-#include "assert.h"
 #include "sync.h"
+#include "utils.h"
 
 enum { MAX_TOKEN = 4096 };
 
@@ -109,7 +110,7 @@ static void token_to_data(ParseType type, void *data, int idx, const char *token
         case U64: ((uint64_t *)data)[idx] = strtoull(token, &end, 10); break;
         case F32: ((float *)data)[idx] = strtof(token, &end); break;
         case F64: ((double *)data)[idx] = strtod(token, &end); break;
-        default: assert(false);
+        default: error("invalid parse type -- '%d'", type);
     }
     assert(errno == 0 && end && end != token && *end == 0);
 }
@@ -163,7 +164,7 @@ static void swap_data(void *data, int num, int size)
             }
             break;
         }
-        default: assert(false);
+        default: error("invalid size -- '%d'", size);
     }
 }
 
@@ -186,7 +187,7 @@ void parse(ParseMode mode, ParseType type, void *data, int num, bool swap, Parse
     switch (mode) {
         case ASCII: parse_ascii(type, data, num, file); break;
         case BINARY: parse_binary(type, data, num, swap, file); break;
-        default: assert(false);
+        default: error("invalid parse mode -- '%d'", mode);
     }
 }
 
@@ -298,7 +299,7 @@ int parse_split(ParseMode mode, ParseType type, void *data, int num, int len, in
     switch (mode) {
         case ASCII: return parse_split_ascii(type, data, num, len, stride, file);
         case BINARY: return parse_split_binary(type, data, num, len, stride, swap, file);
-        default: assert(false);
+        default: error("invalid parse mode -- '%d'", mode);
     }
 }
 
@@ -316,7 +317,7 @@ int parse_data_to_int(ParseType type, const void *data, int idx)
         case U64: return ((const uint64_t *)data)[idx];
         case F32: return lrintf(((const float *)data)[idx]);
         case F64: return lrint(((const double *)data)[idx]);
-        default: assert(false);
+        default: error("invalid parse type -- '%d'", type);
     }
 }
 

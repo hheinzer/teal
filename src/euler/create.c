@@ -1,5 +1,6 @@
+#include <assert.h>
+
 #include "euler.h"
-#include "teal/assert.h"
 
 Equations *euler_create(const Mesh *mesh)
 {

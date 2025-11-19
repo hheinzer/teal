@@ -1,9 +1,9 @@
 #include "arena.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "assert.h"
 #include "utils.h"
 
 enum { ALIGN = 64 };
@@ -37,8 +37,6 @@ enum { REDZONE = 64 };
 enum { REDZONE = 0 };
 
 #endif
-
-STATIC_ASSERT(REDZONE == 0 || REDZONE % ALIGN == 0);
 
 static Arena arena = {0};
 static char *arena_base = 0;

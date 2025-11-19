@@ -1,10 +1,10 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/parse.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
@@ -255,7 +255,7 @@ static int read_node_block(NodeBlock *block, int beg, int end, int off, ParseMod
             parse_split(mode, U64, block->tag.u64, num_nodes, 1, stride, swap, file);
             break;
         }
-        default: assert(false);
+        default: error("invalid parse type -- '%d'", SIZE);
     }
 
     int len = 3 + (block->parametric ? block->entity_dim : 0);
@@ -322,7 +322,7 @@ static int num_node_tags(int element_type)
         case 5: return 8;  // hexahedron
         case 6: return 6;  // prism
         case 7: return 5;  // pyramid
-        default: assert(false);
+        default: error("unsupported element type -- '%d'", element_type);
     }
 }
 
@@ -341,7 +341,7 @@ static int read_element_block(ElementBlock *block, int beg, int end, int off, Pa
     assert(tot_elements == sync_lsum(num_elements));
 
     int len = num_node_tags(block->element_type);
-    int offset;
+    int offset = -1;
     switch (SIZE) {
         case U32: {
             block->num_elements.u32 = num_elements;
@@ -367,7 +367,7 @@ static int read_element_block(ElementBlock *block, int beg, int end, int off, Pa
                 parse_split(mode, U64, block->node_tag.u64, num_elements, len, stride, swap, file);
             break;
         }
-        default: assert(false);
+        default: error("invalid parse type -- '%d'", SIZE);
     }
     parse_set_offset(file, offset);
 
@@ -476,7 +476,7 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
             switch (SIZE) {
                 case U32: map[num].tag = block.tag.u32[j]; break;
                 case U64: map[num].tag = block.tag.u64[j]; break;
-                default: assert(false);
+                default: error("invalid parse type -- '%d'", SIZE);
             }
             map[num].idx = num + off_nodes;
             num += 1;
@@ -547,7 +547,7 @@ static void create_cells(const MeshNodes *nodes, MeshCells *cells, ParseType SIZ
                 switch (SIZE) {
                     case U32: idx[off[num] + k] = block.node_tag.u32[(j * len) + k]; break;
                     case U64: idx[off[num] + k] = block.node_tag.u64[(j * len) + k]; break;
-                    default: assert(false);
+                    default: error("invalid parse type -- '%d'", SIZE);
                 }
             }
             num += 1;
@@ -665,7 +665,7 @@ static void compute_entity_map(int *entity, const MeshCells *cells, ParseType SI
                 physical_tag = val->physical_tag[0];
                 break;
             }
-            default: assert(false);
+            default: error("unsupported entity dimension -- '%d'", block.entity_dim);
         }
         int idx = -1;
         for (int j = 0; j < num_physicals; j++) {

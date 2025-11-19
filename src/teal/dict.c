@@ -1,17 +1,15 @@
 #include "dict.h"
 
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "arena.h"
-#include "assert.h"
 #include "utils.h"
 
 #define NON_NULL ((void *)(int)1)  // NOLINT(performance-no-int-to-ptr)
 
 enum { WIDTH = countof((DictItem){0}.child) };
-STATIC_ASSERT(WIDTH == 2 || WIDTH == 4 || WIDTH == 8);
-
 enum { SHIFT = (WIDTH == 2) ? 1 : (WIDTH == 4) ? 2 : (WIDTH == 8) ? 3 : -1 };
 enum { SELECT = (8 * sizeof(uint64_t)) - SHIFT };
 

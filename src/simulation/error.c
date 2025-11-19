@@ -1,7 +1,7 @@
+#include <assert.h>
 #include <string.h>
 
 #include "simulation.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 void *simulation_error(const Simulation *sim, scalar time)
@@ -31,7 +31,7 @@ void *simulation_error(const Simulation *sim, scalar time)
                         norm[j + 1], norm[j + 2], norm[j + 3], norm[j + 4], norm[j + 5],
                         norm[j + 6], norm[j + 7], norm[j + 8]);
                 break;
-            default: assert(false);
+            default: error("invalid variable type -- '%d'", type[i]);
         }
     }
 

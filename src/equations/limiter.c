@@ -1,8 +1,8 @@
+#include <assert.h>
 #include <math.h>
 
 #include "equations.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,

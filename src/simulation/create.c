@@ -1,9 +1,9 @@
+#include <assert.h>
 #include <limits.h>
 #include <math.h>
 
 #include "simulation.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 
 Simulation *simulation_create(const Equations *eqns, const char *prefix)
 {

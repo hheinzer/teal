@@ -1,9 +1,9 @@
+#include <assert.h>
 #include <string.h>
 
 #include "advance.h"
 #include "simulation.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 void simulation_set_courant(Simulation *sim, scalar courant)

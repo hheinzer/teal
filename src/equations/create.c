@@ -1,9 +1,9 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "equations.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 
 Equations *equations_create(const Mesh *mesh, const char *name)
 {

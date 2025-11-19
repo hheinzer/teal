@@ -1,7 +1,7 @@
 # compiler and libraries
 CC = clang
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
-LDLIBS = -lm -lhdf5 -lmetis -lparmetis -lunwind -lunwind-x86_64
+LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 
 # compiler flags
 CONFIG ?= debug
@@ -13,7 +13,7 @@ ifeq ($(CONFIG), valgrind)
 	CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 endif
 ifneq (,$(filter $(CONFIG), release gprof))
-	CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
+	CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused
 endif
 ifeq ($(CONFIG), gprof)
 	CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls

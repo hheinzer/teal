@@ -1,5 +1,6 @@
 #include "read.h"
 
+#include <assert.h>
 #include <parmetis.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +10,6 @@
 #include "reorder.h"
 #include "teal/arena.h"
 #include "teal/array.h"
-#include "teal/assert.h"
 #include "teal/kdtree.h"
 #include "teal/option.h"
 #include "teal/sync.h"

@@ -1,10 +1,10 @@
 #include "array.h"
 
+#include <assert.h>
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 
-#include "assert.h"
 #include "utils.h"
 
 int array_lmin(const int *arr, int num)

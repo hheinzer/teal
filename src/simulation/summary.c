@@ -1,9 +1,9 @@
+#include <assert.h>
 #include <limits.h>
 #include <math.h>
 #include <string.h>
 
 #include "simulation.h"
-#include "teal/assert.h"
 #include "teal/utils.h"
 
 void simulation_summary(const Simulation *sim)

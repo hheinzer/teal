@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <math.h>
 #include <metis.h>
 #include <stdlib.h>
@@ -6,7 +7,6 @@
 #include "reorder.h"
 #include "teal/arena.h"
 #include "teal/array.h"
-#include "teal/assert.h"
 #include "teal/kdtree.h"
 #include "teal/sync.h"
 #include "teal/utils.h"
@@ -351,8 +351,8 @@ static void correct_coord_order(vector *coord, int num_nodes)
                     swap_vector(&coord[i + 1], &coord[i + 2]);
                 }
             }
-            assert(false);
-        default: assert(false);
+            error("quad vertex order could not be made valid");
+        default: error("invalid number of nodes -- '%d'", num_nodes);
     }
 }
 
@@ -369,7 +369,7 @@ static scalar compute_face_area(const vector *coord, int num_nodes)
             vector rhs[3] = {coord[0], coord[2], coord[3]};
             return compute_face_area(lhs, 3) + compute_face_area(rhs, 3);
         }
-        default: assert(false);
+        default: error("invalid number of nodes -- '%d'", num_nodes);
     }
 }
 
@@ -393,7 +393,7 @@ static vector compute_face_center(const vector *coord, int num_nodes)
             scalar area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
             return weighted_average(cen, area, 2);
         }
-        default: assert(false);
+        default: error("invalid number of nodes -- '%d'", num_nodes);
     }
 }
 
@@ -412,7 +412,7 @@ static vector compute_face_normal(const vector *coord, int num_nodes)
             }
             return vector_normalize(sum);
         }
-        default: assert(false);
+        default: error("invalid number of nodes -- '%d'", num_nodes);
     }
 }
 
@@ -497,7 +497,7 @@ static scalar compute_cell_volume(const vector *coord, int num_nodes)
             vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
             return compute_cell_volume(lhs, 6) + compute_cell_volume(rhs, 6);
         }
-        default: assert(false);
+        default: error("invalid number of nodes -- '%d'", num_nodes);
     }
 }
 
@@ -526,7 +526,7 @@ static vector compute_cell_center(const vector *coord, int num_nodes)
             scalar vol[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
             return weighted_average(cen, vol, 2);
         }
-        default: assert(false);
+        default: error("invalid number of nodes -- '%d'", num_nodes);
     }
 }
 

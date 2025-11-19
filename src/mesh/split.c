@@ -1,10 +1,10 @@
+#include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
-#include "teal/assert.h"
 #include "teal/vector.h"
 
 static int find_entity(const MeshEntities *entities, const char *entity)
