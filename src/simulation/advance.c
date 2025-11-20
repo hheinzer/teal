@@ -5,7 +5,6 @@
 #include "gmres.h"
 #include "teal/arena.h"
 #include "teal/sync.h"
-#include "teal/utils.h"
 
 scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
              const void *ctx_)

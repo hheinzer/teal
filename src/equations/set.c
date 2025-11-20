@@ -7,7 +7,10 @@
 
 void equations_set_space_order(Equations *eqns, long space_order)
 {
-    assert(eqns && 1 <= space_order && space_order <= 2);
+    assert(eqns);
+    if (!(1 <= space_order && space_order <= 2)) {
+        error("invalid space order -- '%ld'", space_order);
+    }
     eqns->space_order = space_order;
 }
 
@@ -59,8 +62,9 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
                                       const void *reference, Compute *custom)
 {
     assert(eqns && entity && name);
+    long num_inner = eqns->mesh->entities.num_inner;
     for (long i = 0; i < eqns->boundary.num; i++) {
-        if (!strcmp(eqns->boundary.entity[i], entity)) {
+        if (!strcmp(eqns->mesh->entities.name[num_inner + i], entity)) {
             strcpy(eqns->boundary.name[i], name);
             eqns->boundary.reference[i] = reference;
             eqns->boundary.custom[i] = custom;
@@ -108,7 +112,7 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
 
     vector *center = eqns->mesh->cells.center;
 
-    long num = eqns->mesh->entities.num_inner;
+    long num_inner = eqns->mesh->entities.num_inner;
     Name *name = eqns->mesh->entities.name;
     long *cell_off = eqns->mesh->entities.cell_off;
 
@@ -117,12 +121,17 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
     Update *conserved = eqns->variables.conserved;
     scalar *property = eqns->properties.data;
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         if (!strcmp(name[i], entity)) {
-            for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                compute(variable[j], property, center[j], time, 0);
-                if (conserved) {
+            if (conserved) {
+                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
+                    compute(variable[j], property, center[j], time, 0);
                     conserved(variable[j], property);
+                }
+            }
+            else {
+                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
+                    compute(variable[j], property, center[j], time, 0);
                 }
             }
             return;
@@ -135,7 +144,7 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
 {
     assert(eqns && entity && state);
 
-    long num = eqns->mesh->entities.num_inner;
+    long num_inner = eqns->mesh->entities.num_inner;
     Name *name = eqns->mesh->entities.name;
     long *cell_off = eqns->mesh->entities.cell_off;
 
@@ -144,12 +153,17 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
     Update *conserved = eqns->variables.conserved;
     scalar *property = eqns->properties.data;
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         if (!strcmp(name[i], entity)) {
-            for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                memcpy(variable[j], state, sizeof(*variable));
-                if (conserved) {
+            if (conserved) {
+                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
+                    memcpy(variable[j], state, sizeof(*variable));
                     conserved(variable[j], property);
+                }
+            }
+            else {
+                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
+                    memcpy(variable[j], state, sizeof(*variable));
                 }
             }
             return;

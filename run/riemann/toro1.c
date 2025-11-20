@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     simulation_summary(sim);
 
     scalar time = simulation_run(sim);
-    simulation_error(sim, time);
+    simulation_error(sim, time, 0);
 
     teal_finalize();
 }

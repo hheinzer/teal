@@ -13,15 +13,13 @@ static volatile sig_atomic_t sig_terminate = 0;
 
 static void handler(int sig)
 {
-    if (sig == SIGINT || sig == SIGTERM) {
-        sig_terminate = 1;
-    }
+    (void)sig;
+    sig_terminate = 1;
 }
 
 scalar simulation_run(Simulation *sim)
 {
     assert(sim);
-
     Arena save = arena_save();
 
     const Equations *eqns = sim->eqns;
@@ -29,13 +27,17 @@ scalar simulation_run(Simulation *sim)
 
     const char *prefix = sim->prefix;
     scalar courant = sim->courant;
+
     scalar max_time = sim->time.max;
     scalar out_time = sim->time.output;
+
     long max_iter = sim->iter.max;
     long out_iter = sim->iter.output;
+
     const char *term_condition = sim->termination.condition;
     long term_variable = sim->termination.variable;
     scalar term_residual = sim->termination.residual;
+
     const void *ctx = sim->advance.ctx;
     Advance *advance = sim->advance.method;
 
@@ -44,7 +46,7 @@ scalar simulation_run(Simulation *sim)
     equations_restart(eqns, &time, &index);
     if (prefix) {
         mesh_write(eqns->mesh, prefix);
-        equations_write(eqns, time, prefix, index++);
+        equations_write(eqns, prefix, time, index++);
     }
     out_time += time;
 
@@ -67,6 +69,7 @@ scalar simulation_run(Simulation *sim)
         if (!isfinite(step0)) {
             error("invalid timestep at iter = %ld", iter);
         }
+
         for (long i = 0; i < len; i++) {
             if (!isfinite(residual[i])) {
                 error("invalid residual at iter = %ld", iter);
@@ -88,7 +91,7 @@ scalar simulation_run(Simulation *sim)
             scalar wtime_now = MPI_Wtime();
             scalar wtime = wtime_now - wtime_last;
             if (prefix) {
-                equations_write(eqns, time, prefix, index++);
+                equations_write(eqns, prefix, time, index++);
             }
             if (isfinite(sim->time.output)) {
                 out_time = time + sim->time.output;

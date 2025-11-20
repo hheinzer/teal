@@ -13,7 +13,7 @@ static void matvec(const Equations *eqns, const void *variable_, const void *der
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -24,10 +24,10 @@ static void matvec(const Equations *eqns, const void *variable_, const void *der
     const scalar(*basis)[len] = basis_;
     scalar(*result)[len] = result_;
 
-    scalar eps = fd_scale / sync_fnorm(*basis, num * len);
+    scalar eps = fd_scale / sync_fnorm(*basis, num_inner * len);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (eps * basis[i][j]);
         }
@@ -36,7 +36,7 @@ static void matvec(const Equations *eqns, const void *variable_, const void *der
 
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, time);
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             result[i][j] = basis[i][j] - (step * (derivative1[i][j] - derivative[i][j]) / eps);
         }
@@ -54,7 +54,7 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
     scalar tol = ctx->krylov_tolerance;
     long dim = ctx->krylov_dimension;
 
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
 
@@ -63,7 +63,7 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
     const scalar(*residual)[len] = residual_;
     scalar(*increment)[len] = increment_;
 
-    memset(increment, 0, num * sizeof(*increment));
+    memset(increment, 0, num_inner * sizeof(*increment));
     if (norm <= 0) {
         return;
     }
@@ -71,8 +71,8 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
     scalar *rhs = arena_malloc(dim + 1, sizeof(*rhs));
     rhs[0] = norm;
 
-    scalar(*basis)[num][len] = arena_malloc(dim + 1, sizeof(*basis));
-    for (long i = 0; i < num; i++) {
+    scalar(*basis)[num_inner][len] = arena_malloc(dim + 1, sizeof(*basis));
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             basis[0][i][j] = -residual[i][j] / norm;
         }
@@ -80,7 +80,7 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
 
     scalar tol_norm = tol * norm;
 
-    scalar(*result)[len] = arena_malloc(num, sizeof(*result));
+    scalar(*result)[len] = arena_malloc(num_inner, sizeof(*result));
     scalar(*hess)[dim] = arena_malloc(dim + 1, sizeof(*hess));
     scalar *cosine = arena_malloc(dim, sizeof(*cosine));
     scalar *sine = arena_malloc(dim, sizeof(*sine));
@@ -89,14 +89,14 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
         matvec(eqns, variable, derivative, basis[iter], result, time, step, fd_scale);
 
         for (long i = 0; i < iter + 1; i++) {
-            hess[i][iter] = sync_fdot(*basis[i], *result, num * len);
-            for (long j = 0; j < num; j++) {
+            hess[i][iter] = sync_fdot(*basis[i], *result, num_inner * len);
+            for (long j = 0; j < num_inner; j++) {
                 for (long k = 0; k < len; k++) {
                     result[j][k] -= hess[i][iter] * basis[i][j][k];
                 }
             }
         }
-        hess[iter + 1][iter] = sync_fnorm(*result, num * len);
+        hess[iter + 1][iter] = sync_fnorm(*result, num_inner * len);
 
         for (long i = 0; i < iter; i++) {
             scalar tmp = (cosine[i] * hess[i][iter]) + (sine[i] * hess[i + 1][iter]);
@@ -117,7 +117,7 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
             break;
         }
 
-        for (long i = 0; i < num; i++) {
+        for (long i = 0; i < num_inner; i++) {
             for (long j = 0; j < len; j++) {
                 basis[iter + 1][i][j] = result[i][j] / hess[iter + 1][iter];
             }
@@ -131,7 +131,7 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
             coeff[i] -= hess[i][j] * coeff[j];
         }
         coeff[i] /= hess[i][i];
-        for (long j = 0; j < num; j++) {
+        for (long j = 0; j < num_inner; j++) {
             for (long k = 0; k < len; k++) {
                 increment[j][k] += coeff[i] * basis[i][j][k];
             }

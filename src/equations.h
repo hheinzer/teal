@@ -2,30 +2,7 @@
 
 #include "mesh.h"
 
-typedef enum {
-    SCALAR = 1,
-    VECTOR = 3,
-    MATRIX = 9,
-} Type;
-
 typedef void Update(void *variable_, const scalar *property);
-
-typedef struct {
-    long num;
-    long len;
-    long stride;
-    Name *name;
-    Type *type;
-    void *data;
-    Update *conserved;
-    Update *primitive;
-} EquationsVariables;
-
-typedef struct {
-    long num;
-    Name *name;
-    scalar *data;
-} EquationsProperties;
 
 typedef scalar Timestep(const void *variable_, const scalar *property, scalar volume,
                         vector projection);
@@ -38,11 +15,41 @@ typedef void Boundary(void *ghost_, const void *inner_, const void *reference_,
 
 typedef Boundary *BoundarySelect(const char *name);
 
+typedef void Convective(void *flux_, const void *left_, const void *right_, const scalar *property,
+                        const matrix *basis);
+
+typedef Convective *ConvectiveSelect(const char *name);
+
+typedef void Viscous(void *flux_, const void *variable_, const void *gradient_,
+                     const scalar *property, const matrix *basis);
+
+typedef Viscous *ViscousSelect(const char *name);
+
+typedef void Limiter(vector *gradient, scalar variable, scalar minimum, scalar maximum,
+                     scalar parameter, const vector *offset, long num);
+
+typedef void Source(void *source_, const void *variable_, const scalar *property, vector center,
+                    scalar time);
+
 typedef struct {
     long num;
-    const Name *entity;
-    const long *cell_off;
-    const long *face_off;
+    long len;
+    long stride;
+    long *size;
+    Name *name;
+    void *data;
+    Update *conserved;
+    Update *primitive;
+} EquationsVariables;
+
+typedef struct {
+    long num;
+    Name *name;
+    scalar *data;
+} EquationsProperties;
+
+typedef struct {
+    long num;
     Name *name;
     const void **reference;
     Compute **custom;
@@ -50,30 +57,17 @@ typedef struct {
     BoundarySelect *select;
 } EquationsBoundary;
 
-typedef void Convective(void *flux_, const void *left_, const void *right_, const scalar *property,
-                        const matrix *basis);
-
-typedef Convective *ConvectiveSelect(const char *name);
-
 typedef struct {
     Name name;
     Convective *flux;
     ConvectiveSelect *select;
 } EquationsConvective;
 
-typedef void Viscous(void *flux_, const void *gradient_, const void *variable_,
-                     const scalar *property, const matrix *basis);
-
-typedef Viscous *ViscousSelect(const char *name);
-
 typedef struct {
     Name name;
     Viscous *flux;
     ViscousSelect *select;
 } EquationsViscous;
-
-typedef scalar Limiter(vector gradient, scalar variable, scalar minimum, scalar maximum,
-                       scalar parameter, const vector *offset, long beg, long end);
 
 typedef struct {
     Name name;
@@ -84,14 +78,11 @@ typedef struct {
 typedef struct {
     long num;
     long stride;
+    long *size;
     Name *name;
-    Type *type;
     Compute *compute;
     Update *conserved;
 } EquationsUserVariables;
-
-typedef void Source(void *source_, const void *variable_, const scalar *property, vector center,
-                    scalar time);
 
 typedef struct {
     const Mesh *mesh;
@@ -110,13 +101,13 @@ typedef struct {
 
 Equations *equations_create(const Mesh *mesh, const char *name);
 
-void equations_create_variables(Equations *eqns, const char **name, const Type *type,
+void equations_create_variables(Equations *eqns, const long *size, const char **name,
                                 Update *conserved, Update *primitive, long num_conserved, long num);
 
 void equations_create_properties(Equations *eqns, const char **name, const scalar *property,
                                  long num);
 
-void equations_create_user_variables(Equations *eqns, const char **name, const Type *type,
+void equations_create_user_variables(Equations *eqns, const long *size, const char **name,
                                      Compute *compute, long num);
 
 void equations_create_exact_solution(Equations *eqns, Compute *compute);
@@ -165,8 +156,8 @@ void equations_limiter(const Equations *eqns, const void *variable_, void *gradi
 
 void equations_residual(const Equations *eqns, const void *derivative_, void *residual_);
 
-void *equations_average(const Equations *eqns, const char *entity, const void *variable_);
+void equations_average(const Equations *eqns, const char *entity, void *average_);
 
-void *equations_norm(const Equations *eqns, scalar time);
+void equations_norm(const Equations *eqns, scalar time, void *norm_);
 
-void equations_write(const Equations *eqns, scalar time, const char *prefix, long index);
+void equations_write(const Equations *eqns, const char *prefix, scalar time, long index);

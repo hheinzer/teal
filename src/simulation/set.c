@@ -69,10 +69,10 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
     }
 
     long num = sim->eqns->variables.num;
+    long *size = sim->eqns->variables.size;
     Name *name = sim->eqns->variables.name;
-    Type *type = sim->eqns->variables.type;
 
-    for (long j = 0, i = 0; i < num; j += type[i++]) {
+    for (long j = 0, i = 0; i < num; j += size[i++]) {
         if (!strncmp(name[i], condition, len)) {
             sim->termination.variable = j + idx;
             return;

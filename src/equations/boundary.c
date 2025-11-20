@@ -12,12 +12,14 @@ void equations_boundary(const Equations *eqns, void *variable_, scalar time)
     Adjacent *cell = eqns->mesh->faces.cell;
     matrix *basis = eqns->mesh->faces.basis;
 
+    long num_inner = eqns->mesh->entities.num_inner;
+    long *face_off = &eqns->mesh->entities.face_off[num_inner];
+
     long stride = eqns->variables.stride;
     Update *conserved = eqns->variables.conserved;
     scalar *property = eqns->properties.data;
 
     long num = eqns->boundary.num;
-    const long *face_off = eqns->boundary.face_off;
     const void **reference = eqns->boundary.reference;
     Compute **custom = eqns->boundary.custom;
     Boundary **condition = eqns->boundary.condition;

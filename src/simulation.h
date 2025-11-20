@@ -2,6 +2,9 @@
 
 #include "equations.h"
 
+typedef scalar Advance(const Equations *eqns, scalar *time, void *residual_, scalar courant,
+                       scalar max_step, const void *ctx_);
+
 typedef struct {
     scalar max;
     scalar output;
@@ -28,9 +31,6 @@ typedef struct {
     scalar krylov_tolerance;
     long krylov_dimension;
 } NewtonKrylov;
-
-typedef scalar Advance(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-                       scalar max_step, const void *ctx_);
 
 typedef struct {
     Name name;
@@ -68,4 +68,4 @@ void simulation_summary(const Simulation *sim);
 
 scalar simulation_run(Simulation *sim);
 
-void *simulation_error(const Simulation *sim, scalar time);
+void simulation_error(const Simulation *sim, scalar time, void *norm_);

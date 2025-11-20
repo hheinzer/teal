@@ -4,11 +4,18 @@
 #include "sync.h"
 #include "teal/arena.h"
 
+static void increment(vector *gradient, scalar diff, vector weight)
+{
+    gradient->x += diff * weight.x;
+    gradient->y += diff * weight.y;
+    gradient->z += diff * weight.z;
+}
+
 void *equations_gradient(const Equations *eqns, void *variable_)
 {
     assert(eqns && variable_);
 
-    long num = eqns->mesh->cells.num;
+    long num_cells = eqns->mesh->cells.num;
 
     long num_faces = eqns->mesh->faces.num;
     long num_inner = eqns->mesh->faces.num_inner;
@@ -18,7 +25,7 @@ void *equations_gradient(const Equations *eqns, void *variable_)
 
     long stride = eqns->variables.stride;
     scalar(*variable)[stride] = variable_;
-    vector(*gradient)[stride] = arena_calloc(num, sizeof(*gradient));
+    vector(*gradient)[stride] = arena_calloc(num_cells, sizeof(*gradient));
 
     Request req = sync_variables(eqns, variable, stride);
 
@@ -27,12 +34,8 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         long right = cell[i].right;
         for (long j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            gradient[left][j].x += diff * weight[i].x;
-            gradient[left][j].y += diff * weight[i].y;
-            gradient[left][j].z += diff * weight[i].z;
-            gradient[right][j].x += diff * weight[i].x;
-            gradient[right][j].y += diff * weight[i].y;
-            gradient[right][j].z += diff * weight[i].z;
+            increment(&gradient[left][j], diff, weight[i]);
+            increment(&gradient[right][j], diff, weight[i]);
         }
     }
     for (long i = num_inner; i < off_ghost; i++) {
@@ -40,9 +43,7 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         long right = cell[i].right;
         for (long j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            gradient[left][j].x += diff * weight[i].x;
-            gradient[left][j].y += diff * weight[i].y;
-            gradient[left][j].z += diff * weight[i].z;
+            increment(&gradient[left][j], diff, weight[i]);
         }
     }
 
@@ -53,9 +54,7 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         long right = cell[i].right;
         for (long j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            gradient[left][j].x += diff * weight[i].x;
-            gradient[left][j].y += diff * weight[i].y;
-            gradient[left][j].z += diff * weight[i].z;
+            increment(&gradient[left][j], diff, weight[i]);
         }
     }
 

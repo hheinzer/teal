@@ -13,9 +13,12 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
 
     bool root = (sync.rank == 0);
 
-    for (long i = 0; i < eqns->properties.num; i++) {
-        h5io_dataset_write(eqns->properties.name[i], &eqns->properties.data[i], root, 1,
-                           H5IO_SCALAR, group);
+    int num = eqns->properties.num;
+    Name *name = eqns->properties.name;
+    scalar *property = eqns->properties.data;
+
+    for (long i = 0; i < num; i++) {
+        h5io_dataset_write(name[i], &property[i], root, 1, H5IO_SCALAR, group);
     }
 
     h5io_dataset_write("time", &time, root, 1, H5IO_SCALAR, group);
@@ -23,19 +26,19 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
     h5io_group_close(group);
 }
 
-static void write_variables(const Name *name, const Type *type, const void *variable_, long num,
+static void write_variables(const long *size, const Name *name, const void *variable_, long num,
                             long stride, long num_cells, hid_t loc)
 {
     const scalar(*variable)[stride] = variable_;
-    for (long j = 0, i = 0; i < num; j += type[i++]) {
+    for (long j = 0, i = 0; i < num; j += size[i++]) {
         Arena save = arena_save();
 
-        scalar(*buf)[type[i]] = arena_malloc(num_cells, sizeof(*buf));
+        scalar(*buf)[size[i]] = arena_malloc(num_cells, sizeof(*buf));
         for (long k = 0; k < num_cells; k++) {
             memcpy(buf[k], &variable[k][j], sizeof(*buf));
         }
 
-        h5io_dataset_write(name[i], buf, num_cells, type[i], H5IO_SCALAR, loc);
+        h5io_dataset_write(name[i], buf, num_cells, size[i], H5IO_SCALAR, loc);
 
         arena_load(save);
     }
@@ -46,19 +49,33 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
     Arena save = arena_save();
 
     vector *center = eqns->mesh->cells.center;
-    scalar(*variable)[eqns->variables.stride] = eqns->variables.data;
+
+    long stride_v = eqns->variables.stride;
+    scalar(*variable)[stride_v] = eqns->variables.data;
     scalar *property = eqns->properties.data;
 
-    scalar(*user)[eqns->user.stride] = arena_calloc(num_cells, sizeof(*user));
-    for (long i = 0; i < num_cells; i++) {
-        eqns->user.compute(user[i], property, center[i], time, variable[i]);
-        if (eqns->user.conserved) {
-            eqns->user.conserved(user[i], property);
+    long num = eqns->user.num;
+    long stride_u = eqns->user.stride;
+    long *size = eqns->user.size;
+    Name *name = eqns->user.name;
+    Compute *compute = eqns->user.compute;
+    Update *conserved = eqns->user.conserved;
+
+    scalar(*user)[stride_u] = arena_calloc(num_cells, sizeof(*user));
+
+    if (conserved) {
+        for (long i = 0; i < num_cells; i++) {
+            compute(user[i], property, center[i], time, variable[i]);
+            conserved(user[i], property);
+        }
+    }
+    else {
+        for (long i = 0; i < num_cells; i++) {
+            compute(user[i], property, center[i], time, variable[i]);
         }
     }
 
-    write_variables(eqns->user.name, eqns->user.type, user, eqns->user.num, eqns->user.stride,
-                    num_cells, loc);
+    write_variables(size, name, user, num, stride_u, num_cells, loc);
 
     arena_load(save);
 }
@@ -69,27 +86,39 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 
     hid_t group = h5io_group_create("CellData", loc);
 
+    long num_inner = eqns->mesh->cells.num_inner;
     long num_cells = eqns->mesh->cells.off_periodic;
-    equations_boundary(eqns, eqns->variables.data, time);
-    write_variables(eqns->variables.name, eqns->variables.type, eqns->variables.data,
-                    eqns->variables.num, eqns->variables.stride, num_cells, group);
+
+    long num = eqns->variables.num;
+    long stride = eqns->variables.stride;
+    long *size = eqns->variables.size;
+    Name *name = eqns->variables.name;
+    scalar(*variable)[stride] = eqns->variables.data;
+
+    scalar *step = arena_malloc(num_cells, sizeof(*step));
+    for (long i = num_inner; i < num_cells; i++) {
+        step[i] = INFINITY;
+    }
+
+    equations_boundary(eqns, variable, time);
+    equations_timestep(eqns, variable, step);
+
+    write_variables(size, name, variable, num, stride, num_cells, group);
+
+    h5io_dataset_write("step", step, num_cells, 1, H5IO_SCALAR, group);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);
     }
-
-    scalar *step = arena_calloc(num_cells, sizeof(*step));
-    equations_timestep(eqns, eqns->variables.data, step);
-    h5io_dataset_write("step", step, num_cells, 1, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 
     arena_load(save);
 }
 
-void equations_write(const Equations *eqns, scalar time, const char *prefix, long index)
+void equations_write(const Equations *eqns, const char *prefix, scalar time, long index)
 {
-    assert(eqns && isfinite(time) && time >= 0 && prefix && index >= 0);
+    assert(eqns && prefix && isfinite(time) && time >= 0 && index >= 0);
 
     char fname[128];
     sprintf(fname, "%s_%05ld.vtkhdf", prefix, index);
