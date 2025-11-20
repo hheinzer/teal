@@ -52,16 +52,6 @@ void sync_exit(long status)
     exit(status);
 }
 
-void sync_abort(void)
-{
-    int flag;
-    MPI_Initialized(&flag);
-    if (flag) {
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-    }
-    abort();
-}
-
 long sync_lmin(long val)
 {
     long min = val;

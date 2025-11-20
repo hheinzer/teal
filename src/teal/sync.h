@@ -21,7 +21,6 @@ void sync_init(int *argc, char ***argv);
 void sync_reinit(MPI_Comm comm);
 
 void sync_exit(long status) __attribute((noreturn));
-void sync_abort(void) __attribute((noreturn));
 
 long sync_lmin(long val);
 long sync_lmax(long val);

@@ -48,7 +48,7 @@ void error(const char *fmt, ...)
         fputc('\n', stderr);
         fflush(stderr);
     }
-    sync_abort();
+    abort();
 }
 
 scalar sq(scalar val)
