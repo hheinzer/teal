@@ -13,22 +13,36 @@ Sync sync = {0};
 void sync_init(int *argc, char ***argv)
 {
     assert(argc && argv);
+
     MPI_Init(argc, argv);
     MPI_Comm_dup(MPI_COMM_WORLD, &sync.comm);
-    MPI_Comm_rank(sync.comm, &sync.rank);
-    MPI_Comm_size(sync.comm, &sync.size);
+
+    int rank;
+    MPI_Comm_rank(sync.comm, &rank);
+    sync.rank = rank;
+
+    int size;
+    MPI_Comm_size(sync.comm, &size);
+    sync.size = size;
 }
 
 void sync_reinit(MPI_Comm comm)
 {
     assert(comm != MPI_COMM_NULL);
+
     MPI_Comm_free(&sync.comm);
     sync.comm = comm;
-    MPI_Comm_rank(sync.comm, &sync.rank);
-    MPI_Comm_size(sync.comm, &sync.size);
+
+    int rank;
+    MPI_Comm_rank(sync.comm, &rank);
+    sync.rank = rank;
+
+    int size;
+    MPI_Comm_size(sync.comm, &size);
+    sync.size = size;
 }
 
-void sync_exit(int status)
+void sync_exit(long status)
 {
     int flag;
     MPI_Initialized(&flag);
@@ -48,24 +62,24 @@ void sync_abort(void)
     abort();
 }
 
-int sync_lmin(int val)
+long sync_lmin(long val)
 {
-    int min = val;
-    MPI_Allreduce(&val, &min, 1, MPI_INT, MPI_MIN, sync.comm);
+    long min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_LONG, MPI_MIN, sync.comm);
     return min;
 }
 
-int sync_lmax(int val)
+long sync_lmax(long val)
 {
-    int max = val;
-    MPI_Allreduce(&val, &max, 1, MPI_INT, MPI_MAX, sync.comm);
+    long max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_LONG, MPI_MAX, sync.comm);
     return max;
 }
 
-int sync_lsum(int val)
+long sync_lsum(long val)
 {
-    int sum = 0;
-    MPI_Allreduce(&val, &sum, 1, MPI_INT, MPI_SUM, sync.comm);
+    long sum = 0;
+    MPI_Allreduce(&val, &sum, 1, MPI_LONG, MPI_SUM, sync.comm);
     return sum;
 }
 
@@ -111,52 +125,52 @@ vector sync_vector_sum(vector val)
     return sum;
 }
 
-int sync_lexsum(int val)
+long sync_lexsum(long val)
 {
-    int exsum = 0;
-    MPI_Exscan(&val, &exsum, 1, MPI_INT, MPI_SUM, sync.comm);
+    long exsum = 0;
+    MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
     return (sync.rank == 0) ? 0 : exsum;
 }
 
-scalar sync_fdot(const scalar *lhs, const scalar *rhs, int num)
+scalar sync_fdot(const scalar *lhs, const scalar *rhs, long num)
 {
     return sync_fsum(array_fdot(lhs, rhs, num));
 }
 
-scalar sync_fnorm(const scalar *arr, int num)
+scalar sync_fnorm(const scalar *arr, long num)
 {
     return sqrt(sync_fdot(arr, arr, num));
 }
 
-MPI_Request *sync_irecv(const int *rank, const int *off, void *arr_, int num, int stride,
-                        MPI_Datatype type, int tag)
+MPI_Request *sync_irecv(const long *rank, const long *off, void *arr_, long num, long stride,
+                        MPI_Datatype type, long tag)
 {
     int size;
     MPI_Type_size(type, &size);
     char (*arr)[stride * size] = arr_;
     MPI_Request *req = arena_malloc(num, sizeof(*req));
-    for (int i = 0; i < num; i++) {
-        int count = (off[i + 1] - off[i]) * stride;
+    for (long i = 0; i < num; i++) {
+        long count = (off[i + 1] - off[i]) * stride;
         MPI_Irecv(arr[off[i]], count, type, rank[i], tag, sync.comm, &req[i]);
     }
     return req;
 }
 
-MPI_Request *sync_isend(const int *rank, const int *off, const int *idx, const void *arr_, int num,
-                        int stride, MPI_Datatype type, int tag)
+MPI_Request *sync_isend(const long *rank, const long *off, const long *idx, const void *arr_,
+                        long num, long stride, MPI_Datatype type, long tag)
 {
     int size;
     MPI_Type_size(type, &size);
     const char (*arr)[stride * size] = arr_;
     char (*buf)[stride * size] = arena_malloc(off[num], sizeof(*buf));
-    for (int i = 0; i < num; i++) {
-        for (int j = off[i]; j < off[i + 1]; j++) {
+    for (long i = 0; i < num; i++) {
+        for (long j = off[i]; j < off[i + 1]; j++) {
             memcpy(buf[j], arr[idx[j]], sizeof(*arr));
         }
     }
     MPI_Request *req = arena_malloc(num, sizeof(*req));
-    for (int i = 0; i < num; i++) {
-        int count = (off[i + 1] - off[i]) * stride;
+    for (long i = 0; i < num; i++) {
+        long count = (off[i + 1] - off[i]) * stride;
         MPI_Isend(buf[off[i]], count, type, rank[i], tag, sync.comm, &req[i]);
     }
     return req;

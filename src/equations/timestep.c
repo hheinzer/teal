@@ -8,11 +8,11 @@ scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *
 {
     assert(eqns && variable_);
 
-    int num = eqns->mesh->cells.num_inner;
+    long num = eqns->mesh->cells.num_inner;
     scalar *volume = eqns->mesh->cells.volume;
     vector *projection = eqns->mesh->cells.projection;
 
-    int stride = eqns->variables.stride;
+    long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
     Timestep *timestep = eqns->timestep;
 
@@ -20,13 +20,13 @@ scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *
 
     scalar min = INFINITY;
     if (step) {
-        for (int i = 0; i < num; i++) {
+        for (long i = 0; i < num; i++) {
             step[i] = timestep(variable[i], property, volume[i], projection[i]);
             min = fmin(min, step[i]);
         }
     }
     else {
-        for (int i = 0; i < num; i++) {
+        for (long i = 0; i < num; i++) {
             min = fmin(min, timestep(variable[i], property, volume[i], projection[i]));
         }
     }

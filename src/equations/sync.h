@@ -9,8 +9,8 @@ typedef struct {
     MPI_Request *send;
 } Request;
 
-Request sync_variables(const Equations *eqns, void *variable, int stride);
+Request sync_variables(const Equations *eqns, void *variable, long stride);
 
-Request sync_gradients(const Equations *eqns, void *gradient, int stride);
+Request sync_gradients(const Equations *eqns, void *gradient, long stride);
 
 void sync_wait(const Equations *eqns, MPI_Request *req);

@@ -61,12 +61,12 @@ scalar cb(scalar val)
     return val * val * val;
 }
 
-int lmin(int lhs, int rhs)
+long lmin(long lhs, long rhs)
 {
     return (lhs < rhs) ? lhs : rhs;
 }
 
-int lmax(int lhs, int rhs)
+long lmax(long lhs, long rhs)
 {
     return (lhs > rhs) ? lhs : rhs;
 }
@@ -84,11 +84,11 @@ bool isclose(scalar lhs, scalar rhs)
     return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
 }
 
-int cmp_int(const void *lhs_, const void *rhs_)
+int cmp_long(const void *lhs_, const void *rhs_)
 {
     assert(lhs_ && rhs_);
-    const int *lhs = lhs_;
-    const int *rhs = rhs_;
+    const long *lhs = lhs_;
+    const long *rhs = rhs_;
     return (*lhs > *rhs) - (*lhs < *rhs);
 }
 
@@ -105,7 +105,7 @@ int cmp_vector(const void *lhs_, const void *rhs_)
     assert(lhs_ && rhs_);
     const vector *lhs = lhs_;
     const vector *rhs = rhs_;
-    int cmp = cmp_scalar(&lhs->x, &rhs->x);
+    long cmp = cmp_scalar(&lhs->x, &rhs->x);
     if (cmp) {
         return cmp;
     }
@@ -116,10 +116,10 @@ int cmp_vector(const void *lhs_, const void *rhs_)
     return cmp_scalar(&lhs->z, &rhs->z);
 }
 
-void swap_int(int *lhs, int *rhs)
+void swap_long(long *lhs, long *rhs)
 {
     assert(lhs && rhs);
-    int swap = *lhs;
+    long swap = *lhs;
     *lhs = *rhs;
     *rhs = swap;
 }
@@ -140,12 +140,12 @@ void swap_vector(vector *lhs, vector *rhs)
     *rhs = swap;
 }
 
-void swap_bytes(void *lhs_, void *rhs_, int size)
+void swap_bytes(void *lhs_, void *rhs_, long size)
 {
     assert((lhs_ || rhs_) ? (lhs_ && rhs_ && size >= 0) : (size == 0));
     char *lhs = lhs_;
     char *rhs = rhs_;
-    for (int i = 0; i < size; i++) {
+    for (long i = 0; i < size; i++) {
         char swap = lhs[i];
         lhs[i] = rhs[i];
         rhs[i] = swap;
@@ -153,7 +153,7 @@ void swap_bytes(void *lhs_, void *rhs_, int size)
 }
 
 static const char *suffix = "\0KMGTPE";  // ready for exascale computing
-static const int base = 1000;
+static const long base = 1000;
 
 scalar str_to_size(const char *str)
 {
@@ -172,7 +172,7 @@ scalar str_to_size(const char *str)
 void size_to_str(char *str, scalar size)
 {
     assert(str && size >= 0);
-    int idx = 0;
+    long idx = 0;
     while (size >= base && suffix[idx + 1]) {
         size /= base;
         idx += 1;
@@ -183,28 +183,28 @@ void size_to_str(char *str, scalar size)
 void seconds_to_str(char *str, scalar seconds)
 {
     assert(str && seconds >= 0);
-    static const int seconds_per_minute = 60;
-    static const int seconds_per_hour = 60 * seconds_per_minute;
-    static const int seconds_per_day = 24 * seconds_per_hour;
+    static const long seconds_per_minute = 60;
+    static const long seconds_per_hour = 60 * seconds_per_minute;
+    static const long seconds_per_day = 24 * seconds_per_hour;
 
-    int days = seconds / seconds_per_day;
+    long days = seconds / seconds_per_day;
     seconds -= days * seconds_per_day;
 
-    int hours = seconds / seconds_per_hour;
+    long hours = seconds / seconds_per_hour;
     seconds -= hours * seconds_per_hour;
 
-    int minutes = seconds / seconds_per_minute;
+    long minutes = seconds / seconds_per_minute;
     seconds -= minutes * seconds_per_minute;
 
-    int len = 0;
+    long len = 0;
     if (days > 0) {
-        len += sprintf(str + len, "%dd", days);
+        len += sprintf(str + len, "%ldd", days);
     }
     if (hours > 0) {
-        len += sprintf(str + len, "%s%dh", len ? " " : "", hours);
+        len += sprintf(str + len, "%s%ldh", len ? " " : "", hours);
     }
     if (minutes > 0) {
-        len += sprintf(str + len, "%s%dm", len ? " " : "", minutes);
+        len += sprintf(str + len, "%s%ldm", len ? " " : "", minutes);
     }
     sprintf(str + len, "%s%gs", len ? " " : "", seconds);
 }

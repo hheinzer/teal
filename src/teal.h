@@ -13,7 +13,7 @@ typedef struct {
 } matrix;
 
 typedef struct {
-    int x, y, z;
+    long x, y, z;
 } tuple;
 
 typedef struct {

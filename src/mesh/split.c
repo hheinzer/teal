@@ -7,9 +7,9 @@
 #include "teal/arena.h"
 #include "teal/vector.h"
 
-static int find_entity(const MeshEntities *entities, const char *entity)
+static long find_entity(const MeshEntities *entities, const char *entity)
 {
-    for (int i = 0; i < entities->num; i++) {
+    for (long i = 0; i < entities->num; i++) {
         if (!strcmp(entities->name[i], entity)) {
             return i;
         }
@@ -18,7 +18,7 @@ static int find_entity(const MeshEntities *entities, const char *entity)
 }
 
 /* Grow entities arrays by one slot. */
-static void grow_entities(MeshEntities *entities, int idx)
+static void grow_entities(MeshEntities *entities, long idx)
 {
     if (idx < entities->num_inner) {
         entities->num_inner += 1;
@@ -31,7 +31,7 @@ static void grow_entities(MeshEntities *entities, int idx)
     Name *name = arena_calloc(entities->num, sizeof(*name));
     entities->name = memcpy(name, entities->name, (entities->num - 1) * sizeof(*name));
 
-    int *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
+    long *cell_off = arena_malloc(entities->num + 1, sizeof(*cell_off));
     entities->cell_off = memcpy(cell_off, entities->cell_off, entities->num * sizeof(*cell_off));
     entities->cell_off[entities->num] = entities->cell_off[entities->num - 1];
 
@@ -41,21 +41,21 @@ static void grow_entities(MeshEntities *entities, int idx)
 }
 
 /* Reorder cells based on which side of the splitting plane they are on. */
-static int reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
-                   vector root, vector normal, int idx)
+static long reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
+                    vector root, vector normal, long idx)
 {
     Arena save = arena_save();
 
-    int beg = entities->cell_off[idx];
-    int end = entities->cell_off[idx + 1];
-    int tot = end - beg;
-    int *map = arena_malloc(tot, sizeof(*map));
+    long beg = entities->cell_off[idx];
+    long end = entities->cell_off[idx + 1];
+    long tot = end - beg;
+    long *map = arena_malloc(tot, sizeof(*map));
 
-    int off = 0;
-    for (int num = 0, i = beg; i < end; i++, num++) {
+    long off = 0;
+    for (long num = 0, i = beg; i < end; i++, num++) {
         vector center = {0};
-        int num_nodes = cells->node.off[i + 1] - cells->node.off[i];
-        for (int j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
+        long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
+        for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             vector coord = nodes->coord[cells->node.idx[j]];
             vector_inc(&center, vector_div(coord, num_nodes));
         }
@@ -63,9 +63,9 @@ static int reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities 
         off += map[num];
     }
 
-    int lhs = 0;
-    int rhs = 0;
-    for (int i = 0; i < tot; i++) {
+    long lhs = 0;
+    long rhs = 0;
+    for (long i = 0; i < tot; i++) {
         map[i] = map[i] ? lhs++ : (off + rhs++);
     }
     assert(lhs == off);
@@ -78,9 +78,9 @@ static int reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities 
 }
 
 /* Split entity metadata at `idx` into two consecutive entities. */
-static void split_entities(MeshEntities *entities, int idx, int cell_off)
+static void split_entities(MeshEntities *entities, long idx, long cell_off)
 {
-    for (int i = entities->num - 1; i > idx; i--) {
+    for (long i = entities->num - 1; i > idx; i--) {
         strcpy(entities->name[i], entities->name[i - 1]);
         entities->cell_off[i + 1] = entities->cell_off[i];
         entities->translation[i] = entities->translation[i - 1];
@@ -95,12 +95,12 @@ void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
 {
     assert(mesh);
 
-    int idx = find_entity(&mesh->entities, entity);
+    long idx = find_entity(&mesh->entities, entity);
     assert(idx != -1);
 
     grow_entities(&mesh->entities, idx);
 
-    int cell_off = reorder(&mesh->nodes, &mesh->cells, &mesh->entities, root, normal, idx);
+    long cell_off = reorder(&mesh->nodes, &mesh->cells, &mesh->entities, root, normal, idx);
 
     split_entities(&mesh->entities, idx, cell_off);
 }

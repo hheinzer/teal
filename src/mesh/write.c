@@ -12,38 +12,38 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
 
     bool root = (sync.rank == 0);
 
-    int num_nodes = nodes->num_inner;
-    h5io_dataset_write("num", &num_nodes, 1, 1, H5IO_INT, group);
+    long num_nodes = nodes->num_inner;
+    h5io_dataset_write("num", &num_nodes, 1, 1, H5IO_LONG, group);
 
-    int tot_nodes = sync_lsum(num_nodes);
-    h5io_dataset_write("tot", &tot_nodes, root, 1, H5IO_INT, group);
+    long tot_nodes = sync_lsum(num_nodes);
+    h5io_dataset_write("tot", &tot_nodes, root, 1, H5IO_LONG, group);
 
     h5io_dataset_write("coord", nodes->coord, num_nodes, 3, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 }
 
-static void write_node_graph(Graph node, const int *global, int num_cells, hid_t loc)
+static void write_node_graph(Graph node, const long *global, long num_cells, hid_t loc)
 {
     Arena save = arena_save();
 
     hid_t group = h5io_group_create("node", loc);
 
-    int num_off = num_cells + (sync.rank == 0);
-    int num_idx = node.off[num_cells];
+    long num_off = num_cells + (sync.rank == 0);
+    long num_idx = node.off[num_cells];
 
-    int *off = arena_malloc(num_off, sizeof(*off));
-    int offset = sync_lexsum(num_idx);
-    for (int i = 0; i < num_off; i++) {
+    long *off = arena_malloc(num_off, sizeof(*off));
+    long offset = sync_lexsum(num_idx);
+    for (long i = 0; i < num_off; i++) {
         off[i] = offset + node.off[i + (sync.rank != 0)];  // globalize offsets
     }
-    h5io_dataset_write("off", off, num_off, 1, H5IO_INT, group);
+    h5io_dataset_write("off", off, num_off, 1, H5IO_LONG, group);
 
-    int *idx = arena_malloc(num_idx, sizeof(*idx));
-    for (int i = 0; i < num_idx; i++) {
+    long *idx = arena_malloc(num_idx, sizeof(*idx));
+    for (long i = 0; i < num_idx; i++) {
         idx[i] = global[node.idx[i]];  // remap indices
     }
-    h5io_dataset_write("idx", idx, num_idx, 1, H5IO_INT, group);
+    h5io_dataset_write("idx", idx, num_idx, 1, H5IO_LONG, group);
 
     h5io_group_close(group);
 
@@ -59,27 +59,27 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
 
     bool root = (sync.rank == 0);
 
-    int num_cells = cells->off_periodic;
-    h5io_dataset_write("num", &num_cells, 1, 1, H5IO_INT, group);
+    long num_cells = cells->off_periodic;
+    h5io_dataset_write("num", &num_cells, 1, 1, H5IO_LONG, group);
 
-    int tot_cells = sync_lsum(num_cells);
-    h5io_dataset_write("tot", &tot_cells, root, 1, H5IO_INT, group);
+    long tot_cells = sync_lsum(num_cells);
+    h5io_dataset_write("tot", &tot_cells, root, 1, H5IO_LONG, group);
 
-    int num_idx = cells->node.off[num_cells];
-    int tot_idx = sync_lsum(num_idx);
-    h5io_dataset_write("tot_idx", &tot_idx, root, 1, H5IO_INT, group);
+    long num_idx = cells->node.off[num_cells];
+    long tot_idx = sync_lsum(num_idx);
+    h5io_dataset_write("tot_idx", &tot_idx, root, 1, H5IO_LONG, group);
 
     write_node_graph(cells->node, nodes->global, num_cells, group);
 
     unsigned char *type = arena_malloc(num_cells, sizeof(*type));
-    int *entity = arena_malloc(num_cells, sizeof(*entity));
-    int *index = arena_malloc(num_cells, sizeof(*index));
-    int *rank = arena_malloc(num_cells, sizeof(*rank));
+    long *entity = arena_malloc(num_cells, sizeof(*entity));
+    long *index = arena_malloc(num_cells, sizeof(*index));
+    long *rank = arena_malloc(num_cells, sizeof(*rank));
 
-    int num = 0;
-    for (int i = 0; i < entities->num; i++) {
-        for (int j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
-            int num_nodes = cells->node.off[j + 1] - cells->node.off[j];
+    long num = 0;
+    for (long i = 0; i < entities->num; i++) {
+        for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
+            long num_nodes = cells->node.off[j + 1] - cells->node.off[j];
             if (i < entities->num_inner) {
                 enum { VTK_TETRA = 10, VTK_PYRAMID = 14, VTK_WEDGE = 13, VTK_HEXAHEDRON = 12 };
                 switch (num_nodes) {
@@ -87,7 +87,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                     case 5: type[num] = VTK_PYRAMID; break;
                     case 6: type[num] = VTK_WEDGE; break;
                     case 8: type[num] = VTK_HEXAHEDRON; break;
-                    default: error("invalid number of nodes -- '%d'", num_nodes);
+                    default: error("invalid number of nodes -- '%ld'", num_nodes);
                 }
             }
             else {
@@ -95,7 +95,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                 switch (num_nodes) {
                     case 3: type[num] = VTK_TRIANGLE; break;
                     case 4: type[num] = VTK_QUAD; break;
-                    default: error("invalid number of nodes -- '%d'", num_nodes);
+                    default: error("invalid number of nodes -- '%ld'", num_nodes);
                 }
             }
             entity[num] = i;
@@ -107,9 +107,9 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     assert(num == num_cells);
 
     h5io_dataset_write("type", type, num_cells, 1, H5T_NATIVE_UCHAR, group);
-    h5io_dataset_write("entity", entity, num_cells, 1, H5IO_INT, group);
-    h5io_dataset_write("index", index, num_cells, 1, H5IO_INT, group);
-    h5io_dataset_write("rank", rank, num_cells, 1, H5IO_INT, group);
+    h5io_dataset_write("entity", entity, num_cells, 1, H5IO_LONG, group);
+    h5io_dataset_write("index", index, num_cells, 1, H5IO_LONG, group);
+    h5io_dataset_write("rank", rank, num_cells, 1, H5IO_LONG, group);
 
     h5io_dataset_write("volume", cells->volume, num_cells, 1, H5IO_SCALAR, group);
     h5io_dataset_write("center", cells->center, num_cells, 3, H5IO_SCALAR, group);
@@ -126,11 +126,11 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
 
     bool root = (sync.rank == 0);
 
-    h5io_dataset_write("num", &entities->num, root, 1, H5IO_INT, group);
-    h5io_dataset_write("num_inner", &entities->num_inner, root, 1, H5IO_INT, group);
-    h5io_dataset_write("off_ghost", &entities->off_ghost, root, 1, H5IO_INT, group);
+    h5io_dataset_write("num", &entities->num, root, 1, H5IO_LONG, group);
+    h5io_dataset_write("num_inner", &entities->num_inner, root, 1, H5IO_LONG, group);
+    h5io_dataset_write("off_ghost", &entities->off_ghost, root, 1, H5IO_LONG, group);
 
-    int num = root ? entities->num : 0;
+    long num = root ? entities->num : 0;
     h5io_dataset_write("name", entities->name, num, sizeof(*entities->name), H5IO_STRING, group);
 
     h5io_group_close(group);

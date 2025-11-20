@@ -201,10 +201,10 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     scalar characteristic_i[5];
     scalar characteristic_g[5];
 
-    for (int i = 0; i < 5; i++) {
+    for (long i = 0; i < 5; i++) {
         characteristic_i[i] = 0;
         characteristic_g[i] = 0;
-        for (int j = 0; j < 5; j++) {
+        for (long j = 0; j < 5; j++) {
             characteristic_i[i] += eigenvector_inv[i][j] * conserved_i[j];
             characteristic_g[i] += eigenvector_inv[i][j] * conserved_g[j];
         }
@@ -264,9 +264,9 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
         },
     };
 
-    for (int i = 0; i < 5; i++) {
+    for (long i = 0; i < 5; i++) {
         conserved_g[i] = 0;
-        for (int j = 0; j < 5; j++) {
+        for (long j = 0; j < 5; j++) {
             conserved_g[i] += eigenvector[i][j] * characteristic_g[j];
         }
     }

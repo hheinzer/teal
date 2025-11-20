@@ -1,7 +1,6 @@
 #pragma once
 
 #include <mpi.h>
-#include <stdint.h>
 
 #include "teal.h"
 
@@ -12,8 +11,8 @@ enum { MPI_TAG_UB_MIN = 32767 };
 
 typedef struct {
     MPI_Comm comm;
-    int rank;
-    int size;
+    long rank;
+    long size;
 } Sync;
 
 extern Sync sync;
@@ -21,12 +20,12 @@ extern Sync sync;
 void sync_init(int *argc, char ***argv);
 void sync_reinit(MPI_Comm comm);
 
-void sync_exit(int status) __attribute((noreturn));
+void sync_exit(long status) __attribute((noreturn));
 void sync_abort(void) __attribute((noreturn));
 
-int sync_lmin(int val);
-int sync_lmax(int val);
-int sync_lsum(int val);
+long sync_lmin(long val);
+long sync_lmax(long val);
+long sync_lsum(long val);
 
 scalar sync_fmin(scalar val);
 scalar sync_fmax(scalar val);
@@ -36,14 +35,14 @@ vector sync_vector_min(vector val);
 vector sync_vector_max(vector val);
 vector sync_vector_sum(vector val);
 
-int sync_lexsum(int val);
+long sync_lexsum(long val);
 
-scalar sync_fdot(const scalar *lhs, const scalar *rhs, int num);
-scalar sync_fnorm(const scalar *arr, int num);
+scalar sync_fdot(const scalar *lhs, const scalar *rhs, long num);
+scalar sync_fnorm(const scalar *arr, long num);
 
-MPI_Request *sync_irecv(const int *rank, const int *off, void *arr_, int num, int stride,
-                        MPI_Datatype type, int tag);
-MPI_Request *sync_isend(const int *rank, const int *off, const int *idx, const void *arr_, int num,
-                        int stride, MPI_Datatype type, int tag);
+MPI_Request *sync_irecv(const long *rank, const long *off, void *arr_, long num, long stride,
+                        MPI_Datatype type, long tag);
+MPI_Request *sync_isend(const long *rank, const long *off, const long *idx, const void *arr_,
+                        long num, long stride, MPI_Datatype type, long tag);
 
 void sync_finalize(void);

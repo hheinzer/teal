@@ -7,75 +7,75 @@
 
 #include "utils.h"
 
-int array_lmin(const int *arr, int num)
+long array_lmin(const long *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    int min = INT_MAX;
-    for (int i = 0; i < num; i++) {
+    long min = LONG_MAX;
+    for (long i = 0; i < num; i++) {
         min = lmin(min, arr[i]);
     }
     return min;
 }
 
-int array_lmax(const int *arr, int num)
+long array_lmax(const long *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    int max = INT_MIN;
-    for (int i = 0; i < num; i++) {
+    long max = LONG_MIN;
+    for (long i = 0; i < num; i++) {
         max = lmax(max, arr[i]);
     }
     return max;
 }
 
-int array_lsum(const int *arr, int num)
+long array_lsum(const long *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    int sum = 0;
-    for (int i = 0; i < num; i++) {
+    long sum = 0;
+    for (long i = 0; i < num; i++) {
         sum += arr[i];
     }
     return sum;
 }
 
-scalar array_fmin(const scalar *arr, int num)
+scalar array_fmin(const scalar *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
     scalar min = INFINITY;
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         min = fmin(min, arr[i]);
     }
     return min;
 }
 
-scalar array_fmax(const scalar *arr, int num)
+scalar array_fmax(const scalar *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
     scalar max = -INFINITY;
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         max = fmax(max, arr[i]);
     }
     return max;
 }
 
-scalar array_fsum(const scalar *arr, int num)
+scalar array_fsum(const scalar *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
     double sum = 0;  // always use double to avoid loss of precision
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         sum += arr[i];
     }
     return sum;
 }
 
-void array_lunique(int *arr, int *num)
+void array_lunique(long *arr, long *num)
 {
     assert(arr ? (*num >= 0) : (*num == 0));
     if (*num <= 1) {
         return;
     }
-    qsort(arr, *num, sizeof(*arr), cmp_int);
-    int unique = 1;
-    for (int i = 1; i < *num; i++) {
+    qsort(arr, *num, sizeof(*arr), cmp_long);
+    long unique = 1;
+    for (long i = 1; i < *num; i++) {
         if (arr[i] != arr[unique - 1]) {
             arr[unique++] = arr[i];
         }
@@ -83,14 +83,14 @@ void array_lunique(int *arr, int *num)
     *num = unique;
 }
 
-int array_ldigitize(const int *arr, int val, int num)
+long array_ldigitize(const long *arr, long val, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
     if (num == 0) {
         return 0;
     }
-    int left = 0;
-    int right = num - 1;
+    long left = 0;
+    long right = num - 1;
     if (val < arr[left]) {
         return 0;
     }
@@ -98,7 +98,7 @@ int array_ldigitize(const int *arr, int val, int num)
         return num;
     }
     while (left < right) {
-        int mid = left + ((right - left) / 2);
+        long mid = left + ((right - left) / 2);
         if (arr[mid] <= val) {
             left = mid + 1;
         }
@@ -109,17 +109,17 @@ int array_ldigitize(const int *arr, int val, int num)
     return left;
 }
 
-scalar array_fdot(const scalar *lhs, const scalar *rhs, int num)
+scalar array_fdot(const scalar *lhs, const scalar *rhs, long num)
 {
     assert((lhs || rhs) ? (num >= 0) : (num == 0));
     double dot = 0;
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         dot += lhs[i] * rhs[i];
     }
     return dot;
 }
 
-scalar array_fnorm(const scalar *arr, int num)
+scalar array_fnorm(const scalar *arr, long num)
 {
     return sqrt(array_fdot(arr, arr, num));
 }

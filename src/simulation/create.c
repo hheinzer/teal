@@ -18,8 +18,8 @@ Simulation *simulation_create(const Equations *eqns, const char *prefix)
     sim->time.max = INFINITY;
     sim->time.output = INFINITY;
 
-    sim->iter.max = INT_MAX;
-    sim->iter.output = INT_MAX;
+    sim->iter.max = LONG_MAX;
+    sim->iter.output = LONG_MAX;
 
     RungeKutta ctx = {
         .time_order = eqns->space_order,

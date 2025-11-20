@@ -10,7 +10,7 @@
 
 Option option = {0};
 
-static void help(char ***argv, int status)
+static void help(char ***argv, long status)
 {
     println(
         "usage: %s"
@@ -28,7 +28,7 @@ static void help(char ***argv, int status)
 void option_init(int *argc, char ***argv)
 {
     opterr = 0;
-    int opt;
+    long opt;
     while ((opt = getopt(*argc, *argv, ":hqvc:C:n:r:")) != -1) {
         switch (opt) {
             case 'h': help(argv, EXIT_SUCCESS); break;
@@ -50,8 +50,8 @@ void option_init(int *argc, char ***argv)
         }
     }
 
-    int num = 1;
-    for (int i = optind; i < *argc; i++) {
+    long num = 1;
+    for (long i = optind; i < *argc; i++) {
         (*argv)[num++] = (*argv)[i];
     }
     *argc = num;

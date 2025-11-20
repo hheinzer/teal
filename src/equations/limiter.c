@@ -6,11 +6,11 @@
 #include "teal/utils.h"
 
 scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
-              const vector *offset, int beg, int end)
+              const vector *offset, long beg, long end)
 {
     (void)parameter;
     scalar psi = 1;
-    for (int i = beg; i < end; i++) {
+    for (long i = beg; i < end; i++) {
         scalar delta2 =
             (gradient.x * offset[i].x) + (gradient.y * offset[i].y) + (gradient.z * offset[i].z);
         if (delta2 == 0) {
@@ -23,10 +23,10 @@ scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, 
 }
 
 scalar venkatakrishnan(vector gradient, scalar variable, scalar minimum, scalar maximum,
-                       scalar parameter, const vector *offset, int beg, int end)
+                       scalar parameter, const vector *offset, long beg, long end)
 {
     scalar psi = 1;
-    for (int i = beg; i < end; i++) {
+    for (long i = beg; i < end; i++) {
         scalar delta2 =
             (gradient.x * offset[i].x) + (gradient.y * offset[i].y) + (gradient.z * offset[i].z);
         if (delta2 == 0) {
@@ -45,10 +45,10 @@ scalar venkatakrishnan(vector gradient, scalar variable, scalar minimum, scalar 
 scalar *venkatakrishnan_parameter(const Equations *eqns, scalar parameter)
 {
     assert(eqns);
-    int num = eqns->mesh->cells.num_inner;
+    long num = eqns->mesh->cells.num_inner;
     scalar *volume = eqns->mesh->cells.volume;
     scalar *eps2 = arena_malloc(num, sizeof(*eps2));
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         eps2[i] = cb(parameter * cbrt(volume[i]));
     }
     return eps2;
@@ -58,25 +58,25 @@ void equations_limiter(const Equations *eqns, const void *variable_, void *gradi
 {
     assert(eqns && variable_ && gradient_);
 
-    int num = eqns->mesh->cells.num_inner;
-    int *cell_off = eqns->mesh->cells.cell.off;
-    int *cell_idx = eqns->mesh->cells.cell.idx;
+    long num = eqns->mesh->cells.num_inner;
+    long *cell_off = eqns->mesh->cells.cell.off;
+    long *cell_idx = eqns->mesh->cells.cell.idx;
     vector *offset = eqns->mesh->cells.offset;
 
-    int stride = eqns->variables.stride;
+    long stride = eqns->variables.stride;
     scalar *parameter = eqns->limiter.parameter;
     Limiter *compute = eqns->limiter.compute;
 
     const scalar(*variable)[stride] = variable_;
     vector(*gradient)[stride] = gradient_;
 
-    for (int i = 0; i < num; i++) {
-        int beg = cell_off[i];
-        int end = cell_off[i + 1];
-        for (int j = 0; j < stride; j++) {
+    for (long i = 0; i < num; i++) {
+        long beg = cell_off[i];
+        long end = cell_off[i + 1];
+        for (long j = 0; j < stride; j++) {
             scalar minimum = variable[i][j];
             scalar maximum = variable[i][j];
-            for (int k = beg; k < end; k++) {
+            for (long k = beg; k < end; k++) {
                 minimum = fmin(minimum, variable[cell_idx[k]][j]);
                 maximum = fmax(maximum, variable[cell_idx[k]][j]);
             }

@@ -41,23 +41,23 @@ enum { MAX_CELL_FACES = 6 };
 enum { MAX_FACE_NODES = 4 };
 
 typedef struct {
-    int num;
-    int num_inner;
-    int *global;
+    long num;
+    long num_inner;
+    long *global;
     vector *coord;
 } MeshNodes;
 
 typedef struct {
-    int *off, *idx;  // CSR graph
+    long *off, *idx;  // CSR graph
 } Graph;
 
 typedef struct {
-    int num;
-    int num_inner;
-    int off_ghost;     // num_inner + num_ghost
-    int off_periodic;  // num_inner + num_ghost + num_periodic
-    Graph node;        // cell-to-node connectivity
-    Graph cell;        // cell-to-cell connectivity
+    long num;
+    long num_inner;
+    long off_ghost;     // num_inner + num_ghost
+    long off_periodic;  // num_inner + num_ghost + num_periodic
+    Graph node;         // cell-to-node connectivity
+    Graph cell;         // cell-to-cell connectivity
     scalar *volume;
     scalar sum_volume;
     vector *center;
@@ -66,7 +66,7 @@ typedef struct {
 } MeshCells;
 
 typedef struct {
-    int left, right;  // adjacent face cells (left: always inner; right: inner or outer)
+    long left, right;  // adjacent face cells (left: always inner; right: inner or outer)
 } Adjacent;
 
 typedef struct {
@@ -74,9 +74,9 @@ typedef struct {
 } Offset;
 
 typedef struct {
-    int num;
-    int num_inner;
-    int off_ghost;   // num_inner + num_ghost
+    long num;
+    long num_inner;
+    long off_ghost;  // num_inner + num_ghost
     Graph node;      // face-to-node connectivity
     Adjacent *cell;  // face-to-cell connectivity
     scalar *area;
@@ -89,20 +89,20 @@ typedef struct {
 typedef char Name[128];
 
 typedef struct {
-    int num;
-    int num_inner;
-    int off_ghost;  // num_inner + num_ghost
+    long num;
+    long num_inner;
+    long off_ghost;  // num_inner + num_ghost
     Name *name;
-    int *cell_off;        // entity-to-cell offsets
-    int *face_off;        // entity-to-face offsets
+    long *cell_off;       // entity-to-cell offsets
+    long *face_off;       // entity-to-face offsets
     vector *translation;  // entity translation (zero for non-periodic)
 } MeshEntities;
 
 typedef struct {
-    int num;
-    int *rank;      // neighbor ranks
-    int *recv_off;  // neighbor-to-cell offsets for receiving
-    Graph send;     // neighbor-to-cell graph for sending
+    long num;
+    long *rank;      // neighbor ranks
+    long *recv_off;  // neighbor-to-cell offsets for receiving
+    Graph send;      // neighbor-to-cell graph for sending
 } MeshNeighbors;
 
 typedef struct {

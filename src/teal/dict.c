@@ -14,7 +14,7 @@ enum { WIDTH = countof((DictItem){0}.child) };
 enum { SHIFT = (WIDTH == 2) ? 1 : (WIDTH == 4) ? 2 : (WIDTH == 8) ? 3 : -1 };
 enum { SELECT = (8 * sizeof(uint64_t)) - SHIFT };
 
-Dict *dict_create(int size_key, int size_val)
+Dict *dict_create(long size_key, long size_val)
 {
     assert(size_key > 0 && size_val >= 0);
     Dict *dict = arena_calloc(1, sizeof(*dict));
@@ -24,13 +24,13 @@ Dict *dict_create(int size_key, int size_val)
     return dict;
 }
 
-static uint64_t fnv1a(const void *ptr, int size)
+static uint64_t fnv1a(const void *ptr, long size)
 {
     static const uint64_t basis = 0xcbf29ce484222325;
     static const uint64_t prime = 0x00000100000001b3;
     const char *byte = ptr;
     uint64_t hash = basis;
-    for (int i = 0; i < size; i++) {
+    for (long i = 0; i < size; i++) {
         hash ^= byte[i];
         hash *= prime;
     }

@@ -10,9 +10,6 @@ Windows, I recommend that you use WSL.
 - HDF5 **built with MPI support** (headers + libs)
 - METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
 
-> For ParMETIS, both `i64=0` and `i64=1` builds are supported. For very large meshes (when 32-bit
-> indices overflow), use the `i64=1` build.
-
 ## Compilers
 
 The compiler is selected in the Makefile; change it there if needed. The project compiles under both

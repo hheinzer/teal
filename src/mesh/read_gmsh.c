@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -56,7 +57,7 @@ static void read_physicals(Physicals *physicals, ParseFile file)
     parse_ascii(I32, &physicals->num, 1, file);
 
     physicals->physical = arena_malloc(physicals->num, sizeof(*physicals->physical));
-    for (int i = 0; i < physicals->num; i++) {
+    for (long i = 0; i < physicals->num; i++) {
         parse_ascii(I32, &physicals->physical[i].dim, 1, file);
         parse_ascii(I32, &physicals->physical[i].tag, 1, file);
         parse_ascii(STR, physicals->physical[i].name, sizeof(physicals->physical[i].name), file);
@@ -78,14 +79,14 @@ typedef struct {
     int32_t *physical_tag;
 } Point;
 
-static Point *read_points(ParseMode mode, ParseType SIZE, int num, bool swap, ParseFile file)
+static Point *read_points(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Point *point = arena_malloc(num, sizeof(*point));
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         parse(mode, I32, &point[i].tag, 1, swap, file);
         parse(mode, F64, point[i].coords, 3, swap, file);
         parse(mode, SIZE, &point[i].num_physical_tags, 1, swap, file);
-        int num_physical_tags = parse_data_to_int(SIZE, &point[i].num_physical_tags, 0);
+        long num_physical_tags = parse_data_to_long(SIZE, &point[i].num_physical_tags, 0);
         point[i].physical_tag = arena_malloc(num_physical_tags, sizeof(*point[i].physical_tag));
         parse(mode, I32, point[i].physical_tag, num_physical_tags, swap, file);
     }
@@ -101,18 +102,18 @@ typedef struct {
     int32_t *point_tag;
 } Curve;
 
-static Curve *read_curves(ParseMode mode, ParseType SIZE, int num, bool swap, ParseFile file)
+static Curve *read_curves(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Curve *curve = arena_malloc(num, sizeof(*curve));
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         parse(mode, I32, &curve[i].tag, 1, swap, file);
         parse(mode, F64, curve[i].bounds, 6, swap, file);
         parse(mode, SIZE, &curve[i].num_physical_tags, 1, swap, file);
-        int num_physical_tags = parse_data_to_int(SIZE, &curve[i].num_physical_tags, 0);
+        long num_physical_tags = parse_data_to_long(SIZE, &curve[i].num_physical_tags, 0);
         curve[i].physical_tag = arena_malloc(num_physical_tags, sizeof(*curve[i].physical_tag));
         parse(mode, I32, curve[i].physical_tag, num_physical_tags, swap, file);
         parse(mode, SIZE, &curve[i].num_bounding_points, 1, swap, file);
-        int num_bounding_points = parse_data_to_int(SIZE, &curve[i].num_bounding_points, 0);
+        long num_bounding_points = parse_data_to_long(SIZE, &curve[i].num_bounding_points, 0);
         curve[i].point_tag = arena_malloc(num_bounding_points, sizeof(*curve[i].point_tag));
         parse(mode, I32, curve[i].point_tag, num_bounding_points, swap, file);
     }
@@ -128,18 +129,18 @@ typedef struct {
     int32_t *curve_tag;
 } Surface;
 
-static Surface *read_surfaces(ParseMode mode, ParseType SIZE, int num, bool swap, ParseFile file)
+static Surface *read_surfaces(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Surface *surface = arena_malloc(num, sizeof(*surface));
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         parse(mode, I32, &surface[i].tag, 1, swap, file);
         parse(mode, F64, surface[i].bounds, 6, swap, file);
         parse(mode, SIZE, &surface[i].num_physical_tags, 1, swap, file);
-        int num_physical_tags = parse_data_to_int(SIZE, &surface[i].num_physical_tags, 0);
+        long num_physical_tags = parse_data_to_long(SIZE, &surface[i].num_physical_tags, 0);
         surface[i].physical_tag = arena_malloc(num_physical_tags, sizeof(*surface[i].physical_tag));
         parse(mode, I32, surface[i].physical_tag, num_physical_tags, swap, file);
         parse(mode, SIZE, &surface[i].num_bounding_curves, 1, swap, file);
-        int num_bounding_curves = parse_data_to_int(SIZE, &surface[i].num_bounding_curves, 0);
+        long num_bounding_curves = parse_data_to_long(SIZE, &surface[i].num_bounding_curves, 0);
         surface[i].curve_tag = arena_malloc(num_bounding_curves, sizeof(*surface[i].curve_tag));
         parse(mode, I32, surface[i].curve_tag, num_bounding_curves, swap, file);
     }
@@ -155,18 +156,18 @@ typedef struct {
     int32_t *surface_tag;
 } Volume;
 
-static Volume *read_volumes(ParseMode mode, ParseType SIZE, int num, bool swap, ParseFile file)
+static Volume *read_volumes(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Volume *volume = arena_malloc(num, sizeof(*volume));
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         parse(mode, I32, &volume[i].tag, 1, swap, file);
         parse(mode, F64, volume[i].bounds, 6, swap, file);
         parse(mode, SIZE, &volume[i].num_physical_tags, 1, swap, file);
-        int num_physical_tags = parse_data_to_int(SIZE, &volume[i].num_physical_tags, 0);
+        long num_physical_tags = parse_data_to_long(SIZE, &volume[i].num_physical_tags, 0);
         volume[i].physical_tag = arena_malloc(num_physical_tags, sizeof(*volume[i].physical_tag));
         parse(mode, I32, volume[i].physical_tag, num_physical_tags, swap, file);
         parse(mode, SIZE, &volume[i].num_bounding_surfaces, 1, swap, file);
-        int num_bounding_surfaces = parse_data_to_int(SIZE, &volume[i].num_bounding_surfaces, 0);
+        long num_bounding_surfaces = parse_data_to_long(SIZE, &volume[i].num_bounding_surfaces, 0);
         volume[i].surface_tag = arena_malloc(num_bounding_surfaces, sizeof(*volume[i].surface_tag));
         parse(mode, I32, volume[i].surface_tag, num_bounding_surfaces, swap, file);
     }
@@ -196,16 +197,16 @@ static void read_entities(Entities *entities, ParseMode mode, ParseType SIZE, bo
     parse(mode, SIZE, &entities->num_surfaces, 1, swap, file);
     parse(mode, SIZE, &entities->num_volumes, 1, swap, file);
 
-    int num_points = parse_data_to_int(SIZE, &entities->num_points, 0);
+    long num_points = parse_data_to_long(SIZE, &entities->num_points, 0);
     entities->point = read_points(mode, SIZE, num_points, swap, file);
 
-    int num_curves = parse_data_to_int(SIZE, &entities->num_curves, 0);
+    long num_curves = parse_data_to_long(SIZE, &entities->num_curves, 0);
     entities->curve = read_curves(mode, SIZE, num_curves, swap, file);
 
-    int num_surfaces = parse_data_to_int(SIZE, &entities->num_surfaces, 0);
+    long num_surfaces = parse_data_to_long(SIZE, &entities->num_surfaces, 0);
     entities->surface = read_surfaces(mode, SIZE, num_surfaces, swap, file);
 
-    int num_volumes = parse_data_to_int(SIZE, &entities->num_volumes, 0);
+    long num_volumes = parse_data_to_long(SIZE, &entities->num_volumes, 0);
     entities->volume = read_volumes(mode, SIZE, num_volumes, swap, file);
 
     parse_ascii(STR, line, sizeof(line), file);
@@ -226,41 +227,41 @@ typedef struct {
     double *coord;
 } NodeBlock;
 
-static int read_node_block(NodeBlock *block, int beg, int end, int off, ParseMode mode,
-                           ParseType SIZE, bool swap, ParseFile file)
+static long read_node_block(NodeBlock *block, long beg, long end, long off, ParseMode mode,
+                            ParseType SIZE, bool swap, ParseFile file)
 {
     parse(mode, I32, &block->entity_dim, 1, swap, file);
     parse(mode, I32, &block->entity_tag, 1, swap, file);
     parse(mode, I32, &block->parametric, 1, swap, file);
     parse(mode, SIZE, &block->num_nodes, 1, swap, file);
 
-    int tot_nodes = parse_data_to_int(SIZE, &block->num_nodes, 0);
-    int beg_nodes = lmax(beg, off);
-    int end_nodes = lmin(end, off + tot_nodes);
-    int num_nodes = lmax(0, end_nodes - beg_nodes);
+    long tot_nodes = parse_data_to_long(SIZE, &block->num_nodes, 0);
+    long beg_nodes = lmax(beg, off);
+    long end_nodes = lmin(end, off + tot_nodes);
+    long num_nodes = lmax(0, end_nodes - beg_nodes);
     assert(tot_nodes == sync_lsum(num_nodes));
 
     switch (SIZE) {
         case U32: {
             block->num_nodes.u32 = num_nodes;
             block->tag.u32 = arena_malloc(num_nodes, sizeof(*block->tag.u32));
-            int stride = (mode == ASCII) ? 1 : sizeof(*block->tag.u32);
+            long stride = (mode == ASCII) ? 1 : sizeof(*block->tag.u32);
             parse_split(mode, U32, block->tag.u32, num_nodes, 1, stride, swap, file);
             break;
         }
         case U64: {
             block->num_nodes.u64 = num_nodes;
             block->tag.u64 = arena_malloc(num_nodes, sizeof(*block->tag.u64));
-            int stride = (mode == ASCII) ? 1 : sizeof(*block->tag.u64);
+            long stride = (mode == ASCII) ? 1 : sizeof(*block->tag.u64);
             parse_split(mode, U64, block->tag.u64, num_nodes, 1, stride, swap, file);
             break;
         }
         default: error("invalid parse type -- '%d'", SIZE);
     }
 
-    int len = 3 + (block->parametric ? block->entity_dim : 0);
+    long len = 3 + (block->parametric ? block->entity_dim : 0);
     block->coord = arena_malloc(num_nodes * len, sizeof(*block->coord));
-    int stride = (mode == ASCII) ? len : (len * sizeof(*block->coord));
+    long stride = (mode == ASCII) ? len : (len * sizeof(*block->coord));
     parse_split(mode, F64, block->coord, num_nodes, len, stride, swap, file);
 
     return off + tot_nodes;
@@ -285,17 +286,17 @@ static void read_nodes(Nodes *nodes, ParseMode mode, ParseType SIZE, bool swap, 
     parse(mode, SIZE, &nodes->min_tag, 1, swap, file);
     parse(mode, SIZE, &nodes->max_tag, 1, swap, file);
 
-    int num_blocks = parse_data_to_int(SIZE, &nodes->num_blocks, 0);
+    long num_blocks = parse_data_to_long(SIZE, &nodes->num_blocks, 0);
     nodes->block = arena_malloc(num_blocks, sizeof(*nodes->block));
 
-    int tot_nodes = parse_data_to_int(SIZE, &nodes->tot_nodes, 0);
-    int base = tot_nodes / sync.size;
-    int extra = tot_nodes % sync.size;
-    int beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
-    int end = beg + base + (sync.rank < extra);
+    long tot_nodes = parse_data_to_long(SIZE, &nodes->tot_nodes, 0);
+    long base = tot_nodes / sync.size;
+    long extra = tot_nodes % sync.size;
+    long beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
+    long end = beg + base + (sync.rank < extra);
 
-    int off = 0;
-    for (int i = 0; i < num_blocks; i++) {
+    long off = 0;
+    for (long i = 0; i < num_blocks; i++) {
         off = read_node_block(&nodes->block[i], beg, end, off, mode, SIZE, swap, file);
     }
     assert(off == tot_nodes);
@@ -313,7 +314,7 @@ typedef struct {
     SizePtr node_tag;
 } ElementBlock;
 
-static int num_node_tags(int element_type)
+static long num_node_tags(long element_type)
 {
     switch (element_type) {
         case 2: return 3;  // triangle
@@ -322,34 +323,34 @@ static int num_node_tags(int element_type)
         case 5: return 8;  // hexahedron
         case 6: return 6;  // prism
         case 7: return 5;  // pyramid
-        default: error("unsupported element type -- '%d'", element_type);
+        default: error("unsupported element type -- '%ld'", element_type);
     }
 }
 
-static int read_element_block(ElementBlock *block, int beg, int end, int off, ParseMode mode,
-                              ParseType SIZE, bool swap, ParseFile file)
+static long read_element_block(ElementBlock *block, long beg, long end, long off, ParseMode mode,
+                               ParseType SIZE, bool swap, ParseFile file)
 {
     parse(mode, I32, &block->entity_dim, 1, swap, file);
     parse(mode, I32, &block->entity_tag, 1, swap, file);
     parse(mode, I32, &block->element_type, 1, swap, file);
     parse(mode, SIZE, &block->num_elements, 1, swap, file);
 
-    int tot_elements = parse_data_to_int(SIZE, &block->num_elements, 0);
-    int beg_elements = lmax(beg, off);
-    int end_elements = lmin(end, off + tot_elements);
-    int num_elements = lmax(0, end_elements - beg_elements);
+    long tot_elements = parse_data_to_long(SIZE, &block->num_elements, 0);
+    long beg_elements = lmax(beg, off);
+    long end_elements = lmin(end, off + tot_elements);
+    long num_elements = lmax(0, end_elements - beg_elements);
     assert(tot_elements == sync_lsum(num_elements));
 
-    int len = num_node_tags(block->element_type);
-    int offset = -1;
+    long len = num_node_tags(block->element_type);
+    long offset = -1;
     switch (SIZE) {
         case U32: {
             block->num_elements.u32 = num_elements;
             block->tag.u32 = arena_malloc(num_elements, sizeof(*block->tag.u32));
             block->node_tag.u32 = arena_malloc(num_elements * len, sizeof(*block->node_tag.u32));
-            int stride = (mode == ASCII)
-                             ? (1 + len)
-                             : (sizeof(*block->tag.u32) + (len * sizeof(*block->node_tag.u32)));
+            long stride = (mode == ASCII)
+                              ? (1 + len)
+                              : (sizeof(*block->tag.u32) + (len * sizeof(*block->node_tag.u32)));
             parse_split(mode, U32, block->tag.u32, num_elements, 1, stride, swap, file);
             offset =
                 parse_split(mode, U32, block->node_tag.u32, num_elements, len, stride, swap, file);
@@ -359,9 +360,9 @@ static int read_element_block(ElementBlock *block, int beg, int end, int off, Pa
             block->num_elements.u64 = num_elements;
             block->tag.u64 = arena_malloc(num_elements, sizeof(*block->tag.u64));
             block->node_tag.u64 = arena_malloc(num_elements * len, sizeof(*block->node_tag.u64));
-            int stride = (mode == ASCII)
-                             ? (1 + len)
-                             : (sizeof(*block->tag.u64) + (len * sizeof(*block->node_tag.u64)));
+            long stride = (mode == ASCII)
+                              ? (1 + len)
+                              : (sizeof(*block->tag.u64) + (len * sizeof(*block->node_tag.u64)));
             parse_split(mode, U64, block->tag.u64, num_elements, 1, stride, swap, file);
             offset =
                 parse_split(mode, U64, block->node_tag.u64, num_elements, len, stride, swap, file);
@@ -394,17 +395,17 @@ static void read_elements(Elements *elements, ParseMode mode, ParseType SIZE, bo
     parse(mode, SIZE, &elements->min_tag, 1, swap, file);
     parse(mode, SIZE, &elements->max_tag, 1, swap, file);
 
-    int num_blocks = parse_data_to_int(SIZE, &elements->num_blocks, 0);
+    long num_blocks = parse_data_to_long(SIZE, &elements->num_blocks, 0);
     elements->block = arena_malloc(num_blocks, sizeof(*elements->block));
 
-    int tot_elements = parse_data_to_int(SIZE, &elements->tot_elements, 0);
-    int base = tot_elements / sync.size;
-    int extra = tot_elements % sync.size;
-    int beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
-    int end = beg + base + (sync.rank < extra);
+    long tot_elements = parse_data_to_long(SIZE, &elements->tot_elements, 0);
+    long base = tot_elements / sync.size;
+    long extra = tot_elements % sync.size;
+    long beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
+    long end = beg + base + (sync.rank < extra);
 
-    int off = 0;
-    for (int i = 0; i < num_blocks; i++) {
+    long off = 0;
+    for (long i = 0; i < num_blocks; i++) {
         off = read_element_block(&elements->block[i], beg, end, off, mode, SIZE, swap, file);
     }
     assert(off == tot_elements);
@@ -422,10 +423,10 @@ typedef struct {
 
 static void create_nodes(MeshNodes *nodes, ParseType SIZE, const Gmsh *gmsh)
 {
-    int num_blocks = parse_data_to_int(SIZE, &gmsh->nodes.num_blocks, 0);
-    int num = 0;
-    for (int i = 0; i < num_blocks; i++) {
-        num += parse_data_to_int(SIZE, &gmsh->nodes.block[i].num_nodes, 0);
+    long num_blocks = parse_data_to_long(SIZE, &gmsh->nodes.num_blocks, 0);
+    long num = 0;
+    for (long i = 0; i < num_blocks; i++) {
+        num += parse_data_to_long(SIZE, &gmsh->nodes.block[i].num_nodes, 0);
     }
     nodes->num = num;
     assert(nodes->num > 0);
@@ -434,11 +435,11 @@ static void create_nodes(MeshNodes *nodes, ParseType SIZE, const Gmsh *gmsh)
     assert(nodes->coord);
 
     num = 0;
-    for (int i = 0; i < num_blocks; i++) {
+    for (long i = 0; i < num_blocks; i++) {
         NodeBlock block = gmsh->nodes.block[i];
-        int num_nodes = parse_data_to_int(SIZE, &block.num_nodes, 0);
-        int len = 3 + (block.parametric ? block.entity_dim : 0);
-        for (int j = 0; j < num_nodes; j++) {
+        long num_nodes = parse_data_to_long(SIZE, &block.num_nodes, 0);
+        long len = 3 + (block.parametric ? block.entity_dim : 0);
+        for (long j = 0; j < num_nodes; j++) {
             nodes->coord[num].x = block.coord[(j * len) + 0];
             nodes->coord[num].y = block.coord[(j * len) + 1];
             nodes->coord[num].z = block.coord[(j * len) + 2];
@@ -449,8 +450,8 @@ static void create_nodes(MeshNodes *nodes, ParseType SIZE, const Gmsh *gmsh)
 }
 
 typedef struct {
-    int tag;
-    int idx;
+    long tag;
+    long idx;
 } Map;
 
 static int cmp_map(const void *lhs_, const void *rhs_)
@@ -465,14 +466,14 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
 {
     Arena save = arena_save();
 
-    int cap = sync_lmax(nodes->num);
+    long cap = sync_lmax(nodes->num);
     Map *map = arena_calloc(cap, sizeof(*map));
 
-    int off_nodes = sync_lexsum(nodes->num);
-    int num = 0;
-    for (int i = 0; i < parse_data_to_int(SIZE, &gmsh->nodes.num_blocks, 0); i++) {
+    long off_nodes = sync_lexsum(nodes->num);
+    long num = 0;
+    for (long i = 0; i < parse_data_to_long(SIZE, &gmsh->nodes.num_blocks, 0); i++) {
         NodeBlock block = gmsh->nodes.block[i];
-        for (int j = 0; j < parse_data_to_int(SIZE, &block.num_nodes, 0); j++) {
+        for (long j = 0; j < parse_data_to_long(SIZE, &block.num_nodes, 0); j++) {
             switch (SIZE) {
                 case U32: map[num].tag = block.tag.u32[j]; break;
                 case U64: map[num].tag = block.tag.u64[j]; break;
@@ -485,18 +486,18 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
     assert(num == nodes->num);
     qsort(map, num, sizeof(*map), cmp_map);
 
-    int num_tags = cells->node.off[cells->num];
+    long num_tags = cells->node.off[cells->num];
     bool *converted = arena_calloc(num_tags, sizeof(*converted));
 
     MPI_Datatype type;
     MPI_Type_contiguous(sizeof(Map), MPI_BYTE, &type);
     MPI_Type_commit(&type);
 
-    int dst = (sync.rank + 1) % sync.size;
-    int src = (sync.rank - 1 + sync.size) % sync.size;
-    int tag = sync_tag();
-    for (int step = 0; step < sync.size; step++) {
-        for (int i = 0; i < num_tags; i++) {
+    long dst = (sync.rank + 1) % sync.size;
+    long src = (sync.rank - 1 + sync.size) % sync.size;
+    long tag = sync_tag();
+    for (long step = 0; step < sync.size; step++) {
+        for (long i = 0; i < num_tags; i++) {
             if (!converted[i]) {
                 Map key = {.tag = cells->node.idx[i]};
                 Map *val = bsearch(&key, map, num, sizeof(*map), cmp_map);
@@ -506,12 +507,12 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
                 }
             }
         }
-        MPI_Sendrecv_replace(&num, 1, MPI_INT, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
+        MPI_Sendrecv_replace(&num, 1, MPI_LONG, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
         MPI_Sendrecv_replace(map, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);
     }
     MPI_Type_free(&type);
 
-    for (int i = 0; i < num_tags; i++) {
+    for (long i = 0; i < num_tags; i++) {
         assert(converted[i]);
     }
 
@@ -520,30 +521,30 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
 
 static void create_cells(const MeshNodes *nodes, MeshCells *cells, ParseType SIZE, const Gmsh *gmsh)
 {
-    int num_blocks = parse_data_to_int(SIZE, &gmsh->elements.num_blocks, 0);
-    int num = 0;
-    for (int i = 0; i < num_blocks; i++) {
-        num += parse_data_to_int(SIZE, &gmsh->elements.block[i].num_elements, 0);
+    long num_blocks = parse_data_to_long(SIZE, &gmsh->elements.num_blocks, 0);
+    long num = 0;
+    for (long i = 0; i < num_blocks; i++) {
+        num += parse_data_to_long(SIZE, &gmsh->elements.block[i].num_elements, 0);
     }
     cells->num = num;
     assert(cells->num > 0);
 
-    int *off = malloc((cells->num + 1) * sizeof(*off));
+    long *off = malloc((cells->num + 1) * sizeof(*off));
     assert(off);
 
-    int *idx = malloc(cells->num * sizeof(*idx) * MAX_CELL_NODES);
+    long *idx = malloc(cells->num * sizeof(*idx) * MAX_CELL_NODES);
     assert(idx);
 
     off[0] = 0;
 
     num = 0;
-    for (int i = 0; i < num_blocks; i++) {
+    for (long i = 0; i < num_blocks; i++) {
         ElementBlock block = gmsh->elements.block[i];
-        int num_elements = parse_data_to_int(SIZE, &block.num_elements, 0);
-        int len = num_node_tags(block.element_type);
-        for (int j = 0; j < num_elements; j++) {
+        long num_elements = parse_data_to_long(SIZE, &block.num_elements, 0);
+        long len = num_node_tags(block.element_type);
+        for (long j = 0; j < num_elements; j++) {
             off[num + 1] = off[num] + len;
-            for (int k = 0; k < len; k++) {
+            for (long k = 0; k < len; k++) {
                 switch (SIZE) {
                     case U32: idx[off[num] + k] = block.node_tag.u32[(j * len) + k]; break;
                     case U64: idx[off[num] + k] = block.node_tag.u64[(j * len) + k]; break;
@@ -581,16 +582,16 @@ static void create_entities(MeshEntities *entities, const Gmsh *gmsh)
 {
     Arena save = arena_save();
 
-    int num = gmsh->physicals.num;
+    long num = gmsh->physicals.num;
     Physical *physical = arena_memdup(gmsh->physicals.physical, num, sizeof(*physical));
     qsort(physical, num, sizeof(*physical), cmp_physical);
 
     Name *name = calloc(num, sizeof(*name));
     assert(name);
 
-    int num_inner = 0;
-    int num_ghost = 0;
-    for (int i = 0; i < num; i++) {
+    long num_inner = 0;
+    long num_ghost = 0;
+    for (long i = 0; i < num; i++) {
         strcpy(name[i], physical[i].name);
         if (physical[i].dim == 3) {
             num_inner += 1;
@@ -625,33 +626,33 @@ static int cmp_volume(const void *lhs_, const void *rhs_)
     return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
-static void compute_entity_map(int *entity, const MeshCells *cells, ParseType SIZE,
+static void compute_entity_map(long *entity, const MeshCells *cells, ParseType SIZE,
                                const Gmsh *gmsh)
 {
     Arena save = arena_save();
 
-    int num_physicals = gmsh->physicals.num;
+    long num_physicals = gmsh->physicals.num;
     Physical *physical = arena_memdup(gmsh->physicals.physical, num_physicals, sizeof(*physical));
     qsort(physical, num_physicals, sizeof(*physical), cmp_physical);
 
-    int num_surfaces = parse_data_to_int(SIZE, &gmsh->entities.num_surfaces, 0);
+    long num_surfaces = parse_data_to_long(SIZE, &gmsh->entities.num_surfaces, 0);
     Surface *surface = arena_memdup(gmsh->entities.surface, num_surfaces, sizeof(*surface));
     qsort(surface, num_surfaces, sizeof(*surface), cmp_surface);
 
-    int num_volumes = parse_data_to_int(SIZE, &gmsh->entities.num_volumes, 0);
+    long num_volumes = parse_data_to_long(SIZE, &gmsh->entities.num_volumes, 0);
     Volume *volume = arena_memdup(gmsh->entities.volume, num_volumes, sizeof(*volume));
     qsort(volume, num_volumes, sizeof(*volume), cmp_volume);
 
-    int num = 0;
-    for (int i = 0; i < parse_data_to_int(SIZE, &gmsh->elements.num_blocks, 0); i++) {
+    long num = 0;
+    for (long i = 0; i < parse_data_to_long(SIZE, &gmsh->elements.num_blocks, 0); i++) {
         ElementBlock block = gmsh->elements.block[i];
-        int physical_tag;
+        long physical_tag;
         switch (block.entity_dim) {
             case 2: {
                 Surface key = {.tag = block.entity_tag};
                 Surface *val = bsearch(&key, surface, num_surfaces, sizeof(*surface), cmp_surface);
                 assert(val);
-                int num_physical_tags = parse_data_to_int(SIZE, &val->num_physical_tags, 0);
+                long num_physical_tags = parse_data_to_long(SIZE, &val->num_physical_tags, 0);
                 assert(num_physical_tags == 1);
                 physical_tag = val->physical_tag[0];
                 break;
@@ -660,22 +661,22 @@ static void compute_entity_map(int *entity, const MeshCells *cells, ParseType SI
                 Volume key = {.tag = block.entity_tag};
                 Volume *val = bsearch(&key, volume, num_volumes, sizeof(*volume), cmp_volume);
                 assert(val);
-                int num_physical_tags = parse_data_to_int(SIZE, &val->num_physical_tags, 0);
+                long num_physical_tags = parse_data_to_long(SIZE, &val->num_physical_tags, 0);
                 assert(num_physical_tags == 1);
                 physical_tag = val->physical_tag[0];
                 break;
             }
             default: error("unsupported entity dimension -- '%d'", block.entity_dim);
         }
-        int idx = -1;
-        for (int j = 0; j < num_physicals; j++) {
+        long idx = -1;
+        for (long j = 0; j < num_physicals; j++) {
             if (physical[j].dim == block.entity_dim && physical[j].tag == physical_tag) {
                 idx = j;
                 break;
             }
         }
         assert(idx != -1);
-        for (int j = 0; j < parse_data_to_int(SIZE, &block.num_elements, 0); j++) {
+        for (long j = 0; j < parse_data_to_long(SIZE, &block.num_elements, 0); j++) {
             entity[num++] = idx;
         }
     }
@@ -688,27 +689,27 @@ static void reorder(MeshCells *cells, MeshEntities *entities, ParseType SIZE, co
 {
     Arena save = arena_save();
 
-    int *entity = arena_malloc(cells->num, sizeof(*entity));
+    long *entity = arena_malloc(cells->num, sizeof(*entity));
     compute_entity_map(entity, cells, SIZE, gmsh);
 
-    int *num_cells = arena_calloc(entities->num, sizeof(*num_cells));
-    for (int i = 0; i < cells->num; i++) {
+    long *num_cells = arena_calloc(entities->num, sizeof(*num_cells));
+    for (long i = 0; i < cells->num; i++) {
         num_cells[entity[i]] += 1;
     }
 
-    int *cell_off = malloc((entities->num + 1) * sizeof(*cell_off));
+    long *cell_off = malloc((entities->num + 1) * sizeof(*cell_off));
     assert(cell_off);
 
     cell_off[0] = 0;
-    for (int i = 0; i < entities->num; i++) {
+    for (long i = 0; i < entities->num; i++) {
         cell_off[i + 1] = cell_off[i] + num_cells[i];
     }
 
-    int *map = arena_malloc(cells->num, sizeof(*map));
-    for (int i = 0; i < entities->num; i++) {
+    long *map = arena_malloc(cells->num, sizeof(*map));
+    for (long i = 0; i < entities->num; i++) {
         cell_off[i + 1] -= num_cells[i];
     }
-    for (int i = 0; i < cells->num; i++) {
+    for (long i = 0; i < cells->num; i++) {
         map[i] = cell_off[entity[i] + 1]++;
     }
     mesh_reorder_cells(cells, 0, 0, cells->num, map);

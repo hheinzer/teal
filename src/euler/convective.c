@@ -81,7 +81,7 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
         right->velocity.x,
         right->velocity.x + speed_of_sound_r,
     };
-    for (int i = 0; i < 3; i++) {
+    for (long i = 0; i < 3; i++) {
         scalar lambda = eigenvalue[i];
         scalar delta = fmax(0, fmax(lambda - eigenvalue_l[i], eigenvalue_r[i] - lambda));
         if (fabs(lambda) < delta) {
@@ -200,9 +200,9 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
         wave_strength[4] * eigenvalue[2],
     };
 
-    for (int i = 0; i < 5; i++) {
+    for (long i = 0; i < 5; i++) {
         dissipation[i] = 0;
-        for (int j = 0; j < 5; j++) {
+        for (long j = 0; j < 5; j++) {
             dissipation[i] += eigenvector[i][j] * characteristic[j];
         }
     }

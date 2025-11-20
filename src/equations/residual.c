@@ -10,21 +10,21 @@ void equations_residual(const Equations *eqns, const void *derivative_, void *re
 {
     assert(eqns && derivative_);
 
-    int num = eqns->mesh->cells.num_inner;
+    long num = eqns->mesh->cells.num_inner;
     scalar *volume = eqns->mesh->cells.volume;
     scalar sum_volume = eqns->mesh->cells.sum_volume;
 
-    int len = eqns->variables.len;
+    long len = eqns->variables.len;
     const scalar(*derivative)[len] = derivative_;
     scalar *residual = residual_;
 
     memset(residual, 0, len * sizeof(*residual));
-    for (int i = 0; i < num; i++) {
-        for (int j = 0; j < len; j++) {
+    for (long i = 0; i < num; i++) {
+        for (long j = 0; j < len; j++) {
             residual[j] += volume[i] * sq(derivative[i][j]);
         }
     }
-    for (int i = 0; i < len; i++) {
+    for (long i = 0; i < len; i++) {
         residual[i] = sqrt(sync_fsum(residual[i]) / sum_volume);
     }
 }

@@ -11,16 +11,16 @@ static void test_basic_insert_lookup(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
     tuple num = {8, 8, 8};
 
-    for (int i = 0; i < num.x; i++) {
-        for (int j = 0; j < num.y; j++) {
-            for (int k = 0; k < num.z; k++) {
+    for (long i = 0; i < num.x; i++) {
+        for (long j = 0; j < num.y; j++) {
+            for (long k = 0; k < num.z; k++) {
                 vector key = {i, j, k};
-                int val = i + (num.x * (j + num.y * k));
+                long val = i + (num.x * (j + num.y * k));
                 assert(!kdtree_insert(tree, key, &val));
             }
         }
@@ -28,11 +28,11 @@ static void test_basic_insert_lookup(void)
 
     assert(tree->num == num.x * num.y * num.z);
 
-    for (int i = 0; i < num.x; i++) {
-        for (int j = 0; j < num.y; j++) {
-            for (int k = 0; k < num.z; k++) {
+    for (long i = 0; i < num.x; i++) {
+        for (long j = 0; j < num.y; j++) {
+            for (long k = 0; k < num.z; k++) {
                 vector key = {i, j, k};
-                int *val = kdtree_lookup(tree, key);
+                long *val = kdtree_lookup(tree, key);
                 assert(val && *val == i + (num.x * (j + num.y * k)));
             }
         }
@@ -48,22 +48,22 @@ static void test_duplicate_behaviour(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
     vector key = {42, 43, 44};
-    int val1 = 1111;
-    int val2 = 2222;
+    long val1 = 1111;
+    long val2 = 2222;
 
     assert(!kdtree_insert(tree, key, &val1));
-    int num = tree->num;
+    long num = tree->num;
 
-    int *insert = kdtree_insert(tree, key, &val2);
+    long *insert = kdtree_insert(tree, key, &val2);
     assert(insert && *insert == 1111);
 
     assert(tree->num == num);
 
-    int *lookup = kdtree_lookup(tree, key);
+    long *lookup = kdtree_lookup(tree, key);
     assert(lookup == insert && *lookup == 1111);
 
     arena_load(save);
@@ -91,15 +91,15 @@ static void test_key_by_value_not_pointer(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
     vector key = {42, 43, 44};
-    int val = 1111;
+    long val = 1111;
     assert(!kdtree_insert(tree, key, &val));
 
     vector same_key = {42, 43, 44};
-    int *same_val = kdtree_lookup(tree, same_key);
+    long *same_val = kdtree_lookup(tree, same_key);
     assert(same_val && *same_val == 1111);
 
     arena_load(save);
@@ -109,28 +109,28 @@ static void test_pointer_stability_under_growth(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
     vector key1 = {42, 43, 44};
-    int val1 = 1111;
+    long val1 = 1111;
     assert(!kdtree_insert(tree, key1, &val1));
 
-    int *ptr1 = kdtree_lookup(tree, key1);
+    long *ptr1 = kdtree_lookup(tree, key1);
     assert(ptr1);
 
-    uintptr_t addr1 = (uintptr_t)ptr1;
+    long addr1 = (long)ptr1;
 
-    for (int i = 0; i < 1000; i++) {
+    for (long i = 0; i < 1000; i++) {
         vector key = {i + 420, i + 421, i + 422};
-        int val = i * i;
+        long val = i * i;
         kdtree_insert(tree, key, &val);
     }
 
-    int *ptr2 = kdtree_lookup(tree, key1);
+    long *ptr2 = kdtree_lookup(tree, key1);
     assert(ptr2);
 
-    uintptr_t addr2 = (uintptr_t)ptr2;
+    long addr2 = (long)ptr2;
     assert(addr1 == addr2);
     assert(*ptr2 == 1111);
 
@@ -141,29 +141,29 @@ static void test_many_keys(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
-    int num = 32749;                    // prime
+    long num = 32749;                   // prime
     tuple stride = {7919, 7759, 7841};  // coprimes
 
-    for (int i = 0; i < num; i++) {
-        int x = (i * stride.x + 0) % num;
-        int y = (i * stride.y + 1) % num;
-        int z = (i * stride.z + 2) % num;
+    for (long i = 0; i < num; i++) {
+        long x = (i * stride.x + 0) % num;
+        long y = (i * stride.y + 1) % num;
+        long z = (i * stride.z + 2) % num;
         vector key = {x, y, z};
-        int val = x + (num * (y + num * z));
+        long val = x + (num * (y + num * z));
         kdtree_insert(tree, key, &val);
     }
     assert(tree->num == num);
 
-    for (int i = 0; i < 100; i++) {
-        int idx = (i * 97) % num;
-        int x = (idx * stride.x + 0) % num;
-        int y = (idx * stride.y + 1) % num;
-        int z = (idx * stride.z + 2) % num;
+    for (long i = 0; i < 100; i++) {
+        long idx = (i * 97) % num;
+        long x = (idx * stride.x + 0) % num;
+        long y = (idx * stride.y + 1) % num;
+        long z = (idx * stride.z + 2) % num;
         vector key = {x, y, z};
-        int *val = kdtree_lookup(tree, key);
+        long *val = kdtree_lookup(tree, key);
         assert(val && *val == x + (num * (y + num * z)));
     }
 
@@ -172,7 +172,7 @@ static void test_many_keys(void)
 
 typedef struct {
     vector key;
-    int val;
+    long val;
     scalar dist;
 } Map;
 
@@ -183,9 +183,9 @@ static int cmp_map(const void *lhs_, const void *rhs_)
     return (lhs->dist > rhs->dist) - (lhs->dist < rhs->dist);
 }
 
-static bool contains(const int *arr, int val, int num)
+static bool contains(const long *arr, long val, long num)
 {
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         if (arr[i] == val) {
             return true;
         }
@@ -197,19 +197,19 @@ static void test_nearest(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
     tuple cnt = {8, 8, 8};
-    int tot = cnt.x * cnt.y * cnt.z;
+    long tot = cnt.x * cnt.y * cnt.z;
 
     Map *map = arena_malloc(tot, sizeof(*map));
-    int idx = 0;
-    for (int i = 0; i < cnt.x; i++) {
-        for (int j = 0; j < cnt.y; j++) {
-            for (int k = 0; k < cnt.z; k++) {
+    long idx = 0;
+    for (long i = 0; i < cnt.x; i++) {
+        for (long j = 0; j < cnt.y; j++) {
+            for (long k = 0; k < cnt.z; k++) {
                 vector key;
-                int val = i + (cnt.x * (j + cnt.y * k));
+                long val = i + (cnt.x * (j + cnt.y * k));
                 do {
                     key = (vector){rand(), rand(), rand()};
                 } while (kdtree_insert(tree, key, &val));
@@ -220,18 +220,18 @@ static void test_nearest(void)
         }
     }
 
-    int num = 128;
+    long num = 128;
     vector key = {rand(), rand(), rand()};
-    int *val = arena_malloc(num, sizeof(*val));
+    long *val = arena_malloc(num, sizeof(*val));
     kdtree_nearest(tree, key, val, num);
 
-    for (int i = 0; i < tot; i++) {
+    for (long i = 0; i < tot; i++) {
         vector sub = vector_sub(map[i].key, key);
         map[i].dist = vector_dot(sub, sub);
     }
     qsort(map, tot, sizeof(*map), cmp_map);
 
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         assert(contains(val, map[i].val, num));
     }
 
@@ -242,19 +242,19 @@ static void test_radius(void)
 {
     Arena save = arena_save();
 
-    Kdtree *tree = kdtree_create(sizeof(int));
+    Kdtree *tree = kdtree_create(sizeof(long));
     assert(tree);
 
     tuple cnt = {8, 8, 8};
-    int tot = cnt.x * cnt.y * cnt.z;
+    long tot = cnt.x * cnt.y * cnt.z;
 
     Map *map = arena_malloc(tot, sizeof(*map));
-    int idx = 0;
-    for (int i = 0; i < cnt.x; i++) {
-        for (int j = 0; j < cnt.y; j++) {
-            for (int k = 0; k < cnt.z; k++) {
+    long idx = 0;
+    for (long i = 0; i < cnt.x; i++) {
+        for (long j = 0; j < cnt.y; j++) {
+            for (long k = 0; k < cnt.z; k++) {
                 vector key;
-                int val = i + (cnt.x * (j + cnt.y * k));
+                long val = i + (cnt.x * (j + cnt.y * k));
                 do {
                     key = (vector){rand(), rand(), rand()};
                 } while (kdtree_insert(tree, key, &val));
@@ -265,19 +265,19 @@ static void test_radius(void)
         }
     }
 
-    int cap = 128;
+    long cap = 128;
     scalar radius = 10;
     vector key = {rand(), rand(), rand()};
-    int *val = arena_malloc(cap, sizeof(*val));
-    int num = kdtree_radius(tree, key, val, cap, radius);
+    long *val = arena_malloc(cap, sizeof(*val));
+    long num = kdtree_radius(tree, key, val, cap, radius);
 
-    for (int i = 0; i < tot; i++) {
+    for (long i = 0; i < tot; i++) {
         vector sub = vector_sub(map[i].key, key);
         map[i].dist = vector_dot(sub, sub);
     }
     qsort(map, tot, sizeof(*map), cmp_map);
 
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         assert(contains(val, map[i].val, num));
     }
 

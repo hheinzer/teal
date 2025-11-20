@@ -66,7 +66,7 @@ void h5io_group_close(hid_t group)
     H5Gclose(group);
 }
 
-int h5io_attribute_num(const char *name, hid_t loc)
+long h5io_attribute_num(const char *name, hid_t loc)
 {
     assert(name);
 
@@ -76,8 +76,8 @@ int h5io_attribute_num(const char *name, hid_t loc)
     hid_t space = H5Aget_space(attr);
     assert(space != H5I_INVALID_HID);
 
-    int ndims = H5Sget_simple_extent_ndims(space);
-    int num = 0;
+    long ndims = H5Sget_simple_extent_ndims(space);
+    long num = 0;
     if (ndims == 0) {
         num = 1;
     }
@@ -92,14 +92,14 @@ int h5io_attribute_num(const char *name, hid_t loc)
     return num;
 }
 
-static bool attribute_num_matchs(hid_t attr, int num)
+static bool attribute_num_matchs(hid_t attr, long num)
 {
     bool match = false;
 
     hid_t space = H5Aget_space(attr);
     assert(space != H5I_INVALID_HID);
 
-    int ndims = H5Sget_simple_extent_ndims(space);
+    long ndims = H5Sget_simple_extent_ndims(space);
     if (ndims == 0) {
         match = (num == 1);
     }
@@ -117,7 +117,7 @@ static bool attribute_num_matchs(hid_t attr, int num)
     return match;
 }
 
-void h5io_attribute_read(const char *name, void *buf, int num, hid_t type, hid_t loc)
+void h5io_attribute_read(const char *name, void *buf, long num, hid_t type, hid_t loc)
 {
     assert(name && buf && num > 0);
 
@@ -143,7 +143,7 @@ void h5io_attribute_read(const char *name, void *buf, int num, hid_t type, hid_t
     }
 }
 
-void h5io_attribute_write(const char *name, const void *buf, int num, hid_t type, hid_t loc)
+void h5io_attribute_write(const char *name, const void *buf, long num, hid_t type, hid_t loc)
 {
     assert(name && buf && num > 0);
 
@@ -173,7 +173,7 @@ void h5io_attribute_write(const char *name, const void *buf, int num, hid_t type
     }
 }
 
-int h5io_dataset_num(const char *name, hid_t loc)
+long h5io_dataset_num(const char *name, hid_t loc)
 {
     assert(name);
 
@@ -183,8 +183,8 @@ int h5io_dataset_num(const char *name, hid_t loc)
     hid_t space = H5Dget_space(dset);
     assert(space != H5I_INVALID_HID);
 
-    int ndims = H5Sget_simple_extent_ndims(space);
-    int num = 0;
+    long ndims = H5Sget_simple_extent_ndims(space);
+    long num = 0;
     if (ndims == 0) {
         num = 1;
     }
@@ -199,7 +199,7 @@ int h5io_dataset_num(const char *name, hid_t loc)
     return num;
 }
 
-int h5io_dataset_len(const char *name, hid_t loc)
+long h5io_dataset_len(const char *name, hid_t loc)
 {
     assert(name);
 
@@ -212,13 +212,13 @@ int h5io_dataset_len(const char *name, hid_t loc)
     hid_t type = H5Dget_type(dset);
     assert(type != H5I_INVALID_HID);
 
-    int len = 0;
+    long len = 0;
     if (H5Tget_class(type) == H5T_STRING) {
         assert(H5Tis_variable_str(type) <= 0);
         len = H5Tget_size(type);
     }
     else {
-        int ndims = H5Sget_simple_extent_ndims(space);
+        long ndims = H5Sget_simple_extent_ndims(space);
         if (ndims == 0 || ndims == 1) {
             len = 1;
         }
@@ -235,14 +235,14 @@ int h5io_dataset_len(const char *name, hid_t loc)
     return len;
 }
 
-static bool dataset_dims_match(hid_t dset, int num, int len)
+static bool dataset_dims_match(hid_t dset, long num, long len)
 {
     bool match = false;
 
     hid_t space = H5Dget_space(dset);
     assert(space != H5I_INVALID_HID);
 
-    int ndims = H5Sget_simple_extent_ndims(space);
+    long ndims = H5Sget_simple_extent_ndims(space);
     if (ndims <= 0 || 2 < ndims) {
         match = false;
     }
@@ -262,11 +262,11 @@ static bool dataset_dims_match(hid_t dset, int num, int len)
     return match;
 }
 
-void h5io_dataset_read(const char *name, void *buf, int num, int len, hid_t type, hid_t loc)
+void h5io_dataset_read(const char *name, void *buf, long num, long len, hid_t type, hid_t loc)
 {
     assert(name && buf && len > 0);
 
-    int rank = (len == 1) ? 1 : 2;
+    long rank = (len == 1) ? 1 : 2;
     hsize_t count[2] = {num, len};
     hsize_t offset[2] = {sync_lexsum(num), 0};
 
@@ -305,11 +305,12 @@ void h5io_dataset_read(const char *name, void *buf, int num, int len, hid_t type
     }
 }
 
-void h5io_dataset_write(const char *name, const void *buf, int num, int len, hid_t type, hid_t loc)
+void h5io_dataset_write(const char *name, const void *buf, long num, long len, hid_t type,
+                        hid_t loc)
 {
     assert(name && buf && len > 0);
 
-    int rank = (len == 1) ? 1 : 2;
+    long rank = (len == 1) ? 1 : 2;
     hsize_t count[2] = {num, len};
     hsize_t dims[2] = {sync_lsum(num), len};
     hsize_t offset[2] = {sync_lexsum(num), 0};

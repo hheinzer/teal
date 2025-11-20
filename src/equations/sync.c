@@ -4,17 +4,17 @@
 
 #include "teal/sync.h"
 
-Request sync_variables(const Equations *eqns, void *variable, int stride)
+Request sync_variables(const Equations *eqns, void *variable, long stride)
 {
     assert(eqns && variable && stride > 0);
 
-    int num = eqns->mesh->neighbors.num;
-    int *rank = eqns->mesh->neighbors.rank;
-    int *off_recv = eqns->mesh->neighbors.recv_off;
-    int *off_send = eqns->mesh->neighbors.send.off;
-    int *idx_send = eqns->mesh->neighbors.send.idx;
+    long num = eqns->mesh->neighbors.num;
+    long *rank = eqns->mesh->neighbors.rank;
+    long *off_recv = eqns->mesh->neighbors.recv_off;
+    long *off_send = eqns->mesh->neighbors.send.off;
+    long *idx_send = eqns->mesh->neighbors.send.idx;
 
-    int tag = sync_tag();
+    long tag = sync_tag();
 
     Request req;
     req.recv = sync_irecv(rank, off_recv, variable, num, stride, MPI_SCALAR, tag);
@@ -22,17 +22,17 @@ Request sync_variables(const Equations *eqns, void *variable, int stride)
     return req;
 }
 
-Request sync_gradients(const Equations *eqns, void *gradient, int stride)
+Request sync_gradients(const Equations *eqns, void *gradient, long stride)
 {
     assert(eqns && gradient && stride > 0);
 
-    int num = eqns->mesh->neighbors.num;
-    int *rank = eqns->mesh->neighbors.rank;
-    int *off_recv = eqns->mesh->neighbors.recv_off;
-    int *off_send = eqns->mesh->neighbors.send.off;
-    int *idx_send = eqns->mesh->neighbors.send.idx;
+    long num = eqns->mesh->neighbors.num;
+    long *rank = eqns->mesh->neighbors.rank;
+    long *off_recv = eqns->mesh->neighbors.recv_off;
+    long *off_send = eqns->mesh->neighbors.send.off;
+    long *idx_send = eqns->mesh->neighbors.send.idx;
 
-    int tag = sync_tag();
+    long tag = sync_tag();
 
     Request req;
     req.recv = sync_irecv(rank, off_recv, gradient, num, stride * 3, MPI_SCALAR, tag);
@@ -43,6 +43,6 @@ Request sync_gradients(const Equations *eqns, void *gradient, int stride)
 void sync_wait(const Equations *eqns, MPI_Request *req)
 {
     assert(eqns && req);
-    int num = eqns->mesh->neighbors.num;
+    long num = eqns->mesh->neighbors.num;
     MPI_Waitall(num, req, MPI_STATUSES_IGNORE);
 }

@@ -25,22 +25,22 @@ scalar simulation_run(Simulation *sim)
     Arena save = arena_save();
 
     const Equations *eqns = sim->eqns;
-    int len = eqns->variables.len;
+    long len = eqns->variables.len;
 
     const char *prefix = sim->prefix;
     scalar courant = sim->courant;
     scalar max_time = sim->time.max;
     scalar out_time = sim->time.output;
-    int max_iter = sim->iter.max;
-    int out_iter = sim->iter.output;
+    long max_iter = sim->iter.max;
+    long out_iter = sim->iter.output;
     const char *term_condition = sim->termination.condition;
-    int term_variable = sim->termination.variable;
+    long term_variable = sim->termination.variable;
     scalar term_residual = sim->termination.residual;
     const void *ctx = sim->advance.ctx;
     Advance *advance = sim->advance.method;
 
     scalar time;
-    int index;
+    long index;
     equations_restart(eqns, &time, &index);
     if (prefix) {
         mesh_write(eqns->mesh, prefix);
@@ -60,16 +60,16 @@ scalar simulation_run(Simulation *sim)
     scalar wtime_beg = MPI_Wtime();
     scalar wtime_last = wtime_beg;
 
-    for (int iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
+    for (long iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
         scalar max_step = fmin(max_time, out_time) - time;
         scalar step0 = advance(eqns, &time, residual, courant, max_step, ctx);
 
         if (!isfinite(step0)) {
-            error("invalid timestep at iter = %d", iter);
+            error("invalid timestep at iter = %ld", iter);
         }
-        for (int i = 0; i < len; i++) {
+        for (long i = 0; i < len; i++) {
             if (!isfinite(residual[i])) {
-                error("invalid residual at iter = %d", iter);
+                error("invalid residual at iter = %ld", iter);
             }
         }
 
@@ -93,10 +93,10 @@ scalar simulation_run(Simulation *sim)
             if (isfinite(sim->time.output)) {
                 out_time = time + sim->time.output;
             }
-            if (sim->iter.output < INT_MAX) {
+            if (sim->iter.output < LONG_MAX) {
                 out_iter = iter + sim->iter.output;
             }
-            println("\t %13d %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
+            println("\t %13ld %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
             wtime_last = wtime_now;
         }
     }

@@ -5,7 +5,7 @@
 #include "limiter.h"
 #include "teal/utils.h"
 
-void equations_set_space_order(Equations *eqns, int space_order)
+void equations_set_space_order(Equations *eqns, long space_order)
 {
     assert(eqns && 1 <= space_order && space_order <= 2);
     eqns->space_order = space_order;
@@ -59,7 +59,7 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
                                       const void *reference, Compute *custom)
 {
     assert(eqns && entity && name);
-    for (int i = 0; i < eqns->boundary.num; i++) {
+    for (long i = 0; i < eqns->boundary.num; i++) {
         if (!strcmp(eqns->boundary.entity[i], entity)) {
             strcpy(eqns->boundary.name[i], name);
             eqns->boundary.reference[i] = reference;
@@ -108,18 +108,18 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
 
     vector *center = eqns->mesh->cells.center;
 
-    int num = eqns->mesh->entities.num_inner;
+    long num = eqns->mesh->entities.num_inner;
     Name *name = eqns->mesh->entities.name;
-    int *cell_off = eqns->mesh->entities.cell_off;
+    long *cell_off = eqns->mesh->entities.cell_off;
 
-    int stride = eqns->variables.stride;
+    long stride = eqns->variables.stride;
     scalar(*variable)[stride] = eqns->variables.data;
     Update *conserved = eqns->variables.conserved;
     scalar *property = eqns->properties.data;
 
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         if (!strcmp(name[i], entity)) {
-            for (int j = cell_off[i]; j < cell_off[i + 1]; j++) {
+            for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
                 compute(variable[j], property, center[j], time, 0);
                 if (conserved) {
                     conserved(variable[j], property);
@@ -135,18 +135,18 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
 {
     assert(eqns && entity && state);
 
-    int num = eqns->mesh->entities.num_inner;
+    long num = eqns->mesh->entities.num_inner;
     Name *name = eqns->mesh->entities.name;
-    int *cell_off = eqns->mesh->entities.cell_off;
+    long *cell_off = eqns->mesh->entities.cell_off;
 
-    int stride = eqns->variables.stride;
+    long stride = eqns->variables.stride;
     scalar(*variable)[stride] = eqns->variables.data;
     Update *conserved = eqns->variables.conserved;
     scalar *property = eqns->properties.data;
 
-    for (int i = 0; i < num; i++) {
+    for (long i = 0; i < num; i++) {
         if (!strcmp(name[i], entity)) {
-            for (int j = cell_off[i]; j < cell_off[i + 1]; j++) {
+            for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
                 memcpy(variable[j], state, sizeof(*variable));
                 if (conserved) {
                     conserved(variable[j], property);
@@ -161,7 +161,7 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
 void equations_set_property(Equations *eqns, const char *name, scalar property)
 {
     assert(eqns && name);
-    for (int i = 0; i < eqns->properties.num; i++) {
+    for (long i = 0; i < eqns->properties.num; i++) {
         if (!strcmp(eqns->properties.name[i], name)) {
             eqns->properties.data[i] = property;
             return;
