@@ -403,14 +403,15 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
         case 3: {
             vector a2b = vector_sub(coord[1], coord[0]);
             vector a2c = vector_sub(coord[2], coord[0]);
-            return vector_normalize(vector_cross(a2b, a2c));
+            vector normal = vector_cross(a2b, a2c);
+            return vector_div(normal, vector_norm(normal));
         }
         case 4: {
-            vector sum = {0};
+            vector normal = {0};
             for (long i = 0; i < 4; i++) {
-                vector_inc(&sum, vector_cross(coord[i], coord[(i + 1) % 4]));
+                vector_inc(&normal, vector_cross(coord[i], coord[(i + 1) % 4]));
             }
-            return vector_normalize(sum);
+            return vector_div(normal, vector_norm(normal));
         }
         default: error("invalid number of nodes -- '%ld'", num_nodes);
     }
