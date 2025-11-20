@@ -8,39 +8,31 @@ void equations_summary(const Equations *eqns)
 {
     assert(eqns);
 
-    int len = 16;
-    for (long i = 0; i < eqns->properties.num; i++) {
-        len = lmax(len, strlen(eqns->properties.name[i]));
+    long num_entities = eqns->mesh->entities.num;
+    long num_inner = eqns->mesh->entities.num_inner;
+    long off_ghost = eqns->mesh->entities.off_ghost;
+    Name *entity = eqns->mesh->entities.name;
+
+    long num = eqns->boundary.num;
+    Name *name = eqns->boundary.name;
+
+    int width = 0;
+    for (long i = num_inner; i < num_entities; i++) {
+        width = lmax(width, strlen(entity[i]));
     }
 
     println("Equations summary");
-    println("\t %-*s : %s", len, "name", eqns->name);
+    println("\t name            : %s", eqns->name);
+    println("\t space order     : %ld", eqns->space_order);
+    println("\t convective flux : %s", eqns->convective.name);
+    println("\t viscous flux    : %s", eqns->viscous.name);
+    println("\t limiter         : %s", eqns->limiter.name);
 
-    for (long i = 0; i < eqns->properties.num; i++) {
-        println("\t %-*s : %g", len, eqns->properties.name[i], eqns->properties.data[i]);
+    println("\t Boundary conditions");
+    for (long i = 0; i < num; i++) {
+        println("\t\t %-*s : %s", width, entity[num_inner + i], name[i]);
     }
-
-    println("\t %-*s : %ld", len, "space order", eqns->space_order);
-    if (*eqns->convective.name) {
-        println("\t %-*s : %s", len, "convective flux", eqns->convective.name);
-    }
-    if (*eqns->viscous.name) {
-        println("\t %-*s : %s", len, "viscous flux", eqns->viscous.name);
-    }
-    if (*eqns->limiter.name) {
-        println("\t %-*s : %s", len, "limiter", eqns->limiter.name);
-    }
-
-    len = 0;
-    for (long i = eqns->mesh->entities.num_inner; i < eqns->mesh->entities.num; i++) {
-        len = lmax(len, strlen(eqns->mesh->entities.name[i]));
-    }
-
-    println("\t boundary conditions");
-    for (long i = 0; i < eqns->boundary.num; i++) {
-        println("\t\t %-*s : %s", len, eqns->boundary.entity[i], eqns->boundary.name[i]);
-    }
-    for (long i = eqns->mesh->entities.off_ghost; i < eqns->mesh->entities.num; i++) {
-        println("\t\t %-*s : %s", len, eqns->mesh->entities.name[i], "periodic");
+    for (long i = off_ghost; i < num_entities; i++) {
+        println("\t\t %-*s : periodic", width, entity[i]);
     }
 }

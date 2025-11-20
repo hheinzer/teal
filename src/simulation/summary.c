@@ -11,9 +11,7 @@ void simulation_summary(const Simulation *sim)
     assert(sim);
 
     println("Simulation summary");
-    if (sim->prefix) {
-        println("\t prefix           : %s", sim->prefix);
-    }
+    println("\t prefix           : %s", sim->prefix);
     println("\t courant          : %g", sim->courant);
 
     if (isfinite(sim->time.max)) {
@@ -35,7 +33,7 @@ void simulation_summary(const Simulation *sim)
                 sim->termination.residual);
     }
 
-    println("\t advance          : %s", sim->advance.name);
+    println("\t advance method   : %s", sim->advance.name);
     if (!strcmp(sim->advance.name, "lserk")) {
         const RungeKutta *ctx = sim->advance.ctx;
         println("\t time order       : %ld", ctx->time_order);

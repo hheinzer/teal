@@ -10,12 +10,12 @@ void teal_finalize(void)
     char now[128];
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
-    println("Goodbye, World!");
-    println("\t stop time              : %s", now);
-
     char min[128];
     char max[128];
     char sum[128];
+
+    println("Goodbye, World!");
+    println("\t stop time              : %s", now);
 
     size_to_str(min, sync_lmin(arena_size()));
     size_to_str(max, sync_lmax(arena_size()));
