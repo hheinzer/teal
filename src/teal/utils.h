@@ -2,6 +2,10 @@
 
 #include "teal.h"
 
+#define NON_NULL ((void *)(int)1)  // NOLINT(performance-no-int-to-ptr)
+
+#define countof(arr) (sizeof(arr) / sizeof(*(arr)))
+
 void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
