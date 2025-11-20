@@ -13,7 +13,7 @@ ifeq ($(CONFIG), valgrind)
 	CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 endif
 ifneq (,$(filter $(CONFIG), release gprof))
-	CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused
+	CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
 endif
 ifeq ($(CONFIG), gprof)
 	CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls

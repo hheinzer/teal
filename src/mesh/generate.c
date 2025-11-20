@@ -601,9 +601,9 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
     }
 
     cells->volume = volume;
-    cells->sum_volume = sync_fsum(array_fsum(volume, cells->num_inner));
     cells->center = center;
     cells->projection = projection;
+    cells->sum_volume = sync_fsum(array_fsum(volume, cells->num_inner));
 }
 
 void compute_cell_offsets(const MeshNodes *nodes, MeshCells *cells)
