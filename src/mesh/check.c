@@ -1,7 +1,6 @@
-#include "teal/check.h"
-
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,6 +10,11 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 #include "teal/vector.h"
+
+#define check(expr)                                                                               \
+    ((expr) ? (void)0                                                                             \
+            : (void)fprintf(stderr, "[%ld] %s:%d: %s: Check `%s` failed.\n", sync.rank, __FILE__, \
+                            __LINE__, __func__, #expr))
 
 static void test_nodes(const MeshNodes *nodes)
 {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "teal.h"
-
 typedef struct Dict Dict;
 typedef struct DictItem DictItem;
 
