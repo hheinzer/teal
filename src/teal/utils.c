@@ -10,19 +10,6 @@
 #include "option.h"
 #include "sync.h"
 
-bool isclose(scalar lhs, scalar rhs)
-{
-    if (lhs == rhs) {
-        return true;
-    }
-    if (!isfinite(lhs) || !isfinite(rhs)) {
-        return false;
-    }
-    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
-    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
-    return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
-}
-
 void println(const char *fmt, ...)
 {
     assert(fmt);
@@ -64,12 +51,45 @@ void error(const char *fmt, ...)
     sync_abort();
 }
 
+scalar sq(scalar val)
+{
+    return val * val;
+}
+
+scalar cb(scalar val)
+{
+    return val * val * val;
+}
+
+int lmin(int lhs, int rhs)
+{
+    return (lhs < rhs) ? lhs : rhs;
+}
+
+int lmax(int lhs, int rhs)
+{
+    return (lhs > rhs) ? lhs : rhs;
+}
+
+bool isclose(scalar lhs, scalar rhs)
+{
+    if (lhs == rhs) {
+        return true;
+    }
+    if (!isfinite(lhs) || !isfinite(rhs)) {
+        return false;
+    }
+    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
+    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
+    return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
+}
+
 int cmp_int(const void *lhs_, const void *rhs_)
 {
     assert(lhs_ && rhs_);
     const int *lhs = lhs_;
     const int *rhs = rhs_;
-    return cmp_asc(*lhs, *rhs);
+    return (*lhs > *rhs) - (*lhs < *rhs);
 }
 
 int cmp_scalar(const void *lhs_, const void *rhs_)
@@ -77,7 +97,7 @@ int cmp_scalar(const void *lhs_, const void *rhs_)
     assert(lhs_ && rhs_);
     const scalar *lhs = lhs_;
     const scalar *rhs = rhs_;
-    return isclose(*lhs, *rhs) ? 0 : cmp_asc(*lhs, *rhs);
+    return isclose(*lhs, *rhs) ? 0 : (*lhs > *rhs) - (*lhs < *rhs);
 }
 
 int cmp_vector(const void *lhs_, const void *rhs_)

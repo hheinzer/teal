@@ -198,7 +198,7 @@ static int cmp_edge(const void *lhs_, const void *rhs_)
 {
     const Edge *lhs = lhs_;
     const Edge *rhs = rhs_;
-    return cmp_asc(lhs->cell, rhs->cell);
+    return (lhs->cell > rhs->cell) - (lhs->cell < rhs->cell);
 }
 
 /* For each periodic link, request the peer cell's global id from its owner. */
@@ -884,7 +884,7 @@ static int cmp_cell(const void *lhs_, const void *rhs_)
 {
     const Cell *lhs = lhs_;
     const Cell *rhs = rhs_;
-    return cmp_asc(lhs->entity, rhs->entity);
+    return (lhs->entity > rhs->entity) - (lhs->entity < rhs->entity);
 }
 
 /* Move cells to their target partitions and rebuild entity offsets. */
@@ -1064,7 +1064,7 @@ static int cmp_node(const void *lhs_, const void *rhs_)
 {
     const Node *lhs = lhs_;
     const Node *rhs = rhs_;
-    return cmp_asc(lhs->rank, rhs->rank);
+    return (lhs->rank > rhs->rank) - (lhs->rank < rhs->rank);
 }
 
 /* Redistribute nodes to match current cells and reint connectivity. */
@@ -1106,7 +1106,7 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
         for (int i = 0; i < cap; i++) {
             int key = node[i].old;
             if (key != -1 && bsearch(&key, global, num, sizeof(*global), cmp_int)) {
-                node[i].rank = min(node[i].rank, sync.rank);
+                node[i].rank = lmin(node[i].rank, sync.rank);
             }
         }
         MPI_Sendrecv_replace(node, cap, type, dst, tag, src, tag, sync.comm, MPI_STATUS_IGNORE);

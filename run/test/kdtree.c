@@ -180,7 +180,7 @@ static int cmp_map(const void *lhs_, const void *rhs_)
 {
     const Map *lhs = lhs_;
     const Map *rhs = rhs_;
-    return cmp_asc(lhs->dist, rhs->dist);
+    return (lhs->dist > rhs->dist) - (lhs->dist < rhs->dist);
 }
 
 static bool contains(const int *arr, int val, int num)

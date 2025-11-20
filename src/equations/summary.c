@@ -10,7 +10,7 @@ void equations_summary(const Equations *eqns)
 
     int len = 16;
     for (int i = 0; i < eqns->properties.num; i++) {
-        len = max(len, (int)strlen(eqns->properties.name[i]));
+        len = lmax(len, strlen(eqns->properties.name[i]));
     }
 
     println("Equations summary");
@@ -33,7 +33,7 @@ void equations_summary(const Equations *eqns)
 
     len = 0;
     for (int i = eqns->mesh->entities.num_inner; i < eqns->mesh->entities.num; i++) {
-        len = max(len, (int)strlen(eqns->mesh->entities.name[i]));
+        len = lmax(len, strlen(eqns->mesh->entities.name[i]));
     }
 
     println("\t boundary conditions");

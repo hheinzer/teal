@@ -7,8 +7,8 @@
 static void symmetry(void *ghost_, const void *inner_, const void *reference_,
                      const scalar *property, const matrix *basis)
 {
-    unused(reference_);
-    unused(property);
+    (void)reference_;
+    (void)property;
 
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
@@ -27,9 +27,9 @@ static void symmetry(void *ghost_, const void *inner_, const void *reference_,
 static void supersonic_inflow(void *ghost_, const void *inner_, const void *reference_,
                               const scalar *property, const matrix *basis)
 {
-    unused(inner_);
-    unused(property);
-    unused(basis);
+    (void)inner_;
+    (void)property;
+    (void)basis;
 
     Euler *ghost = ghost_;
     const Euler *reference = reference_;
@@ -42,9 +42,9 @@ static void supersonic_inflow(void *ghost_, const void *inner_, const void *refe
 static void supersonic_outflow(void *ghost_, const void *inner_, const void *reference_,
                                const scalar *property, const matrix *basis)
 {
-    unused(reference_);
-    unused(property);
-    unused(basis);
+    (void)reference_;
+    (void)property;
+    (void)basis;
 
     Euler *ghost = ghost_;
     const Euler *inner = inner_;

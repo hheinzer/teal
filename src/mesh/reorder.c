@@ -135,7 +135,7 @@ static int cmp_face(const void *lhs_, const void *rhs_)
 {
     const Face *lhs = lhs_;
     const Face *rhs = rhs_;
-    return cmp_asc(lhs->key, rhs->key);
+    return (lhs->key > rhs->key) - (lhs->key < rhs->key);
 }
 
 void mesh_reorder_faces(MeshFaces *faces, const int *key)

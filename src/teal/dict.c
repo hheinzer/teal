@@ -5,9 +5,10 @@
 #include <string.h>
 
 #include "arena.h"
-#include "utils.h"
 
 #define NON_NULL ((void *)(int)1)  // NOLINT(performance-no-int-to-ptr)
+
+#define countof(arr) (sizeof(arr) / sizeof(*(arr)))
 
 enum { WIDTH = countof((DictItem){0}.child) };
 enum { SHIFT = (WIDTH == 2) ? 1 : (WIDTH == 4) ? 2 : (WIDTH == 8) ? 3 : -1 };

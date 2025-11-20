@@ -12,7 +12,7 @@ int array_lmin(const int *arr, int num)
     assert(arr ? (num >= 0) : (num == 0));
     int min = INT_MAX;
     for (int i = 0; i < num; i++) {
-        min = min(min, arr[i]);
+        min = lmin(min, arr[i]);
     }
     return min;
 }
@@ -22,7 +22,7 @@ int array_lmax(const int *arr, int num)
     assert(arr ? (num >= 0) : (num == 0));
     int max = INT_MIN;
     for (int i = 0; i < num; i++) {
-        max = max(max, arr[i]);
+        max = lmax(max, arr[i]);
     }
     return max;
 }

@@ -10,7 +10,7 @@
 scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
              const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num = eqns->mesh->cells.num_inner;
@@ -42,7 +42,7 @@ scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar couran
 scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar courant,
                 scalar max_step, const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;
@@ -85,7 +85,7 @@ scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar cou
 scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
             const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;
@@ -128,7 +128,7 @@ scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant
 scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar courant,
                scalar max_step, const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;
@@ -171,7 +171,7 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar cour
 scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
               const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;
@@ -214,7 +214,7 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar coura
 scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
               const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;
@@ -268,7 +268,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar coura
 scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
            const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;
@@ -323,7 +323,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
 scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
            const void *ctx_)
 {
-    unused(ctx_);
+    (void)ctx_;
     Arena save = arena_save();
 
     int num_cells = eqns->mesh->cells.num;

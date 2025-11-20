@@ -189,13 +189,13 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
                 equations_limiter(eqns, variable_, gradient_);
             }
             if (eqns->convective.flux && eqns->viscous.flux) {
-                error("TODO");
+                assert(false);  // TODO
             }
             else if (eqns->convective.flux) {
                 integrate_reconstructed_convective_flux(eqns, variable_, derivative, gradient_);
             }
             else if (eqns->viscous.flux) {
-                error("TODO");
+                assert(false);  // TODO
             }
             break;
         }

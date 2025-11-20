@@ -235,9 +235,9 @@ static int read_node_block(NodeBlock *block, int beg, int end, int off, ParseMod
     parse(mode, SIZE, &block->num_nodes, 1, swap, file);
 
     int tot_nodes = parse_data_to_int(SIZE, &block->num_nodes, 0);
-    int beg_nodes = max(beg, off);
-    int end_nodes = min(end, off + tot_nodes);
-    int num_nodes = max(0, end_nodes - beg_nodes);
+    int beg_nodes = lmax(beg, off);
+    int end_nodes = lmin(end, off + tot_nodes);
+    int num_nodes = lmax(0, end_nodes - beg_nodes);
     assert(tot_nodes == sync_lsum(num_nodes));
 
     switch (SIZE) {
@@ -335,9 +335,9 @@ static int read_element_block(ElementBlock *block, int beg, int end, int off, Pa
     parse(mode, SIZE, &block->num_elements, 1, swap, file);
 
     int tot_elements = parse_data_to_int(SIZE, &block->num_elements, 0);
-    int beg_elements = max(beg, off);
-    int end_elements = min(end, off + tot_elements);
-    int num_elements = max(0, end_elements - beg_elements);
+    int beg_elements = lmax(beg, off);
+    int end_elements = lmin(end, off + tot_elements);
+    int num_elements = lmax(0, end_elements - beg_elements);
     assert(tot_elements == sync_lsum(num_elements));
 
     int len = num_node_tags(block->element_type);
@@ -453,11 +453,11 @@ typedef struct {
     int idx;
 } Map;
 
-static int cmp_map(const void *lhs, const void *rhs)
+static int cmp_map(const void *lhs_, const void *rhs_)
 {
-    const Map *_lhs = lhs;
-    const Map *_rhs = rhs;
-    return cmp_asc(_lhs->tag, _rhs->tag);
+    const Map *lhs = lhs_;
+    const Map *rhs = rhs_;
+    return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
 static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cells, ParseType SIZE,
@@ -567,14 +567,14 @@ static int cmp_physical(const void *lhs_, const void *rhs_)
     const Physical *lhs = lhs_;
     const Physical *rhs = rhs_;
     if (lhs->dim != rhs->dim) {
-        return cmp_dsc(lhs->dim, rhs->dim);
+        return (rhs->dim > lhs->dim) - (rhs->dim < lhs->dim);
     }
     bool lhs_periodic = strchr(lhs->name, ':');
     bool rhs_periodic = strchr(rhs->name, ':');
     if (lhs_periodic != rhs_periodic) {
-        return cmp_asc(lhs_periodic, rhs_periodic);
+        return (lhs_periodic > rhs_periodic) - (lhs_periodic < rhs_periodic);
     }
-    return cmp_asc(lhs->tag, rhs->tag);
+    return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
 static void create_entities(MeshEntities *entities, const Gmsh *gmsh)
@@ -615,14 +615,14 @@ static int cmp_surface(const void *lhs_, const void *rhs_)
 {
     const Surface *lhs = lhs_;
     const Surface *rhs = rhs_;
-    return cmp_asc(lhs->tag, rhs->tag);
+    return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
 static int cmp_volume(const void *lhs_, const void *rhs_)
 {
     const Volume *lhs = lhs_;
     const Volume *rhs = rhs_;
-    return cmp_asc(lhs->tag, rhs->tag);
+    return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
 static void compute_entity_map(int *entity, const MeshCells *cells, ParseType SIZE,

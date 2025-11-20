@@ -8,7 +8,7 @@
 scalar minmod(vector gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
               const vector *offset, int beg, int end)
 {
-    unused(parameter);
+    (void)parameter;
     scalar psi = 1;
     for (int i = beg; i < end; i++) {
         scalar delta2 =
