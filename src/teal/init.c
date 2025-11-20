@@ -39,10 +39,6 @@ void teal_init(int *argc, char ***argv)
     println("\t config            : %s", CONFIG);
     println("\t number of ranks   : %ld", sync.size);
     println("\t arena capacity    : %s", cap);
-    if (option.num_refines > 0) {
-        println("\t long of refines : %ld", option.num_refines);
-    }
-    if (option.restart) {
-        println("\t restart file      : %s", option.restart);
-    }
+    println("\t number of refines : %ld", option.num_refines);
+    println("\t restart file      : %s", option.restart);
 }

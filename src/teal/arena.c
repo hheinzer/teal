@@ -39,25 +39,26 @@ enum { REDZONE = 0 };
 #endif
 
 static Arena arena = {0};
-static char *arena_base = 0;
-static char *arena_end = 0;
+static char *base = 0;
+static char *end = 0;
+static long peak = 0;
 
 void arena_init(long capacity)
 {
     assert(capacity > 0);
-    arena_base = malloc(capacity);
-    if (!arena_base) {
+    base = malloc(capacity);
+    if (!base) {
         error("could not allocate arena base memory");
     }
-    arena.beg = arena_base;
-    arena_end = arena_base + capacity;
-    MAKE_REGION_NOACCESS(arena_base, capacity);
+    arena.beg = base;
+    end = base + capacity;
+    MAKE_REGION_NOACCESS(base, capacity);
 }
 
 void *arena_malloc(long num, long size)
 {
     assert(num >= 0 && size > 0);
-    long available = arena_end - arena.beg;
+    long available = end - arena.beg;
     long padding = -(long)arena.beg & (ALIGN - 1);
     if (num > (available - padding - REDZONE) / size) {
         error("out of memory trying to allocate %ld blocks of size %ld", num, size);
@@ -65,6 +66,7 @@ void *arena_malloc(long num, long size)
     arena.last = arena.beg + padding + REDZONE;
     arena.beg = arena.last + (num * size);
     MAKE_REGION_ADDRESSABLE(arena.last, num * size);
+    peak = lmax(peak, arena_size());
     return arena.last;
 }
 
@@ -86,7 +88,7 @@ void *arena_resize(const void *ptr, long num, long size)
 {
     if (ptr == arena.last) {
         assert(num >= 0 && size > 0);
-        long available = arena_end - arena.last;
+        long available = end - arena.last;
         if (num > available / size) {
             error("out of memory trying to allocate %ld blocks of size %ld", num, size);
         }
@@ -99,6 +101,7 @@ void *arena_resize(const void *ptr, long num, long size)
         else {
             MAKE_REGION_NOACCESS(arena.last + new_size, old_size - new_size);
         }
+        peak = lmax(peak, arena_size());
         return arena.last;
     }
     return 0;
@@ -110,7 +113,7 @@ void *arena_smuggle(const void *ptr, long num, long size)
 {
     assert(num >= 0 && size > 0);
     char *new = arena_malloc(num, size);
-    assert(new <= (const char *)ptr && (const char *)ptr < arena_end);
+    assert(new <= (const char *)ptr && (const char *)ptr < end);
     MAKE_REGION_DEFINED(ptr, num * size);
     if (new == ptr) {
         return new;
@@ -140,10 +143,15 @@ void arena_load(Arena save)
 
 long arena_size(void)
 {
-    return arena.beg - arena_base;
+    return arena.beg - base;
+}
+
+long arena_peak(void)
+{
+    return peak;
 }
 
 void arena_finalize(void)
 {
-    free(arena_base);
+    free(base);
 }

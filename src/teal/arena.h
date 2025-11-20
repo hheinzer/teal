@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stddef.h>
-
 typedef struct {
     char *last;
     char *beg;
@@ -24,5 +22,6 @@ Arena arena_save(void);
 void arena_load(Arena save);
 
 long arena_size(void);
+long arena_peak(void);
 
 void arena_finalize(void);
