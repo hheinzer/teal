@@ -12,7 +12,7 @@ scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar couran
     (void)ctx_;
     Arena save = arena_save();
 
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -24,7 +24,7 @@ scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar couran
     scalar step0 = courant * equations_timestep(eqns, variable, 0);
     scalar step = fmin(step0, max_step);
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] += derivative[i][j] * step;
         }
@@ -45,7 +45,7 @@ scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar cou
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -58,7 +58,7 @@ scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar cou
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * step / 2);
         }
@@ -67,7 +67,7 @@ scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar cou
 
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (step / 2));
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] += derivative1[i][j] * step;
         }
@@ -88,7 +88,7 @@ scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -101,7 +101,7 @@ scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * step);
         }
@@ -110,7 +110,7 @@ scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant
 
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + step);
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] += (derivative[i][j] + derivative1[i][j]) * step / 2;
         }
@@ -131,7 +131,7 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar cour
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -144,7 +144,7 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar cour
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * 2 * step / 3);
         }
@@ -153,7 +153,7 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar cour
 
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (2 * step / 3));
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] += step * (derivative[i][j] + 3 * derivative1[i][j]) / 4;
         }
@@ -174,7 +174,7 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar coura
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -187,7 +187,7 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar coura
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * step);
         }
@@ -196,7 +196,7 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar coura
 
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + step);
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] = (variable[i][j] + variable1[i][j] + step * derivative1[i][j]) / 2;
         }
@@ -217,7 +217,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar coura
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -230,7 +230,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar coura
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * step);
         }
@@ -240,7 +240,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar coura
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + step);
 
     scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable2[i][j] = (3 * variable[i][j] + variable1[i][j] + step * derivative1[i][j]) / 4;
         }
@@ -249,7 +249,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar coura
 
     scalar(*derivative2)[len] = equations_derivative(eqns, variable2, 0, *time + (step / 2));
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] =
                 (variable[i][j] + 2 * (variable2[i][j] + step * derivative2[i][j])) / 3;
@@ -271,7 +271,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -284,7 +284,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * step / 2);
         }
@@ -294,7 +294,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (step / 2));
 
     scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable2[i][j] =
                 variable[i][j] - (derivative[i][j] * step) + (derivative1[i][j] * 2 * step);
@@ -304,7 +304,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
 
     scalar(*derivative2)[len] = equations_derivative(eqns, variable2, 0, *time + step);
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] +=
                 step * (derivative[i][j] + 4 * derivative1[i][j] + derivative2[i][j]) / 6;
@@ -326,7 +326,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     Arena save = arena_save();
 
     long num_cells = eqns->mesh->cells.num;
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
@@ -339,7 +339,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable1[i][j] = variable[i][j] + (derivative[i][j] * step / 2);
         }
@@ -349,7 +349,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     scalar(*derivative1)[len] = equations_derivative(eqns, variable1, 0, *time + (step / 2));
 
     scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable2[i][j] = variable[i][j] + (derivative1[i][j] * step / 2);
         }
@@ -359,7 +359,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     scalar(*derivative2)[len] = equations_derivative(eqns, variable2, 0, *time + (step / 2));
 
     scalar(*variable3)[stride] = arena_malloc(num_cells, sizeof(*variable3));
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable3[i][j] = variable[i][j] + (derivative2[i][j] * step);
         }
@@ -368,7 +368,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
 
     scalar(*derivative3)[len] = equations_derivative(eqns, variable3, 0, *time + step);
 
-    for (long i = 0; i < num; i++) {
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] += step *
                               (derivative[i][j] + 2 * (derivative1[i][j] + derivative2[i][j]) +
@@ -422,22 +422,22 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar couran
     long num_stages = ctx->num_stages;
     const scalar *alpha = alpha_[time_order - 1][num_stages - 1];
 
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
     Update *primitive = eqns->variables.primitive;
 
     scalar(*variable)[stride] = eqns->variables.data;
-    scalar(*variable0)[stride] = arena_memdup(variable, num, sizeof(*variable));
+    scalar(*variable0)[stride] = arena_memdup(variable, num_inner, sizeof(*variable));
 
     scalar step0 = courant * equations_timestep(eqns, variable, 0);
     scalar step = fmin(step0, max_step);
 
-    scalar(*derivative)[len] = arena_malloc(num, sizeof(*derivative));
+    scalar(*derivative)[len] = arena_malloc(num_inner, sizeof(*derivative));
     for (long i = 0; i < num_stages; i++) {
         equations_derivative(eqns, variable, derivative, *time + (alpha[i] * step));
-        for (long j = 0; j < num; j++) {
+        for (long j = 0; j < num_inner; j++) {
             for (long k = 0; k < len; k++) {
                 variable[j][k] = variable0[j][k] + (derivative[j][k] * alpha[i + 1] * step);
             }
@@ -460,14 +460,14 @@ scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
     const NewtonKrylov *ctx = ctx_;
     scalar tol = ctx->newton_tolerance;
 
-    long num = eqns->mesh->cells.num_inner;
+    long num_inner = eqns->mesh->cells.num_inner;
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
     Update *primitive = eqns->variables.primitive;
 
     scalar(*variable)[stride] = eqns->variables.data;
-    scalar(*variable0)[stride] = arena_memdup(variable, num, sizeof(*variable));
+    scalar(*variable0)[stride] = arena_memdup(variable, num_inner, sizeof(*variable));
 
     scalar step0 = courant * equations_timestep(eqns, variable, 0);
     scalar step = fmin(step0, max_step);
@@ -475,25 +475,25 @@ scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
     *time += step;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar(*residual)[len] = arena_malloc(num, sizeof(*residual));
-    for (long i = 0; i < num; i++) {
+    scalar(*residual)[len] = arena_malloc(num_inner, sizeof(*residual));
+    for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             residual[i][j] = -derivative[i][j] * step;
         }
     }
 
-    scalar norm = sync_fnorm(*residual, num * len);
+    scalar norm = sync_fnorm(*residual, num_inner * len);
 
     static const scalar fd_relative = 1e-6;
-    scalar fd_scale = fd_relative * fmax(1, sync_fnorm(*variable, num * len)) / fmax(1, norm);
+    scalar fd_scale = fd_relative * fmax(1, sync_fnorm(*variable, num_inner * len)) / fmax(1, norm);
 
     scalar tol_norm = tol * norm;
-    long max_iter = 128 * (num + 1);
+    long max_iter = 128 * (num_inner + 1);
 
-    scalar(*increment)[len] = arena_malloc(num, sizeof(*increment));
+    scalar(*increment)[len] = arena_malloc(num_inner, sizeof(*increment));
     for (long iter = 0; iter < max_iter && norm > tol_norm; iter++) {
         gmres(eqns, variable, derivative, residual, increment, *time, step, norm, fd_scale, ctx);
-        for (long i = 0; i < num; i++) {
+        for (long i = 0; i < num_inner; i++) {
             for (long j = 0; j < len; j++) {
                 variable[i][j] += increment[i][j];
             }
@@ -501,15 +501,15 @@ scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
         }
 
         equations_derivative(eqns, variable, derivative, *time);
-        for (long i = 0; i < num; i++) {
+        for (long i = 0; i < num_inner; i++) {
             for (long j = 0; j < len; j++) {
                 residual[i][j] = variable[i][j] - variable0[i][j] - (derivative[i][j] * step);
             }
         }
 
-        norm = sync_fnorm(*residual, num * len);
+        norm = sync_fnorm(*residual, num_inner * len);
 
-        fd_scale = fd_relative * fmax(1, sync_fnorm(*variable, num * len)) / fmax(1, norm);
+        fd_scale = fd_relative * fmax(1, sync_fnorm(*variable, num_inner * len)) / fmax(1, norm);
     }
 
     equations_residual(eqns, derivative, residual_);
