@@ -24,24 +24,24 @@ Equations *equations_create(const Mesh *mesh, const char *name)
     return eqns;
 }
 
-void equations_create_variables(Equations *eqns, const long *size, const char **name,
+void equations_create_variables(Equations *eqns, const long *dim, const char **name,
                                 Update *conserved, Update *primitive, long num_conserved, long num)
 {
-    assert(eqns && size && name && 0 < num_conserved && num_conserved <= num);
+    assert(eqns && dim && name && 0 < num_conserved && num_conserved <= num);
 
     long len = 0;
     long stride = 0;
     for (long i = 0; i < num; i++) {
         if (i < num_conserved) {
-            len += size[i];
+            len += dim[i];
         }
-        stride += size[i];
+        stride += dim[i];
     }
 
     eqns->variables.num = num;
     eqns->variables.len = len;
     eqns->variables.stride = stride;
-    eqns->variables.size = arena_memdup(size, num, sizeof(*size));
+    eqns->variables.dim = arena_memdup(dim, num, sizeof(*dim));
     eqns->variables.name = arena_calloc(num, sizeof(*eqns->variables.name));
     for (long i = 0; i < num; i++) {
         strcpy(eqns->variables.name[i], name[i]);
@@ -63,19 +63,19 @@ void equations_create_properties(Equations *eqns, const char **name, const scala
     eqns->properties.data = arena_memdup(property, num, sizeof(*property));
 }
 
-void equations_create_user_variables(Equations *eqns, const long *size, const char **name,
+void equations_create_user_variables(Equations *eqns, const long *dim, const char **name,
                                      Compute *compute, long num)
 {
-    assert(eqns && size && name && compute && num > 0);
+    assert(eqns && dim && name && compute && num > 0);
 
     long stride = 0;
     for (long i = 0; i < num; i++) {
-        stride += size[i];
+        stride += dim[i];
     }
 
     eqns->user.num = num;
     eqns->user.stride = stride;
-    eqns->user.size = arena_memdup(size, num, sizeof(*size));
+    eqns->user.dim = arena_memdup(dim, num, sizeof(*dim));
     eqns->user.name = arena_calloc(num, sizeof(*eqns->user.name));
     for (long i = 0; i < num; i++) {
         strcpy(eqns->user.name[i], name[i]);
@@ -89,7 +89,7 @@ void equations_create_exact_solution(Equations *eqns, Compute *compute)
     long num = eqns->variables.num;
     eqns->user.num = num;
     eqns->user.stride = eqns->variables.stride;
-    eqns->user.size = arena_memdup(eqns->variables.size, num, sizeof(*eqns->variables.size));
+    eqns->user.dim = arena_memdup(eqns->variables.dim, num, sizeof(*eqns->variables.dim));
     eqns->user.name = arena_calloc(num, sizeof(*eqns->user.name));
     for (long i = 0; i < num; i++) {
         sprintf(eqns->user.name[i], "exact %s", eqns->variables.name[i]);

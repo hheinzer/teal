@@ -8,9 +8,9 @@ Equations *euler_create(const Mesh *mesh)
 
     Equations *eqns = equations_create(mesh, "euler");
 
-    long size[5] = {1, 3, 1, 3, 1};
+    long dim[5] = {1, 3, 1, 3, 1};
     const char *variable[5] = {"density", "momentum", "energy", "velocity", "pressure"};
-    equations_create_variables(eqns, size, variable, euler_conserved, euler_primitive, 3, 5);
+    equations_create_variables(eqns, dim, variable, euler_conserved, euler_primitive, 3, 5);
 
     const char *property[1] = {"heat capacity ratio"};
     const scalar gamma = 1.4;  // air

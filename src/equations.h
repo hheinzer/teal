@@ -35,7 +35,7 @@ typedef struct {
     long num;
     long len;
     long stride;
-    long *size;
+    long *dim;
     Name *name;
     void *data;
     Update *conserved;
@@ -78,7 +78,7 @@ typedef struct {
 typedef struct {
     long num;
     long stride;
-    long *size;
+    long *dim;
     Name *name;
     Compute *compute;
     Update *conserved;
@@ -101,13 +101,13 @@ typedef struct {
 
 Equations *equations_create(const Mesh *mesh, const char *name);
 
-void equations_create_variables(Equations *eqns, const long *size, const char **name,
+void equations_create_variables(Equations *eqns, const long *dim, const char **name,
                                 Update *conserved, Update *primitive, long num_conserved, long num);
 
 void equations_create_properties(Equations *eqns, const char **name, const scalar *property,
                                  long num);
 
-void equations_create_user_variables(Equations *eqns, const long *size, const char **name,
+void equations_create_user_variables(Equations *eqns, const long *dim, const char **name,
                                      Compute *compute, long num);
 
 void equations_create_exact_solution(Equations *eqns, Compute *compute);

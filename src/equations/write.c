@@ -26,19 +26,19 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
     h5io_group_close(group);
 }
 
-static void write_variables(const long *size, const Name *name, const void *variable_, long num,
+static void write_variables(const long *dim, const Name *name, const void *variable_, long num,
                             long stride, long num_cells, hid_t loc)
 {
     const scalar(*variable)[stride] = variable_;
-    for (long j = 0, i = 0; i < num; j += size[i++]) {
+    for (long j = 0, i = 0; i < num; j += dim[i++]) {
         Arena save = arena_save();
 
-        scalar(*buf)[size[i]] = arena_malloc(num_cells, sizeof(*buf));
+        scalar(*buf)[dim[i]] = arena_malloc(num_cells, sizeof(*buf));
         for (long k = 0; k < num_cells; k++) {
             memcpy(buf[k], &variable[k][j], sizeof(*buf));
         }
 
-        h5io_dataset_write(name[i], buf, num_cells, size[i], H5IO_SCALAR, loc);
+        h5io_dataset_write(name[i], buf, num_cells, dim[i], H5IO_SCALAR, loc);
 
         arena_load(save);
     }
@@ -56,7 +56,7 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
 
     long num = eqns->user.num;
     long stride_u = eqns->user.stride;
-    long *size = eqns->user.size;
+    long *dim = eqns->user.dim;
     Name *name = eqns->user.name;
     Compute *compute = eqns->user.compute;
     Update *conserved = eqns->user.conserved;
@@ -75,7 +75,7 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
         }
     }
 
-    write_variables(size, name, user, num, stride_u, num_cells, loc);
+    write_variables(dim, name, user, num, stride_u, num_cells, loc);
 
     arena_load(save);
 }
@@ -91,7 +91,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 
     long num = eqns->variables.num;
     long stride = eqns->variables.stride;
-    long *size = eqns->variables.size;
+    long *dim = eqns->variables.dim;
     Name *name = eqns->variables.name;
     scalar(*variable)[stride] = eqns->variables.data;
 
@@ -103,7 +103,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     equations_boundary(eqns, variable, time);
     equations_timestep(eqns, variable, step);
 
-    write_variables(size, name, variable, num, stride, num_cells, group);
+    write_variables(dim, name, variable, num, stride, num_cells, group);
 
     h5io_dataset_write("step", step, num_cells, 1, H5IO_SCALAR, group);
 

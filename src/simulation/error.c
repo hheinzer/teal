@@ -12,7 +12,7 @@ void simulation_error(const Simulation *sim, scalar time, void *norm_)
     Arena save = arena_save();
 
     long num = sim->eqns->variables.num;
-    long *size = sim->eqns->variables.size;
+    long *dim = sim->eqns->variables.dim;
     Name *name = sim->eqns->variables.name;
 
     int width = 0;
@@ -28,10 +28,10 @@ void simulation_error(const Simulation *sim, scalar time, void *norm_)
     equations_norm(sim->eqns, time, norm);
 
     println("Simulation error");
-    for (long j = 0, i = 0; i < num; j += size[i++]) {
+    for (long j = 0, i = 0; i < num; j += dim[i++]) {
         long pos = 0;
         char buf[128];
-        for (long k = 0; k < size[i]; k++) {
+        for (long k = 0; k < dim[i]; k++) {
             pos += sprintf(&buf[pos], " %g", norm[j + k]);
         }
         println("\t %-*s :%s", width, name[i], buf);
