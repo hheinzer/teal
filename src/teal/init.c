@@ -6,18 +6,6 @@
 #include "teal.h"
 #include "utils.h"
 
-#ifndef COMPILER
-#define COMPILER "unknown"
-#endif
-
-#ifndef COMMIT
-#define COMMIT "unknown"
-#endif
-
-#ifndef CONFIG
-#define CONFIG "unknown"
-#endif
-
 void teal_init(int *argc, char ***argv)
 {
     sync_init(argc, argv);
@@ -34,9 +22,6 @@ void teal_init(int *argc, char ***argv)
 
     println("Hello, World! This is teal!");
     println("\t start time        : %s", now);
-    println("\t compiler          : %s", COMPILER);
-    println("\t commit            : %s", COMMIT);
-    println("\t config            : %s", CONFIG);
     println("\t number of ranks   : %ld", sync.size);
     println("\t arena capacity    : %s", cap);
     println("\t number of refines : %ld", option.num_refines);

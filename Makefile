@@ -1,35 +1,25 @@
-# compiler and libraries
+# compiler
 CC = clang
 MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
+
+# libraries
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 
-# compiler flags
-CONFIG ?= debug
-CFLAGS = -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Isrc
-ifeq ($(CONFIG), debug)
-	CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize-trap -fsanitize=address,undefined
-endif
-ifeq ($(CONFIG), valgrind)
-	CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
-endif
-ifneq (,$(filter $(CONFIG), release gprof))
-	CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
-endif
-ifeq ($(CONFIG), gprof)
-	CFLAGS += -pg -fno-inline-functions -fno-optimize-sibling-calls
-endif
-CFLAGS += -DCONFIG=\"$(CONFIG)\"
+# default flags
+CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual
 
-# gcc/tcc specific flags (silence bogous warnings)
-ifneq (,$(filter $(CC), gcc tcc))
-	CFLAGS += -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare
-endif
+# debug flags
+CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 
-# build info
-COMPILER := $(shell $(CC) --version | head -n1)
-COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-STATUS := $(shell git diff-index --quiet HEAD 2>/dev/null || echo "-dirty")
-CFLAGS += -DCOMPILER="\"$(COMPILER)\"" -DCOMMIT=\"$(COMMIT)$(STATUS)\"
+# valgrind flags
+#CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
+
+# release flags
+#CFLAGS += -O3 -march=native -flto=auto
+#CFLAGS += -DNDEBUG -Wno-unused -Wno-unused-parameter
+
+# gprof flags
+#CFLAGS += -pg -fno-inline-functions
 
 # sources, objects, and programs
 SRC := $(shell find src -type f -name '*.c')
@@ -38,30 +28,20 @@ OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
 BIN := $(patsubst run/%.c, bin/%, $(RUN))
 
 # make functions
-.PHONY: all valgrind release gprof clean check tidy format
+.PHONY: all clean check tidy format
 
 all: $(BIN)
-
-valgrind:
-	@$(MAKE) --no-print-directory CONFIG=valgrind
-
-release:
-	@$(MAKE) --no-print-directory CONFIG=release
-
-gprof:
-	@$(MAKE) --no-print-directory CONFIG=gprof
 
 clean:
 	@rm -rf obj bin
 
 check:
-	@cppcheck --quiet --project=compile_commands.json \
-		--enable=all --inconclusive --check-level=exhaustive \
+	@cppcheck --project=compile_commands.json --check-level=exhaustive --enable=all \
 		--suppress=checkersReport --suppress=missingIncludeSystem \
-		--suppress=constVariable --suppress=constVariablePointer --suppress=unusedFunction
+		--suppress=unusedFunction --suppress=constVariable --suppress=constVariablePointer
 
 tidy: $(OBJ)
-	@clang-tidy --quiet $(shell find . -type f -name '*.[ch]')
+	@clang-tidy $(shell find . -type f -name '*.[ch]')
 
 format:
 	@clang-format -i $(shell find . -type f -name '*.[ch]')
@@ -71,16 +51,9 @@ CFLAGS += -MMD -MP
 DEP = $(OBJ:.o=.d) $(BIN:=.d)
 -include $(DEP)
 
-# configuration stamp
-STAMP := obj/.config-$(CONFIG)
-$(STAMP):
-	@mkdir -p $(dir $@)
-	@rm -f obj/.config-*
-	@touch $@
-
 # suffix rules
 .SUFFIXES:
-obj/%.o: src/%.c $(STAMP) Makefile
+obj/%.o: src/%.c Makefile
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) -c $< -o $@
 
