@@ -310,14 +310,16 @@ static void test_neighbors(const MeshCells *cells, const MeshNeighbors *neighbor
     if (neighbors->rank) {
         long *rank = arena_malloc(neighbors->num, sizeof(*rank));
         long tag = sync_tag();
-        MPI_Request *req = arena_malloc(neighbors->num, sizeof(*req));
+        MPI_Request *req_recv = arena_malloc(neighbors->num, sizeof(*req_recv));
+        MPI_Request *req_send = arena_malloc(neighbors->num, sizeof(*req_send));
         for (long i = 0; i < neighbors->num; i++) {
             check(neighbors->rank[i] >= 0);
             check(neighbors->rank[i] < sync.size);
-            MPI_Isendrecv(&sync.rank, 1, MPI_LONG, neighbors->rank[i], tag, &rank[i], 1, MPI_LONG,
-                          neighbors->rank[i], tag, sync.comm, &req[i]);
+            MPI_Irecv(&rank[i], 1, MPI_LONG, neighbors->rank[i], tag, sync.comm, &req_recv[i]);
+            MPI_Isend(&sync.rank, 1, MPI_LONG, neighbors->rank[i], tag, sync.comm, &req_send[i]);
         }
-        MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
+        MPI_Waitall(neighbors->num, req_recv, MPI_STATUSES_IGNORE);
+        MPI_Waitall(neighbors->num, req_send, MPI_STATUSES_IGNORE);
         for (long i = 0; i < neighbors->num; i++) {
             check(neighbors->rank[i] == rank[i]);
         }

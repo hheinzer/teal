@@ -291,13 +291,15 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     long *off = arena_malloc(neighbors->num + 1, sizeof(*off));
     off[0] = 0;
     long tag = sync_tag();
-    MPI_Request *req = arena_malloc(neighbors->num, sizeof(*req));
+    MPI_Request *req_recv = arena_malloc(neighbors->num, sizeof(*req_recv));
+    MPI_Request *req_send = arena_malloc(neighbors->num, sizeof(*req_send));
     for (long i = 0; i < neighbors->num; i++) {
         long num_recv = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
-        MPI_Isendrecv(&num_recv, 1, MPI_LONG, neighbors->rank[i], tag, &off[i + 1], 1, MPI_LONG,
-                      neighbors->rank[i], tag, sync.comm, &req[i]);
+        MPI_Irecv(&off[i + 1], 1, MPI_LONG, neighbors->rank[i], tag, sync.comm, &req_recv[i]);
+        MPI_Isend(&num_recv, 1, MPI_LONG, neighbors->rank[i], tag, sync.comm, &req_send[i]);
     }
-    MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
+    MPI_Waitall(neighbors->num, req_recv, MPI_STATUSES_IGNORE);
+    MPI_Waitall(neighbors->num, req_send, MPI_STATUSES_IGNORE);
     for (long i = 0; i < neighbors->num; i++) {
         off[i + 1] += off[i];
     }
@@ -313,12 +315,14 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     for (long i = 0; i < neighbors->num; i++) {
         long num_recv = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
         long num_send = off[i + 1] - off[i];
-        MPI_Isendrecv(&recv[off_recv], num_recv, type, neighbors->rank[i], tag, &send[off[i]],
-                      num_send, type, neighbors->rank[i], tag, sync.comm, &req[i]);
+        MPI_Irecv(&send[off[i]], num_send, type, neighbors->rank[i], tag, sync.comm, &req_recv[i]);
+        MPI_Isend(&recv[off_recv], num_recv, type, neighbors->rank[i], tag, sync.comm,
+                  &req_send[i]);
         off_recv += num_recv;
     }
     assert(off_recv == tot_recv);
-    MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
+    MPI_Waitall(neighbors->num, req_recv, MPI_STATUSES_IGNORE);
+    MPI_Waitall(neighbors->num, req_send, MPI_STATUSES_IGNORE);
     MPI_Type_free(&type);
 
     long *idx = arena_malloc(tot_send, sizeof(*idx));
@@ -542,18 +546,21 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
 
     vector *send = arena_malloc(neighbors->send.off[neighbors->num], sizeof(*send));
     long tag = sync_tag();
-    MPI_Request *req = arena_malloc(neighbors->num, sizeof(*req));
+    MPI_Request *req_recv = arena_malloc(neighbors->num, sizeof(*req_recv));
+    MPI_Request *req_send = arena_malloc(neighbors->num, sizeof(*req_send));
     for (long i = 0; i < neighbors->num; i++) {
         for (long j = neighbors->send.off[i]; j < neighbors->send.off[i + 1]; j++) {
             send[j] = center[neighbors->send.idx[j]];
         }
         long sendcount = neighbors->send.off[i + 1] - neighbors->send.off[i];
         long recvcount = neighbors->recv_off[i + 1] - neighbors->recv_off[i];
-        MPI_Isendrecv(&send[neighbors->send.off[i]], sendcount, type, neighbors->rank[i], tag,
-                      &center[neighbors->recv_off[i]], recvcount, type, neighbors->rank[i], tag,
-                      sync.comm, &req[i]);
+        MPI_Irecv(&center[neighbors->recv_off[i]], recvcount, type, neighbors->rank[i], tag,
+                  sync.comm, &req_recv[i]);
+        MPI_Isend(&send[neighbors->send.off[i]], sendcount, type, neighbors->rank[i], tag,
+                  sync.comm, &req_send[i]);
     }
-    MPI_Waitall(neighbors->num, req, MPI_STATUSES_IGNORE);
+    MPI_Waitall(neighbors->num, req_recv, MPI_STATUSES_IGNORE);
+    MPI_Waitall(neighbors->num, req_send, MPI_STATUSES_IGNORE);
     MPI_Type_free(&type);
 
     arena_load(save);
