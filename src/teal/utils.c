@@ -183,18 +183,18 @@ void size_to_str(char *str, scalar size)
 void seconds_to_str(char *str, scalar seconds)
 {
     assert(str && seconds >= 0);
-    static const long seconds_per_minute = 60;
-    static const long seconds_per_hour = 60 * seconds_per_minute;
-    static const long seconds_per_day = 24 * seconds_per_hour;
+    enum { SECONDS_PER_MINUTE = 60 };
+    enum { SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE };
+    enum { SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR };
 
-    long days = seconds / seconds_per_day;
-    seconds -= days * seconds_per_day;
+    long days = seconds / SECONDS_PER_DAY;
+    seconds -= days * SECONDS_PER_DAY;
 
-    long hours = seconds / seconds_per_hour;
-    seconds -= hours * seconds_per_hour;
+    long hours = seconds / SECONDS_PER_HOUR;
+    seconds -= hours * SECONDS_PER_HOUR;
 
-    long minutes = seconds / seconds_per_minute;
-    seconds -= minutes * seconds_per_minute;
+    long minutes = seconds / SECONDS_PER_MINUTE;
+    seconds -= minutes * SECONDS_PER_MINUTE;
 
     long len = 0;
     if (days > 0) {
