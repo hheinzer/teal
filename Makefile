@@ -6,7 +6,7 @@ MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 
 # default flags
-CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual
+CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings
 
 # debug flags
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
