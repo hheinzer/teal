@@ -39,6 +39,9 @@ void equations_create_variables(Equations *eqns, const long *dim, const char **n
         stride += dim[i];
     }
 
+    long num_cells = eqns->mesh->cells.num;
+    scalar(*variable)[stride] = arena_calloc(num_cells, sizeof(*variable));
+
     eqns->variables.num = num;
     eqns->variables.len = len;
     eqns->variables.stride = stride;
@@ -47,7 +50,7 @@ void equations_create_variables(Equations *eqns, const long *dim, const char **n
     for (long i = 0; i < num; i++) {
         strcpy(eqns->variables.name[i], name[i]);
     }
-    eqns->variables.data = arena_calloc(eqns->mesh->cells.num * stride, sizeof(scalar));
+    eqns->variables.data = variable;
     eqns->variables.conserved = conserved;
     eqns->variables.primitive = primitive;
 }
