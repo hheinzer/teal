@@ -123,16 +123,9 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
 
     for (long i = 0; i < num_inner; i++) {
         if (!strcmp(name[i], entity)) {
-            if (conserved) {
-                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                    compute(variable[j], property, center[j], time, 0);
-                    conserved(variable[j], property);
-                }
-            }
-            else {
-                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                    compute(variable[j], property, center[j], time, 0);
-                }
+            for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
+                compute(variable[j], property, center[j], time, 0);
+                conserved(variable[j], property);
             }
             return;
         }
@@ -155,16 +148,9 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
 
     for (long i = 0; i < num_inner; i++) {
         if (!strcmp(name[i], entity)) {
-            if (conserved) {
-                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                    memcpy(variable[j], state, sizeof(*variable));
-                    conserved(variable[j], property);
-                }
-            }
-            else {
-                for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
-                    memcpy(variable[j], state, sizeof(*variable));
-                }
+            for (long j = cell_off[i]; j < cell_off[i + 1]; j++) {
+                memcpy(variable[j], state, sizeof(*variable));
+                conserved(variable[j], property);
             }
             return;
         }

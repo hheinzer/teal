@@ -27,7 +27,8 @@ Equations *equations_create(const Mesh *mesh, const char *name)
 void equations_create_variables(Equations *eqns, const long *dim, const char **name,
                                 Update *conserved, Update *primitive, long num_conserved, long num)
 {
-    assert(eqns && dim && name && 0 < num_conserved && num_conserved <= num);
+    assert(eqns && dim && name && conserved && primitive &&
+           (0 < num_conserved && num_conserved <= num));
 
     long len = 0;
     long stride = 0;
