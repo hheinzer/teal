@@ -7,7 +7,7 @@
 #include "arena.h"
 #include "utils.h"
 
-enum { WIDTH = countof((DictItem){0}.child) };
+enum { WIDTH = count_of((DictItem){0}.child) };
 enum { SHIFT = (WIDTH == 2) ? 1 : (WIDTH == 4) ? 2 : (WIDTH == 8) ? 3 : -1 };
 enum { SELECT = (8 * sizeof(uint64_t)) - SHIFT };
 
