@@ -42,7 +42,7 @@ void sync_reinit(MPI_Comm comm)
     sync.size = size;
 }
 
-void sync_exit(long status)
+void sync_exit(int status)
 {
     int flag;
     MPI_Initialized(&flag);

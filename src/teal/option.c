@@ -10,7 +10,7 @@
 
 Option option = {0};
 
-static void help(char ***argv, long status)
+static void help(char ***argv, int status)
 {
     println(
         "usage: %s"
