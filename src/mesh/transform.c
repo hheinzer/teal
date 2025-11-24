@@ -2,14 +2,14 @@
 
 void transform_to_local(vector *res, const Basis *mat, const vector *vec)
 {
-    res->x = (mat->n.x * vec->x) + (mat->n.y * vec->y) + (mat->n.z * vec->z);
-    res->y = (mat->s.x * vec->x) + (mat->s.y * vec->y) + (mat->s.z * vec->z);
-    res->z = (mat->t.x * vec->x) + (mat->t.y * vec->y) + (mat->t.z * vec->z);
+    res->x = (mat->normal.x * vec->x) + (mat->normal.y * vec->y) + (mat->normal.z * vec->z);
+    res->y = (mat->tangent1.x * vec->x) + (mat->tangent1.y * vec->y) + (mat->tangent1.z * vec->z);
+    res->z = (mat->tangent2.x * vec->x) + (mat->tangent2.y * vec->y) + (mat->tangent2.z * vec->z);
 }
 
 void transform_to_global(vector *res, const Basis *mat, const vector *vec)
 {
-    res->x = (mat->n.x * vec->x) + (mat->s.x * vec->y) + (mat->t.x * vec->z);
-    res->y = (mat->n.y * vec->x) + (mat->s.y * vec->y) + (mat->t.y * vec->z);
-    res->z = (mat->n.z * vec->x) + (mat->s.z * vec->y) + (mat->t.z * vec->z);
+    res->x = (mat->normal.x * vec->x) + (mat->tangent1.x * vec->y) + (mat->tangent2.x * vec->z);
+    res->y = (mat->normal.y * vec->x) + (mat->tangent1.y * vec->y) + (mat->tangent2.y * vec->z);
+    res->z = (mat->normal.z * vec->x) + (mat->tangent1.z * vec->y) + (mat->tangent2.z * vec->z);
 }

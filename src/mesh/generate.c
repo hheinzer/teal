@@ -424,16 +424,16 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
 static Basis compute_face_basis(const vector *coord, long num_nodes)
 {
     Basis basis;
-    basis.n = compute_face_normal(coord, num_nodes);
-    scalar nqz = hypot(basis.n.x, basis.n.y);
-    scalar nqy = hypot(basis.n.x, basis.n.z);
+    vector normal = basis.normal = compute_face_normal(coord, num_nodes);
+    scalar nqz = hypot(normal.x, normal.y);
+    scalar nqy = hypot(normal.x, normal.z);
     if (nqz > nqy) {
-        basis.s = (vector){-basis.n.y / nqz, basis.n.x / nqz, 0};
-        basis.t = (vector){-basis.n.x * basis.n.z / nqz, -basis.n.y * basis.n.z / nqz, nqz};
+        basis.tangent1 = (vector){-normal.y / nqz, normal.x / nqz, 0};
+        basis.tangent2 = (vector){-normal.x * normal.z / nqz, -normal.y * normal.z / nqz, nqz};
     }
     else {
-        basis.s = (vector){-basis.n.x * basis.n.y / nqy, nqy, -basis.n.y * basis.n.z / nqy};
-        basis.t = (vector){-basis.n.z / nqy, 0, basis.n.x / nqy};
+        basis.tangent1 = (vector){-normal.x * normal.y / nqy, nqy, -normal.y * normal.z / nqy};
+        basis.tangent2 = (vector){-normal.z / nqy, 0, normal.x / nqy};
     }
     return basis;
 }
@@ -448,9 +448,9 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, l
         vector coord = nodes->coord[cells->node.idx[i]];
         vector_inc(&mean, vector_div(coord, num_nodes));
     }
-    if (vector_dot(vector_sub(mean, center), basis->n) > 0) {
-        vector_scale(&basis->n, -1);
-        vector_scale(&basis->s, -1);
+    if (vector_dot(vector_sub(mean, center), basis->normal) > 0) {
+        vector_scale(&basis->normal, -1);
+        vector_scale(&basis->tangent1, -1);
     }
 }
 
@@ -586,7 +586,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
     for (long i = 0; i < faces->num; i++) {
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
-        vector normal = faces->basis[i].n;
+        vector normal = faces->basis[i].normal;
         vector inc = vector_mul(faces->area[i] / 2, vector_abs(normal));
         vector_inc(&projection[left], inc);
         if (right < cells->num_inner) {

@@ -200,21 +200,21 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
 
     if (faces->basis) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->basis[i].n.x));
-            check(isfinite(faces->basis[i].n.y));
-            check(isfinite(faces->basis[i].n.z));
-            check(isfinite(faces->basis[i].s.x));
-            check(isfinite(faces->basis[i].s.y));
-            check(isfinite(faces->basis[i].s.z));
-            check(isfinite(faces->basis[i].t.x));
-            check(isfinite(faces->basis[i].t.y));
-            check(isfinite(faces->basis[i].t.z));
-            check(is_close(vector_norm(faces->basis[i].n), 1));
-            check(is_close(vector_norm(faces->basis[i].s), 1));
-            check(is_close(vector_norm(faces->basis[i].t), 1));
-            check(is_close(vector_dot(faces->basis[i].n, faces->basis[i].s), 0));
-            check(is_close(vector_dot(faces->basis[i].s, faces->basis[i].t), 0));
-            check(is_close(vector_dot(faces->basis[i].t, faces->basis[i].n), 0));
+            check(isfinite(faces->basis[i].normal.x));
+            check(isfinite(faces->basis[i].normal.y));
+            check(isfinite(faces->basis[i].normal.z));
+            check(isfinite(faces->basis[i].tangent1.x));
+            check(isfinite(faces->basis[i].tangent1.y));
+            check(isfinite(faces->basis[i].tangent1.z));
+            check(isfinite(faces->basis[i].tangent2.x));
+            check(isfinite(faces->basis[i].tangent2.y));
+            check(isfinite(faces->basis[i].tangent2.z));
+            check(is_close(vector_norm(faces->basis[i].normal), 1));
+            check(is_close(vector_norm(faces->basis[i].tangent1), 1));
+            check(is_close(vector_norm(faces->basis[i].tangent2), 1));
+            check(is_close(vector_dot(faces->basis[i].normal, faces->basis[i].tangent1), 0));
+            check(is_close(vector_dot(faces->basis[i].tangent1, faces->basis[i].tangent2), 0));
+            check(is_close(vector_dot(faces->basis[i].tangent2, faces->basis[i].normal), 0));
         }
     }
 
@@ -222,7 +222,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
         for (long i = 0; i < faces->num; i++) {
             long left = faces->cell[i].left;
             long right = faces->cell[i].right;
-            vector normal = faces->basis[i].n;
+            vector normal = faces->basis[i].normal;
             vector l2r = vector_sub(cells->center[right], cells->center[left]);
             check(is_greater(vector_norm(l2r), 0));
             check(is_greater(vector_dot(normal, l2r), 0));

@@ -70,7 +70,7 @@ typedef struct {
 } Adjacent;
 
 typedef struct {
-    vector n, s, t;  // basis normal and tangents
+    vector normal, tangent1, tangent2;
 } Basis;
 
 typedef struct {
