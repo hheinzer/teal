@@ -123,7 +123,7 @@ Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const boo
 /* Read a mesh from disk. */
 Mesh *mesh_read(const char *fname);
 
-/* Split an entity's cells by a plane through `root` with unit-normal `normal`. */
+/* Split an entity's cells by a plane through `root` with normal `normal`. */
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 
 /* Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights. */
@@ -135,5 +135,5 @@ void mesh_check(const Mesh *mesh);
 /* Print a global mesh summary. */
 void mesh_summary(const Mesh *mesh);
 
-/* Create HDF5 file `fname` and write nodes, cells, and entities groups. */
+/* Create HDF5 file `<prefix>_mesh.h5` and write nodes, cells, and entities groups. */
 void mesh_write(const Mesh *mesh, const char *prefix);
