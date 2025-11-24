@@ -28,7 +28,7 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
     long off_ghost = eqns->mesh->faces.off_ghost;
     Adjacent *cell = eqns->mesh->faces.cell;
     scalar *area = eqns->mesh->faces.area;
-    matrix *basis = eqns->mesh->faces.basis;
+    Basis *basis = eqns->mesh->faces.basis;
 
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
@@ -93,7 +93,7 @@ static void integrate_reconstructed_convective_flux(const Equations *eqns, void 
     long off_ghost = eqns->mesh->faces.off_ghost;
     Adjacent *cell = eqns->mesh->faces.cell;
     scalar *area = eqns->mesh->faces.area;
-    matrix *basis = eqns->mesh->faces.basis;
+    Basis *basis = eqns->mesh->faces.basis;
     Offset *offset = eqns->mesh->faces.offset;
 
     long len = eqns->variables.len;

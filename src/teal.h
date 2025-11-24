@@ -9,10 +9,6 @@ typedef struct {
 } vector;
 
 typedef struct {
-    vector x, y, z;
-} matrix;
-
-typedef struct {
     long x, y, z;
 } tuple;
 

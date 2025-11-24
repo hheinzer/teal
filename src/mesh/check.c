@@ -200,21 +200,21 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
 
     if (faces->basis) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->basis[i].x.x));
-            check(isfinite(faces->basis[i].x.y));
-            check(isfinite(faces->basis[i].x.z));
-            check(isfinite(faces->basis[i].y.x));
-            check(isfinite(faces->basis[i].y.y));
-            check(isfinite(faces->basis[i].y.z));
-            check(isfinite(faces->basis[i].z.x));
-            check(isfinite(faces->basis[i].z.y));
-            check(isfinite(faces->basis[i].z.z));
-            check(isclose(vector_norm(faces->basis[i].x), 1));
-            check(isclose(vector_norm(faces->basis[i].y), 1));
-            check(isclose(vector_norm(faces->basis[i].z), 1));
-            check(isclose(vector_dot(faces->basis[i].x, faces->basis[i].y), 0));
-            check(isclose(vector_dot(faces->basis[i].y, faces->basis[i].z), 0));
-            check(isclose(vector_dot(faces->basis[i].z, faces->basis[i].x), 0));
+            check(isfinite(faces->basis[i].n.x));
+            check(isfinite(faces->basis[i].n.y));
+            check(isfinite(faces->basis[i].n.z));
+            check(isfinite(faces->basis[i].s.x));
+            check(isfinite(faces->basis[i].s.y));
+            check(isfinite(faces->basis[i].s.z));
+            check(isfinite(faces->basis[i].t.x));
+            check(isfinite(faces->basis[i].t.y));
+            check(isfinite(faces->basis[i].t.z));
+            check(isclose(vector_norm(faces->basis[i].n), 1));
+            check(isclose(vector_norm(faces->basis[i].s), 1));
+            check(isclose(vector_norm(faces->basis[i].t), 1));
+            check(isclose(vector_dot(faces->basis[i].n, faces->basis[i].s), 0));
+            check(isclose(vector_dot(faces->basis[i].s, faces->basis[i].t), 0));
+            check(isclose(vector_dot(faces->basis[i].t, faces->basis[i].n), 0));
         }
     }
 
@@ -222,7 +222,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
         for (long i = 0; i < faces->num; i++) {
             long left = faces->cell[i].left;
             long right = faces->cell[i].right;
-            vector normal = faces->basis[i].x;
+            vector normal = faces->basis[i].n;
             vector l2r = vector_sub(cells->center[right], cells->center[left]);
             check(!isclose(vector_norm(l2r), 0) && vector_norm(l2r) > 0);
             check(!isclose(vector_dot(normal, l2r), 0) && vector_dot(normal, l2r) > 0);

@@ -109,6 +109,11 @@ scalar vector_dot(vector lhs, vector rhs)
     return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
 }
 
+scalar vector_subdot(vector lhs, vector rhs, vector dot)
+{
+    return ((lhs.x - rhs.x) * dot.x) + ((lhs.y - rhs.y) * dot.y) + ((lhs.z - rhs.z) * dot.z);
+}
+
 scalar vector_norm(vector vec)
 {
     return sqrt(vector_dot(vec, vec));

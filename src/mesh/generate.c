@@ -421,26 +421,26 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
     }
 }
 
-static matrix compute_face_basis(const vector *coord, long num_nodes)
+static Basis compute_face_basis(const vector *coord, long num_nodes)
 {
-    matrix basis;
-    vector normal = basis.x = compute_face_normal(coord, num_nodes);
-    scalar nqz = hypot(normal.x, normal.y);
-    scalar nqy = hypot(normal.x, normal.z);
+    Basis basis;
+    basis.n = compute_face_normal(coord, num_nodes);
+    scalar nqz = hypot(basis.n.x, basis.n.y);
+    scalar nqy = hypot(basis.n.x, basis.n.z);
     if (nqz > nqy) {
-        basis.y = (vector){-normal.y / nqz, normal.x / nqz, 0};
-        basis.z = (vector){-normal.x * normal.z / nqz, -normal.y * normal.z / nqz, nqz};
+        basis.s = (vector){-basis.n.y / nqz, basis.n.x / nqz, 0};
+        basis.t = (vector){-basis.n.x * basis.n.z / nqz, -basis.n.y * basis.n.z / nqz, nqz};
     }
     else {
-        basis.y = (vector){-normal.x * normal.y / nqy, nqy, -normal.y * normal.z / nqy};
-        basis.z = (vector){-normal.z / nqy, 0, normal.x / nqy};
+        basis.s = (vector){-basis.n.x * basis.n.y / nqy, nqy, -basis.n.y * basis.n.z / nqy};
+        basis.t = (vector){-basis.n.z / nqy, 0, basis.n.x / nqy};
     }
     return basis;
 }
 
 /* Flip the face normal so it points from the left cell to the right cell if necessary. */
 static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, long left,
-                               vector center, matrix *basis)
+                               vector center, Basis *basis)
 {
     vector mean = {0};
     long num_nodes = cells->node.off[left + 1] - cells->node.off[left];
@@ -448,9 +448,9 @@ static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, l
         vector coord = nodes->coord[cells->node.idx[i]];
         vector_inc(&mean, vector_div(coord, num_nodes));
     }
-    if (vector_dot(vector_sub(mean, center), basis->x) > 0) {
-        vector_scale(&basis->x, -1);
-        vector_scale(&basis->y, -1);
+    if (vector_dot(vector_sub(mean, center), basis->n) > 0) {
+        vector_scale(&basis->n, -1);
+        vector_scale(&basis->s, -1);
     }
 }
 
@@ -458,7 +458,7 @@ static void compute_face_geometry(const MeshNodes *nodes, const MeshCells *cells
 {
     scalar *area = arena_malloc(faces->num, sizeof(*area));
     vector *center = arena_malloc(faces->num, sizeof(*center));
-    matrix *basis = arena_malloc(faces->num, sizeof(*basis));
+    Basis *basis = arena_malloc(faces->num, sizeof(*basis));
 
     for (long i = 0; i < faces->num; i++) {
         vector coord[MAX_FACE_NODES] = {0};
@@ -586,7 +586,7 @@ static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, cons
     for (long i = 0; i < faces->num; i++) {
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
-        vector normal = faces->basis[i].x;
+        vector normal = faces->basis[i].n;
         vector inc = vector_mul(faces->area[i] / 2, vector_abs(normal));
         vector_inc(&projection[left], inc);
         if (right < cells->num_inner) {

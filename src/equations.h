@@ -11,17 +11,17 @@ typedef void Compute(void *variable_, const scalar *property, vector center, sca
                      const void *ctx_);
 
 typedef void Boundary(void *ghost_, const void *inner_, const void *reference_,
-                      const scalar *property, const matrix *basis);
+                      const scalar *property, const Basis *basis);
 
 typedef Boundary *BoundarySelect(const char *name);
 
 typedef void Convective(void *flux_, const void *left_, const void *right_, const scalar *property,
-                        const matrix *basis);
+                        const Basis *basis);
 
 typedef Convective *ConvectiveSelect(const char *name);
 
 typedef void Viscous(void *flux_, const void *variable_, const void *gradient_,
-                     const scalar *property, const matrix *basis);
+                     const scalar *property, const Basis *basis);
 
 typedef Viscous *ViscousSelect(const char *name);
 

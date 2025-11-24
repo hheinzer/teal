@@ -10,7 +10,7 @@ void equations_boundary(const Equations *eqns, void *variable_, scalar time)
     vector *center = eqns->mesh->cells.center;
 
     Adjacent *cell = eqns->mesh->faces.cell;
-    matrix *basis = eqns->mesh->faces.basis;
+    Basis *basis = eqns->mesh->faces.basis;
 
     long num_inner = eqns->mesh->entities.num_inner;
     long *face_off = &eqns->mesh->entities.face_off[num_inner];

@@ -17,5 +17,6 @@ vector vector_max(const vector *vec, long num);
 vector vector_sum(const vector *vec, long num);
 
 scalar vector_dot(vector lhs, vector rhs);
+scalar vector_subdot(vector lhs, vector rhs, vector dot);
 scalar vector_norm(vector vec);
 vector vector_cross(vector lhs, vector rhs);

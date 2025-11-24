@@ -70,6 +70,10 @@ typedef struct {
 } Adjacent;
 
 typedef struct {
+    vector n, s, t;  // basis normal and tangents
+} Basis;
+
+typedef struct {
     vector left, right;
 } Offset;
 
@@ -81,7 +85,7 @@ typedef struct {
     Adjacent *cell;  // face-to-cell connectivity
     scalar *area;
     vector *center;
-    matrix *basis;   // local orthonormal basis (x: normal; y,z: tangents)
+    Basis *basis;    // local orthonormal basis
     vector *weight;  // least-squares weights for gradient reconstruction
     Offset *offset;  // cell-to-face offset
 } MeshFaces;
@@ -100,7 +104,7 @@ typedef struct {
 
 typedef struct {
     long num;
-    long *rank;      // neighbor ranks
+    long *rank;
     long *recv_off;  // neighbor-to-cell offsets for receiving
     Graph send;      // neighbor-to-cell graph for sending
 } MeshNeighbors;

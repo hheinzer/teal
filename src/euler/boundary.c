@@ -2,35 +2,33 @@
 #include <string.h>
 
 #include "euler.h"
+#include "mesh/transform.h"
 #include "teal/utils.h"
+#include "teal/vector.h"
 
 static void symmetry(void *ghost_, const void *inner_, const void *reference_,
-                     const scalar *property, const matrix *basis)
+                     const scalar *property, const Basis *basis)
 {
     (void)reference_;
     (void)property;
-
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
-    vector normal = basis->x;
 
-    scalar velocity = (inner->velocity.x * normal.x) + (inner->velocity.y * normal.y) +
-                      (inner->velocity.z * normal.z);
+    scalar velocity = vector_dot(inner->velocity, basis->n);
 
     ghost->density = inner->density;
-    ghost->velocity.x = inner->velocity.x - (2 * velocity * normal.x);
-    ghost->velocity.y = inner->velocity.y - (2 * velocity * normal.y);
-    ghost->velocity.z = inner->velocity.z - (2 * velocity * normal.z);
+    ghost->velocity.x = inner->velocity.x - (2 * velocity * basis->n.x);
+    ghost->velocity.y = inner->velocity.y - (2 * velocity * basis->n.y);
+    ghost->velocity.z = inner->velocity.z - (2 * velocity * basis->n.z);
     ghost->pressure = inner->pressure;
 }
 
 static void supersonic_inflow(void *ghost_, const void *inner_, const void *reference_,
-                              const scalar *property, const matrix *basis)
+                              const scalar *property, const Basis *basis)
 {
     (void)inner_;
     (void)property;
     (void)basis;
-
     Euler *ghost = ghost_;
     const Euler *reference = reference_;
 
@@ -40,12 +38,11 @@ static void supersonic_inflow(void *ghost_, const void *inner_, const void *refe
 }
 
 static void supersonic_outflow(void *ghost_, const void *inner_, const void *reference_,
-                               const scalar *property, const matrix *basis)
+                               const scalar *property, const Basis *basis)
 {
     (void)reference_;
     (void)property;
     (void)basis;
-
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
 
@@ -55,21 +52,17 @@ static void supersonic_outflow(void *ghost_, const void *inner_, const void *ref
 }
 
 static void subsonic_inflow(void *ghost_, const void *inner_, const void *reference_,
-                            const scalar *property, const matrix *basis)
+                            const scalar *property, const Basis *basis)
 {
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
     const Euler *reference = reference_;
     scalar gamma = property[0];
-    vector normal = basis->x;
 
     scalar density = inner->density;
     scalar speed_of_sound2 = gamma * inner->pressure / inner->density;
     scalar speed_of_sound = sqrt(speed_of_sound2);
-
-    scalar velocity = ((reference->velocity.x - inner->velocity.x) * normal.x) +
-                      ((reference->velocity.y - inner->velocity.y) * normal.y) +
-                      ((reference->velocity.z - inner->velocity.z) * normal.z);
+    scalar velocity = vector_subdot(reference->velocity, inner->velocity, basis->n);
 
     scalar factor1 = density * speed_of_sound;
     ghost->pressure = (reference->pressure + inner->pressure - factor1 * velocity) / 2;
@@ -77,19 +70,18 @@ static void subsonic_inflow(void *ghost_, const void *inner_, const void *refere
         reference->density + ((ghost->pressure - reference->pressure) / speed_of_sound2);
 
     scalar factor2 = (reference->pressure - ghost->pressure) / factor1;
-    ghost->velocity.x = reference->velocity.x - (factor2 * normal.x);
-    ghost->velocity.y = reference->velocity.y - (factor2 * normal.y);
-    ghost->velocity.z = reference->velocity.z - (factor2 * normal.z);
+    ghost->velocity.x = reference->velocity.x - (factor2 * basis->n.x);
+    ghost->velocity.y = reference->velocity.y - (factor2 * basis->n.y);
+    ghost->velocity.z = reference->velocity.z - (factor2 * basis->n.z);
 }
 
 static void subsonic_outflow(void *ghost_, const void *inner_, const void *reference_,
-                             const scalar *property, const matrix *basis)
+                             const scalar *property, const Basis *basis)
 {
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
     const Euler *reference = reference_;
     scalar gamma = property[0];
-    vector normal = basis->x;
 
     scalar density = inner->density;
     scalar speed_of_sound2 = gamma * inner->pressure / inner->density;
@@ -99,23 +91,16 @@ static void subsonic_outflow(void *ghost_, const void *inner_, const void *refer
     ghost->density = inner->density + ((ghost->pressure - inner->pressure) / speed_of_sound2);
 
     scalar factor = (inner->pressure - ghost->pressure) / (density * speed_of_sound);
-    ghost->velocity.x = inner->velocity.x - (factor * normal.x);
-    ghost->velocity.y = inner->velocity.y - (factor * normal.y);
-    ghost->velocity.z = inner->velocity.z - (factor * normal.z);
+    ghost->velocity.x = inner->velocity.x - (factor * basis->n.x);
+    ghost->velocity.y = inner->velocity.y - (factor * basis->n.y);
+    ghost->velocity.z = inner->velocity.z - (factor * basis->n.z);
 }
 
-static void matvec(vector *res, const matrix *mat, const vector *vec)
-{
-    res->x = (mat->x.x * vec->x) + (mat->x.y * vec->y) + (mat->x.z * vec->z);
-    res->y = (mat->y.x * vec->x) + (mat->y.y * vec->y) + (mat->y.z * vec->z);
-    res->z = (mat->z.x * vec->x) + (mat->z.y * vec->y) + (mat->z.z * vec->z);
-}
-
-static Euler global_to_local(const Euler *global, const matrix *basis)
+static Euler global_to_local(const Euler *global, const Basis *basis)
 {
     Euler local;
     local.density = global->density;
-    matvec(&local.velocity, basis, &global->velocity);
+    transform_to_local(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
     local.momentum.x = local.density * local.velocity.x;
     local.momentum.y = local.density * local.velocity.y;
@@ -124,22 +109,15 @@ static Euler global_to_local(const Euler *global, const matrix *basis)
     return local;
 }
 
-static void matvec_t(vector *res, const matrix *mat, const vector *vec)
-{
-    res->x = (mat->x.x * vec->x) + (mat->y.x * vec->y) + (mat->z.x * vec->z);
-    res->y = (mat->x.y * vec->x) + (mat->y.y * vec->y) + (mat->z.y * vec->z);
-    res->z = (mat->x.z * vec->x) + (mat->y.z * vec->y) + (mat->z.z * vec->z);
-}
-
-static void local_to_global(Euler *ghost, const matrix *basis)
+static void local_to_global(Euler *ghost, const Basis *basis)
 {
     vector velocity;
-    matvec_t(&velocity, basis, &ghost->velocity);
+    transform_to_global(&velocity, basis, &ghost->velocity);
     ghost->velocity = velocity;
 }
 
 static void farfield(void *ghost_, const void *inner_, const void *reference_,
-                     const scalar *property, const matrix *basis)
+                     const scalar *property, const Basis *basis)
 {
     Euler *ghost = ghost_;
     scalar gamma = property[0];
@@ -148,11 +126,11 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     Euler inner = global_to_local(inner_, basis);
     *ghost = global_to_local(reference_, basis);
 
-    scalar velocity2_i = sq(inner.velocity.x) + sq(inner.velocity.y) + sq(inner.velocity.z);
-
+    scalar velocity2_i = vector_dot(inner.velocity, inner.velocity);
     scalar speed_of_sound2_i = gamma * inner.pressure / inner.density;
     scalar speed_of_sound_i = sqrt(speed_of_sound2_i);
     scalar enthalpy_i = (velocity2_i / 2) + (speed_of_sound2_i / gamma_m1);
+
     scalar eigenvector_inv[5][5] = {
         {
             enthalpy_i + (speed_of_sound_i / gamma_m1 * (inner.velocity.x - speed_of_sound_i)),

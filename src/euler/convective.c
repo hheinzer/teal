@@ -2,20 +2,15 @@
 #include <string.h>
 
 #include "euler.h"
+#include "mesh/transform.h"
 #include "teal/utils.h"
+#include "teal/vector.h"
 
-static void matvec(vector *res, const matrix *mat, const vector *vec)
-{
-    res->x = (mat->x.x * vec->x) + (mat->x.y * vec->y) + (mat->x.z * vec->z);
-    res->y = (mat->y.x * vec->x) + (mat->y.y * vec->y) + (mat->y.z * vec->z);
-    res->z = (mat->z.x * vec->x) + (mat->z.y * vec->y) + (mat->z.z * vec->z);
-}
-
-static Euler global_to_local(const Euler *global, const scalar *property, const matrix *basis)
+static Euler global_to_local(const Euler *global, const scalar *property, const Basis *basis)
 {
     Euler local;
     local.density = global->density;
-    matvec(&local.velocity, basis, &global->velocity);
+    transform_to_local(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
     euler_conserved(&local, property);
     return local;
@@ -38,22 +33,15 @@ static Conserved compute_flux(const Euler *local)
     return flux;
 }
 
-static void matvec_t(vector *res, const matrix *mat, const vector *vec)
-{
-    res->x = (mat->x.x * vec->x) + (mat->y.x * vec->y) + (mat->z.x * vec->z);
-    res->y = (mat->x.y * vec->x) + (mat->y.y * vec->y) + (mat->z.y * vec->z);
-    res->z = (mat->x.z * vec->x) + (mat->y.z * vec->y) + (mat->z.z * vec->z);
-}
-
-static void local_to_global(Conserved *flux, const matrix *basis)
+static void local_to_global(Conserved *flux, const Basis *basis)
 {
     vector momentum;
-    matvec_t(&momentum, basis, &flux->momentum);
+    transform_to_global(&momentum, basis, &flux->momentum);
     flux->momentum = momentum;
 }
 
 static void godunov(void *flux_, const void *left_, const void *right_, const scalar *property,
-                    const matrix *basis)
+                    const Basis *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
@@ -71,6 +59,7 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
 {
     scalar speed_of_sound_l = sqrt(gamma * left->pressure / left->density);
     scalar speed_of_sound_r = sqrt(gamma * right->pressure / right->density);
+
     scalar eigenvalue_l[3] = {
         left->velocity.x - speed_of_sound_l,
         left->velocity.x,
@@ -81,12 +70,13 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
         right->velocity.x,
         right->velocity.x + speed_of_sound_r,
     };
+
     for (long i = 0; i < 3; i++) {
         scalar lambda = eigenvalue[i];
         scalar delta = fmax(0, fmax(lambda - eigenvalue_l[i], eigenvalue_r[i] - lambda));
         if (fabs(lambda) < delta) {
-            eigenvalue[i] = delta;
-            // eigenvalue[i] = ((pow2(lambda) / delta) + delta) / 2;
+            // eigenvalue[i] = delta;
+            eigenvalue[i] = ((sq(lambda) / delta) + delta) / 2;
         }
         else {
             eigenvalue[i] = fabs(lambda);
@@ -116,7 +106,7 @@ static vector roe_velocity(scalar weight, scalar sqrt_density_l, scalar sqrt_den
 }
 
 static void roe(void *flux_, const void *left_, const void *right_, const scalar *property,
-                const matrix *basis)
+                const Basis *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
@@ -132,7 +122,8 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
     scalar weight = 1 / (sqrt_density_l + sqrt_density_r);
     vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
-    scalar velocity2 = sq(velocity.x) + sq(velocity.y) + sq(velocity.z);
+
+    scalar velocity2 = vector_dot(velocity, velocity);
     scalar speed_of_sound2 = gamma_m1 * (enthalpy - velocity2 / 2);
     scalar speed_of_sound = sqrt(speed_of_sound2);
 
@@ -250,7 +241,7 @@ static void average_flux(Conserved *flux, const Euler *left, const Euler *right,
 }
 
 static void hll(void *flux_, const void *left_, const void *right_, const scalar *property,
-                const matrix *basis)
+                const Basis *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
@@ -265,11 +256,13 @@ static void hll(void *flux_, const void *left_, const void *right_, const scalar
     scalar weight = 1 / (sqrt_density_l + sqrt_density_r);
     vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
-    scalar velocity2 = sq(velocity.x) + sq(velocity.y) + sq(velocity.z);
+
+    scalar velocity2 = vector_dot(velocity, velocity);
     scalar speed_of_sound = sqrt((gamma - 1) * (enthalpy - velocity2 / 2));
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
     scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);
+
     scalar signal_speed_l = fmin(left.velocity.x - speed_of_sound_l, velocity.x - speed_of_sound);
     scalar signal_speed_r = fmax(right.velocity.x + speed_of_sound_r, velocity.x + speed_of_sound);
 
@@ -297,6 +290,7 @@ static void contact_flux(Conserved *flux, const Euler *state_k, scalar signal_sp
         (state_k->energy / state_k->density) +
             ((signal_speed - state_k->velocity.x) * (signal_speed + state_k->pressure / factor_k)),
     };
+
     *flux = compute_flux(state_k);
     flux->density += signal_speed_k * (factor * conserved[0] - state_k->density);
     flux->momentum.x += signal_speed_k * (factor * conserved[1] - state_k->momentum.x);
@@ -306,7 +300,7 @@ static void contact_flux(Conserved *flux, const Euler *state_k, scalar signal_sp
 }
 
 static void hllc(void *flux_, const void *left_, const void *right_, const scalar *property,
-                 const matrix *basis)
+                 const Basis *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
@@ -321,11 +315,13 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
     scalar weight = 1 / (sqrt_density_l + sqrt_density_r);
     vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
-    scalar velocity2 = sq(velocity.x) + sq(velocity.y) + sq(velocity.z);
+
+    scalar velocity2 = vector_dot(velocity, velocity);
     scalar speed_of_sound = sqrt((gamma - 1) * (enthalpy - velocity2 / 2));
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
     scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);
+
     scalar signal_speed_l = fmin(left.velocity.x - speed_of_sound_l, velocity.x - speed_of_sound);
     scalar signal_speed_r = fmax(right.velocity.x + speed_of_sound_r, velocity.x + speed_of_sound);
 
@@ -352,7 +348,7 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
 }
 
 static void hlle(void *flux_, const void *left_, const void *right_, const scalar *property,
-                 const matrix *basis)
+                 const Basis *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
@@ -366,14 +362,17 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
         weight * (sqrt_density_l * left.velocity.x + sqrt_density_r * right.velocity.x);
 
     scalar speed_of_sound2_l = gamma * left.pressure / left.density;
-    scalar speed_of_sound_l = sqrt(speed_of_sound2_l);
     scalar speed_of_sound2_r = gamma * right.pressure / right.density;
+
+    scalar speed_of_sound_l = sqrt(speed_of_sound2_l);
     scalar speed_of_sound_r = sqrt(speed_of_sound2_r);
+
     scalar speed_of_sound2 =
         weight * (sqrt_density_l * speed_of_sound2_l + sqrt_density_r * speed_of_sound2_r);
 
     scalar velocity_jump =
         sq(weight) * sqrt_density_l * sqrt_density_r * sq(right.velocity.x - left.velocity.x) / 2;
+
     scalar speed_of_sound = sqrt(speed_of_sound2 + velocity_jump);
 
     scalar signal_speed_l = fmin(left.velocity.x - speed_of_sound_l, velocity_x - speed_of_sound);
@@ -392,7 +391,7 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
 }
 
 static void lxf(void *flux_, const void *left_, const void *right_, const scalar *property,
-                const matrix *basis)
+                const Basis *basis)
 {
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
@@ -401,6 +400,7 @@ static void lxf(void *flux_, const void *left_, const void *right_, const scalar
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
     scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);
+
     scalar signal_speed =
         fmax(fabs(left.velocity.x) + speed_of_sound_l, fabs(right.velocity.x) + speed_of_sound_r);
 
