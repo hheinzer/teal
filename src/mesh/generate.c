@@ -277,7 +277,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
             vector coord = nodes->coord[cells->node.idx[j]];
             vector_inc(&center, vector_div(coord, num_nodes));
         }
-        long entity = array_ldigitize(&entities->cell_off[1], i, entities->num);
+        long entity = array_digitize(&entities->cell_off[1], i, entities->num);
         if (entity < entities->num) {
             recv[num] = vector_add(center, entities->translation[entity]);
         }
@@ -684,14 +684,14 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         alpha.x = delta.x / sq(r11[left]);
         alpha.y = (delta.y - r12[left] / r11[left] * delta.x) / sq(r22[left]);
         alpha.z = (delta.z - r23[left] / r22[left] * delta.y + beta * delta.x) / sq(r33[left]);
-        if (!isclose(cells->center[left].x, cells->center[right].x)) {
+        if (!is_close(cells->center[left].x, cells->center[right].x)) {
             weight[i].x += alpha.x;
         }
-        if (!isclose(cells->center[left].y, cells->center[right].y)) {
+        if (!is_close(cells->center[left].y, cells->center[right].y)) {
             weight[i].x += -r12[left] / r11[left] * alpha.y;
             weight[i].y += alpha.y;
         }
-        if (!isclose(cells->center[left].z, cells->center[right].z)) {
+        if (!is_close(cells->center[left].z, cells->center[right].z)) {
             weight[i].x += beta * alpha.z;
             weight[i].y += -r23[left] / r22[left] * alpha.z;
             weight[i].z += alpha.z;

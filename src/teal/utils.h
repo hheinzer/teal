@@ -6,17 +6,19 @@
 
 #define count_of(arr) (sizeof(arr) / sizeof(*(arr)))
 
-void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
-void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));
-void error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
-
 scalar sq(scalar val);
 scalar cb(scalar val);
 
 long lmin(long lhs, long rhs);
 long lmax(long lhs, long rhs);
 
-bool isclose(scalar lhs, scalar rhs);
+bool is_close(scalar lhs, scalar rhs);
+bool is_less(scalar lhs, scalar rhs);
+bool is_greater(scalar lhs, scalar rhs);
+
+void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
+void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));
+void error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
 
 int cmp_long(const void *lhs_, const void *rhs_);
 int cmp_scalar(const void *lhs_, const void *rhs_);

@@ -63,7 +63,7 @@ static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, 
                          long ndims, const int *dims, const int *coords)
 {
     if (ndims > dim) {
-        assert(!isclose(*min_coord, *max_coord));
+        assert(!is_close(*min_coord, *max_coord));
         scalar width = (*max_coord - *min_coord) / *num_cells;
         long base = *num_cells / dims[dim];
         long extra = *num_cells % dims[dim];
@@ -74,7 +74,7 @@ static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, 
     }
     else {
         *num_cells = 1;
-        if (isclose(*min_coord, *max_coord)) {
+        if (is_close(*min_coord, *max_coord)) {
             *max_coord = *min_coord + 1;  // non-zero extent
         }
     }
@@ -111,7 +111,7 @@ static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, 
                             const int *neighbor)
 {
     long *global = arena_malloc(nodes->num, sizeof(*global));
-    long off_inner = sync_lexsum(nodes->num_inner);
+    long off_inner = sync_exsum(nodes->num_inner);
     long tag_x = sync_tag();
     long tag_y = sync_tag();
     long tag_z = sync_tag();

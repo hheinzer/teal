@@ -482,10 +482,10 @@ scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
         }
     }
 
-    scalar norm = sync_fnorm(*residual, num_inner * len);
+    scalar norm = sync_norm(*residual, num_inner * len);
 
     static const scalar fd_relative = 1e-6;
-    scalar fd_scale = fd_relative * fmax(1, sync_fnorm(*variable, num_inner * len)) / fmax(1, norm);
+    scalar fd_scale = fd_relative * fmax(1, sync_norm(*variable, num_inner * len)) / fmax(1, norm);
 
     scalar tol_norm = tol * norm;
     long max_iter = 128 * (num_inner + 1);
@@ -507,9 +507,9 @@ scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
             }
         }
 
-        norm = sync_fnorm(*residual, num_inner * len);
+        norm = sync_norm(*residual, num_inner * len);
 
-        fd_scale = fd_relative * fmax(1, sync_fnorm(*variable, num_inner * len)) / fmax(1, norm);
+        fd_scale = fd_relative * fmax(1, sync_norm(*variable, num_inner * len)) / fmax(1, norm);
     }
 
     equations_residual(eqns, derivative, residual_);

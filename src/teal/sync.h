@@ -19,8 +19,7 @@ extern Sync sync;
 
 void sync_init(int *argc, char ***argv);
 void sync_reinit(MPI_Comm comm);
-
-void sync_exit(int status) __attribute((noreturn));
+void sync_deinit(void);
 
 long sync_lmin(long val);
 long sync_lmax(long val);
@@ -34,14 +33,12 @@ vector sync_vector_min(vector val);
 vector sync_vector_max(vector val);
 vector sync_vector_sum(vector val);
 
-long sync_lexsum(long val);
+long sync_exsum(long val);
 
-scalar sync_fdot(const scalar *lhs, const scalar *rhs, long num);
-scalar sync_fnorm(const scalar *arr, long num);
+scalar sync_dot(const scalar *lhs, const scalar *rhs, long num);
+scalar sync_norm(const scalar *arr, long num);
 
 MPI_Request *sync_irecv(const long *rank, const long *off, void *arr_, long num, long stride,
                         MPI_Datatype type, long tag);
 MPI_Request *sync_isend(const long *rank, const long *off, const long *idx, const void *arr_,
                         long num, long stride, MPI_Datatype type, long tag);
-
-void sync_finalize(void);

@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "teal/arena.h"
@@ -42,14 +41,10 @@ void sync_reinit(MPI_Comm comm)
     sync.size = size;
 }
 
-void sync_exit(int status)
+void sync_deinit(void)
 {
-    int flag;
-    MPI_Initialized(&flag);
-    if (flag) {
-        MPI_Finalize();
-    }
-    exit(status);
+    MPI_Comm_free(&sync.comm);
+    MPI_Finalize();
 }
 
 long sync_lmin(long val)
@@ -115,21 +110,21 @@ vector sync_vector_sum(vector val)
     return sum;
 }
 
-long sync_lexsum(long val)
+long sync_exsum(long val)
 {
     long exsum = 0;
     MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
     return (sync.rank == 0) ? 0 : exsum;
 }
 
-scalar sync_fdot(const scalar *lhs, const scalar *rhs, long num)
+scalar sync_dot(const scalar *lhs, const scalar *rhs, long num)
 {
-    return sync_fsum(array_fdot(lhs, rhs, num));
+    return sync_fsum(array_dot(lhs, rhs, num));
 }
 
-scalar sync_fnorm(const scalar *arr, long num)
+scalar sync_norm(const scalar *arr, long num)
 {
-    return sqrt(sync_fdot(arr, arr, num));
+    return sqrt(sync_dot(arr, arr, num));
 }
 
 MPI_Request *sync_irecv(const long *rank, const long *off, void *arr_, long num, long stride,
@@ -164,10 +159,4 @@ MPI_Request *sync_isend(const long *rank, const long *off, const long *idx, cons
         MPI_Isend(buf[off[i]], count, type, rank[i], tag, sync.comm, &req[i]);
     }
     return req;
-}
-
-void sync_finalize(void)
-{
-    MPI_Comm_free(&sync.comm);
-    MPI_Finalize();
 }

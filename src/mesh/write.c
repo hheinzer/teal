@@ -33,7 +33,7 @@ static void write_node_graph(Graph node, const long *global, long num_cells, hid
     long num_idx = node.off[num_cells];
 
     long *off = arena_malloc(num_off, sizeof(*off));
-    long offset = sync_lexsum(num_idx);
+    long offset = sync_exsum(num_idx);
     for (long i = 0; i < num_off; i++) {
         off[i] = offset + node.off[i + (sync.rank != 0)];  // globalize offsets
     }

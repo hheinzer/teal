@@ -40,6 +40,15 @@ ParseFile parse_open(const char *fname)
     return file;
 }
 
+void parse_close(ParseFile file)
+{
+    if (sync.rank == 0) {
+        assert(file.stream);
+        fclose(file.stream);
+    }
+    MPI_File_close(&file.handle);
+}
+
 long parse_get_offset(ParseFile file)
 {
     long offset = -1;
@@ -265,7 +274,7 @@ long parse_split_binary(ParseType type, void *data, long num, long len, long str
     MPI_Bcast(&beg, 1, MPI_LONG, 0, sync.comm);
 
     long gap = stride - (len * size_of[type]);
-    MPI_Offset disp = beg + (sync_lexsum(num) * stride);
+    MPI_Offset disp = beg + (sync_exsum(num) * stride);
     if (gap == 0) {
         MPI_File_read_at(file.handle, disp, data, num * len, datatype_of[type], MPI_STATUS_IGNORE);
     }
@@ -320,13 +329,4 @@ long parse_data_to_long(ParseType type, const void *data, long idx)
         case F64: return lrint(((const double *)data)[idx]);
         default: error("invalid parse type -- '%d'", type);
     }
-}
-
-void parse_close(ParseFile file)
-{
-    if (sync.rank == 0) {
-        assert(file.stream);
-        fclose(file.stream);
-    }
-    MPI_File_close(&file.handle);
 }

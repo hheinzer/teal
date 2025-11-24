@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv)
 {
-    teal_init(&argc, &argv);
+    teal_initialize(&argc, &argv);
 
     vector min_coord = {0, 0, 0};
     vector max_coord = {9, 3, 1};

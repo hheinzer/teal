@@ -268,7 +268,7 @@ void h5io_dataset_read(const char *name, void *buf, long num, long len, hid_t ty
 
     long rank = (len == 1) ? 1 : 2;
     hsize_t count[2] = {num, len};
-    hsize_t offset[2] = {sync_lexsum(num), 0};
+    hsize_t offset[2] = {sync_exsum(num), 0};
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {
@@ -313,7 +313,7 @@ void h5io_dataset_write(const char *name, const void *buf, long num, long len, h
     long rank = (len == 1) ? 1 : 2;
     hsize_t count[2] = {num, len};
     hsize_t dims[2] = {sync_lsum(num), len};
-    hsize_t offset[2] = {sync_lexsum(num), 0};
+    hsize_t offset[2] = {sync_exsum(num), 0};
 
     bool close_type = false;
     if (H5Tequal(type, H5T_C_S1) > 0) {

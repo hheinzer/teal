@@ -6,6 +6,7 @@ typedef struct {
 } Arena;
 
 void arena_init(long capacity);
+void arena_deinit(void);
 
 void *arena_malloc(long num, long size) __attribute((malloc));
 void *arena_calloc(long num, long size) __attribute((malloc));
@@ -23,5 +24,3 @@ void arena_load(Arena save);
 
 long arena_size(void);
 long arena_peak(void);
-
-void arena_finalize(void);

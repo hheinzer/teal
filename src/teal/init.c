@@ -6,7 +6,7 @@
 #include "teal.h"
 #include "utils.h"
 
-void teal_init(int *argc, char ***argv)
+void teal_initialize(int *argc, char ***argv)
 {
     sync_init(argc, argv);
     option_init(argc, argv);

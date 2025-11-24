@@ -469,7 +469,7 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
     long cap = sync_lmax(nodes->num);
     Map *map = arena_calloc(cap, sizeof(*map));
 
-    long off_nodes = sync_lexsum(nodes->num);
+    long off_nodes = sync_exsum(nodes->num);
     long num = 0;
     for (long i = 0; i < parse_data_to_long(SIZE, &gmsh->nodes.num_blocks, 0); i++) {
         NodeBlock block = gmsh->nodes.block[i];
@@ -732,7 +732,7 @@ void mesh_read_gmsh(Mesh *mesh, const char *fname)
     ParseType SIZE;
     bool swap = false;
     read_format(&version, &mode, &SIZE, &swap, file);
-    assert(isclose(version, 4.1));  // NOLINT(readability-magic-numbers)
+    assert(is_close(version, 4.1));  // NOLINT(readability-magic-numbers)
 
     read_physicals(&gmsh->physicals, file);
     read_entities(&gmsh->entities, mode, SIZE, swap, file);

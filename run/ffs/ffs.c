@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-    teal_init(&argc, &argv);
+    teal_initialize(&argc, &argv);
 
     Mesh *mesh = mesh_read("run/ffs/quad.msh");
     mesh_generate(mesh);

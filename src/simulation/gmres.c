@@ -24,7 +24,7 @@ static void matvec(const Equations *eqns, const void *variable_, const void *der
     const scalar(*basis)[len] = basis_;
     scalar(*result)[len] = result_;
 
-    scalar eps = fd_scale / sync_fnorm(*basis, num_inner * len);
+    scalar eps = fd_scale / sync_norm(*basis, num_inner * len);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
     for (long i = 0; i < num_inner; i++) {
@@ -89,14 +89,14 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
         matvec(eqns, variable, derivative, basis[iter], result, time, step, fd_scale);
 
         for (long i = 0; i < iter + 1; i++) {
-            hess[i][iter] = sync_fdot(*basis[i], *result, num_inner * len);
+            hess[i][iter] = sync_dot(*basis[i], *result, num_inner * len);
             for (long j = 0; j < num_inner; j++) {
                 for (long k = 0; k < len; k++) {
                     result[j][k] -= hess[i][iter] * basis[i][j][k];
                 }
             }
         }
-        hess[iter + 1][iter] = sync_fnorm(*result, num_inner * len);
+        hess[iter + 1][iter] = sync_norm(*result, num_inner * len);
 
         for (long i = 0; i < iter; i++) {
             scalar tmp = (cosine[i] * hess[i][iter]) + (sine[i] * hess[i + 1][iter]);

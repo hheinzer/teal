@@ -7,7 +7,7 @@ Compute exact;
 
 int main(int argc, char **argv)
 {
-    teal_init(&argc, &argv);
+    teal_initialize(&argc, &argv);
 
     vector min_coord = {.x = 0};
     vector max_coord = {.x = 1};

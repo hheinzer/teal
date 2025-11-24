@@ -34,7 +34,7 @@ vector vector_mul(scalar lhs, vector rhs)
 
 vector vector_div(vector lhs, scalar rhs)
 {
-    assert(!isclose(rhs, 0));
+    assert(!is_close(rhs, 0));
     return vector_mul(1 / rhs, lhs);
 }
 

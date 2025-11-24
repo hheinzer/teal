@@ -164,5 +164,5 @@ int main(void)
     test_pointer_stability_under_growth();
     test_many_keys();
 
-    arena_finalize();
+    arena_deinit();
 }

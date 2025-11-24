@@ -27,6 +27,6 @@ void teal_finalize(void)
     size_to_str(sum, sync_lsum(arena_peak()));
     println("\t arena min/max/sum peak : %s / %s / %s", min, max, sum);
 
-    arena_finalize();
-    sync_finalize();
+    arena_deinit();
+    sync_deinit();
 }

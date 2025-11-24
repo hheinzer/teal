@@ -22,7 +22,7 @@ static void help(char ***argv, int status)
         " [-r restart]"
         " ...",
         (*argv)[0]);
-    sync_exit(status);
+    teal_exit(status);
 }
 
 void option_init(int *argc, char ***argv)

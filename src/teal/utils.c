@@ -10,6 +10,49 @@
 #include "option.h"
 #include "sync.h"
 
+scalar sq(scalar val)
+{
+    return val * val;
+}
+
+scalar cb(scalar val)
+{
+    return val * val * val;
+}
+
+long lmin(long lhs, long rhs)
+{
+    return (lhs < rhs) ? lhs : rhs;
+}
+
+long lmax(long lhs, long rhs)
+{
+    return (lhs > rhs) ? lhs : rhs;
+}
+
+bool is_close(scalar lhs, scalar rhs)
+{
+    if (lhs == rhs) {
+        return true;
+    }
+    if (!isfinite(lhs) || !isfinite(rhs)) {
+        return false;
+    }
+    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
+    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
+    return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
+}
+
+bool is_less(scalar lhs, scalar rhs)
+{
+    return !is_close(lhs, rhs) && lhs < rhs;
+}
+
+bool is_greater(scalar lhs, scalar rhs)
+{
+    return !is_close(lhs, rhs) && lhs > rhs;
+}
+
 void println(const char *fmt, ...)
 {
     assert(fmt);
@@ -51,39 +94,6 @@ void error(const char *fmt, ...)
     abort();
 }
 
-scalar sq(scalar val)
-{
-    return val * val;
-}
-
-scalar cb(scalar val)
-{
-    return val * val * val;
-}
-
-long lmin(long lhs, long rhs)
-{
-    return (lhs < rhs) ? lhs : rhs;
-}
-
-long lmax(long lhs, long rhs)
-{
-    return (lhs > rhs) ? lhs : rhs;
-}
-
-bool isclose(scalar lhs, scalar rhs)
-{
-    if (lhs == rhs) {
-        return true;
-    }
-    if (!isfinite(lhs) || !isfinite(rhs)) {
-        return false;
-    }
-    static const scalar atol = (sizeof(scalar) == sizeof(float) ? 1e-6 : 1e-12);
-    static const scalar rtol = (sizeof(scalar) == sizeof(float) ? 1e-3 : 1e-10);
-    return fabs(lhs - rhs) <= fmax(atol, rtol * fmax(fabs(lhs), fabs(rhs)));
-}
-
 int cmp_long(const void *lhs_, const void *rhs_)
 {
     assert(lhs_ && rhs_);
@@ -97,7 +107,7 @@ int cmp_scalar(const void *lhs_, const void *rhs_)
     assert(lhs_ && rhs_);
     const scalar *lhs = lhs_;
     const scalar *rhs = rhs_;
-    return isclose(*lhs, *rhs) ? 0 : (*lhs > *rhs) - (*lhs < *rhs);
+    return is_close(*lhs, *rhs) ? 0 : (*lhs > *rhs) - (*lhs < *rhs);
 }
 
 int cmp_vector(const void *lhs_, const void *rhs_)

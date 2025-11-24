@@ -108,10 +108,10 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
         for (long i = 0; i < cells->num; i++) {
             check(isfinite(cells->volume[i]));
             if (i < cells->num_inner) {
-                check(!isclose(cells->volume[i], 0) && cells->volume[i] > 0);
+                check(is_greater(cells->volume[i], 0));
             }
             else {
-                check(isclose(cells->volume[i], 0));
+                check(is_close(cells->volume[i], 0));
             }
         }
     }
@@ -130,14 +130,14 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
             check(isfinite(cells->projection[i].y));
             check(isfinite(cells->projection[i].z));
             if (i < cells->num_inner) {
-                check(!isclose(cells->projection[i].x, 0) && cells->projection[i].x > 0);
-                check(!isclose(cells->projection[i].y, 0) && cells->projection[i].y > 0);
-                check(!isclose(cells->projection[i].z, 0) && cells->projection[i].z > 0);
+                check(is_greater(cells->projection[i].x, 0));
+                check(is_greater(cells->projection[i].y, 0));
+                check(is_greater(cells->projection[i].z, 0));
             }
             else {
-                check(isclose(cells->projection[i].x, 0));
-                check(isclose(cells->projection[i].y, 0));
-                check(isclose(cells->projection[i].z, 0));
+                check(is_close(cells->projection[i].x, 0));
+                check(is_close(cells->projection[i].y, 0));
+                check(is_close(cells->projection[i].z, 0));
             }
         }
     }
@@ -186,7 +186,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     if (faces->area) {
         for (long i = 0; i < faces->num; i++) {
             check(isfinite(faces->area[i]));
-            check(!isclose(faces->area[i], 0) && faces->area[i] > 0);
+            check(is_greater(faces->area[i], 0));
         }
     }
 
@@ -209,12 +209,12 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
             check(isfinite(faces->basis[i].t.x));
             check(isfinite(faces->basis[i].t.y));
             check(isfinite(faces->basis[i].t.z));
-            check(isclose(vector_norm(faces->basis[i].n), 1));
-            check(isclose(vector_norm(faces->basis[i].s), 1));
-            check(isclose(vector_norm(faces->basis[i].t), 1));
-            check(isclose(vector_dot(faces->basis[i].n, faces->basis[i].s), 0));
-            check(isclose(vector_dot(faces->basis[i].s, faces->basis[i].t), 0));
-            check(isclose(vector_dot(faces->basis[i].t, faces->basis[i].n), 0));
+            check(is_close(vector_norm(faces->basis[i].n), 1));
+            check(is_close(vector_norm(faces->basis[i].s), 1));
+            check(is_close(vector_norm(faces->basis[i].t), 1));
+            check(is_close(vector_dot(faces->basis[i].n, faces->basis[i].s), 0));
+            check(is_close(vector_dot(faces->basis[i].s, faces->basis[i].t), 0));
+            check(is_close(vector_dot(faces->basis[i].t, faces->basis[i].n), 0));
         }
     }
 
@@ -224,8 +224,8 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
             long right = faces->cell[i].right;
             vector normal = faces->basis[i].n;
             vector l2r = vector_sub(cells->center[right], cells->center[left]);
-            check(!isclose(vector_norm(l2r), 0) && vector_norm(l2r) > 0);
-            check(!isclose(vector_dot(normal, l2r), 0) && vector_dot(normal, l2r) > 0);
+            check(is_greater(vector_norm(l2r), 0));
+            check(is_greater(vector_dot(normal, l2r), 0));
         }
     }
 
@@ -287,12 +287,12 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
             check(isfinite(entities->translation[i].y));
             check(isfinite(entities->translation[i].z));
             if (i < entities->off_ghost) {
-                check(isclose(entities->translation[i].x, 0));
-                check(isclose(entities->translation[i].y, 0));
-                check(isclose(entities->translation[i].z, 0));
+                check(is_close(entities->translation[i].x, 0));
+                check(is_close(entities->translation[i].y, 0));
+                check(is_close(entities->translation[i].z, 0));
             }
             else {
-                check(!isclose(vector_norm(entities->translation[i]), 0));
+                check(!is_close(vector_norm(entities->translation[i]), 0));
                 if (entities->name) {
                     check(strchr(entities->name[i], ':'));
                 }

@@ -55,6 +55,11 @@ void arena_init(long capacity)
     MAKE_REGION_NOACCESS(base, capacity);
 }
 
+void arena_deinit(void)
+{
+    free(base);
+}
+
 void *arena_malloc(long num, long size)
 {
     assert(num >= 0 && size > 0);
@@ -149,9 +154,4 @@ long arena_size(void)
 long arena_peak(void)
 {
     return peak;
-}
-
-void arena_finalize(void)
-{
-    free(base);
 }

@@ -22,9 +22,9 @@ Kdtree *kdtree_create(long size_val)
 static long veccmp(vector lhs, vector rhs, long depth)
 {
     switch (depth % 3) {
-        case 0: return isclose(lhs.x, rhs.x) ? 0 : (lhs.x > rhs.x) - (lhs.x < rhs.x);
-        case 1: return isclose(lhs.y, rhs.y) ? 0 : (lhs.y > rhs.y) - (lhs.y < rhs.y);
-        case 2: return isclose(lhs.z, rhs.z) ? 0 : (lhs.z > rhs.z) - (lhs.z < rhs.z);
+        case 0: return is_close(lhs.x, rhs.x) ? 0 : (lhs.x > rhs.x) - (lhs.x < rhs.x);
+        case 1: return is_close(lhs.y, rhs.y) ? 0 : (lhs.y > rhs.y) - (lhs.y < rhs.y);
+        case 2: return is_close(lhs.z, rhs.z) ? 0 : (lhs.z > rhs.z) - (lhs.z < rhs.z);
         default: abort();
     }
 }

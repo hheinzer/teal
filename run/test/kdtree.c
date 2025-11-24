@@ -297,5 +297,5 @@ int main(void)
     test_nearest();
     test_radius();
 
-    arena_finalize();
+    arena_deinit();
 }

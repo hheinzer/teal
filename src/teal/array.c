@@ -67,7 +67,7 @@ scalar array_fsum(const scalar *arr, long num)
     return sum;
 }
 
-void array_lunique(long *arr, long *num)
+void array_unique(long *arr, long *num)
 {
     assert(arr ? (*num >= 0) : (*num == 0));
     if (*num <= 1) {
@@ -83,7 +83,7 @@ void array_lunique(long *arr, long *num)
     *num = unique;
 }
 
-long array_ldigitize(const long *arr, long val, long num)
+long array_digitize(const long *arr, long val, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
     if (num == 0) {
@@ -109,7 +109,7 @@ long array_ldigitize(const long *arr, long val, long num)
     return left;
 }
 
-scalar array_fdot(const scalar *lhs, const scalar *rhs, long num)
+scalar array_dot(const scalar *lhs, const scalar *rhs, long num)
 {
     assert((lhs || rhs) ? (num >= 0) : (num == 0));
     double dot = 0;
@@ -119,7 +119,7 @@ scalar array_fdot(const scalar *lhs, const scalar *rhs, long num)
     return dot;
 }
 
-scalar array_fnorm(const scalar *arr, long num)
+scalar array_norm(const scalar *arr, long num)
 {
-    return sqrt(array_fdot(arr, arr, num));
+    return sqrt(array_dot(arr, arr, num));
 }
