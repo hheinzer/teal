@@ -10,6 +10,14 @@ from mpi4py import MPI
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import pyvista as pv
+import darkdetect
+
+
+def set_global_theme():
+    if darkdetect.theme() == "Dark":
+        pv.global_theme = pv.themes.DarkTheme()
+    else:
+        pv.global_theme = pv.themes.DocumentTheme()
 
 
 def parse_args():
@@ -220,6 +228,7 @@ def make_video(args):
 
 
 def main():
+    set_global_theme()
     args = parse_args()
     fnames = args.fnames
 
