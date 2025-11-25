@@ -16,11 +16,11 @@ void h5io_group_close(hid_t group);
 
 long h5io_attribute_num(const char *name, hid_t loc);
 
-void h5io_attribute_read(const char *name, void *buf, long num, hid_t type, hid_t loc);
-void h5io_attribute_write(const char *name, const void *buf, long num, hid_t type, hid_t loc);
-
 long h5io_dataset_num(const char *name, hid_t loc);
 long h5io_dataset_len(const char *name, hid_t loc);
+
+void h5io_attribute_read(const char *name, void *buf, long num, hid_t type, hid_t loc);
+void h5io_attribute_write(const char *name, const void *buf, long num, hid_t type, hid_t loc);
 
 void h5io_dataset_read(const char *name, void *buf, long num, long len, hid_t type, hid_t loc);
 void h5io_dataset_write(const char *name, const void *buf, long num, long len, hid_t type,
