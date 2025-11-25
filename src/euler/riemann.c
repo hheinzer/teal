@@ -83,7 +83,7 @@ static void solve(scalar *star_u, scalar *star_p, const Euler *left, const Euler
         }
         pold = fmax(prel_tolerance, pnew);
     }
-    error("newton solver did not converge after %ld iterations", max_newton);
+    error("newton solver did not converge (%ld)", max_newton);
 }
 
 /* Return Euler state at the query location loc = x/t. */

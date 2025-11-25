@@ -256,7 +256,7 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
             parse_split(mode, U64, block->tag.u64, num_nodes, 1, stride, swap, file);
             break;
         }
-        default: error("invalid parse type -- '%d'", SIZE);
+        default: error("invalid parse type (%d)", SIZE);
     }
 
     long len = 3 + (block->parametric ? block->entity_dim : 0);
@@ -323,7 +323,7 @@ static long num_node_tags(long element_type)
         case 5: return 8;  // hexahedron
         case 6: return 6;  // prism
         case 7: return 5;  // pyramid
-        default: error("unsupported element type -- '%ld'", element_type);
+        default: error("unsupported element type (%ld)", element_type);
     }
 }
 
@@ -368,7 +368,7 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
                 parse_split(mode, U64, block->node_tag.u64, num_elements, len, stride, swap, file);
             break;
         }
-        default: error("invalid parse type -- '%d'", SIZE);
+        default: error("invalid parse type (%d)", SIZE);
     }
     parse_set_offset(file, offset);
 
@@ -477,7 +477,7 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
             switch (SIZE) {
                 case U32: map[num].tag = block.tag.u32[j]; break;
                 case U64: map[num].tag = block.tag.u64[j]; break;
-                default: error("invalid parse type -- '%d'", SIZE);
+                default: error("invalid parse type (%d)", SIZE);
             }
             map[num].idx = num + off_nodes;
             num += 1;
@@ -548,7 +548,7 @@ static void create_cells(const MeshNodes *nodes, MeshCells *cells, ParseType SIZ
                 switch (SIZE) {
                     case U32: idx[off[num] + k] = block.node_tag.u32[(j * len) + k]; break;
                     case U64: idx[off[num] + k] = block.node_tag.u64[(j * len) + k]; break;
-                    default: error("invalid parse type -- '%d'", SIZE);
+                    default: error("invalid parse type (%d)", SIZE);
                 }
             }
             num += 1;
@@ -666,7 +666,7 @@ static void compute_entity_map(long *entity, const MeshCells *cells, ParseType S
                 physical_tag = val->physical_tag[0];
                 break;
             }
-            default: error("unsupported entity dimension -- '%d'", block.entity_dim);
+            default: error("unsupported entity dimension (%d)", block.entity_dim);
         }
         long idx = -1;
         for (long j = 0; j < num_physicals; j++) {

@@ -120,7 +120,7 @@ static void token_to_data(ParseType type, void *data, long idx, const char *toke
         case U64: ((uint64_t *)data)[idx] = strtoull(token, &end, 10); break;
         case F32: ((float *)data)[idx] = strtof(token, &end); break;
         case F64: ((double *)data)[idx] = strtod(token, &end); break;
-        default: error("invalid parse type -- '%d'", type);
+        default: error("invalid parse type (%d)", type);
     }
     assert(errno == 0 && end && end != token && *end == 0);
 }
@@ -174,7 +174,7 @@ static void swap_data(void *data, long num, long size)
             }
             break;
         }
-        default: error("invalid size -- '%ld'", size);
+        default: error("invalid size (%ld)", size);
     }
 }
 
@@ -197,7 +197,7 @@ void parse(ParseMode mode, ParseType type, void *data, long num, bool swap, Pars
     switch (mode) {
         case ASCII: parse_ascii(type, data, num, file); break;
         case BINARY: parse_binary(type, data, num, swap, file); break;
-        default: error("invalid parse mode -- '%d'", mode);
+        default: error("invalid parse mode (%d)", mode);
     }
 }
 
@@ -309,7 +309,7 @@ long parse_split(ParseMode mode, ParseType type, void *data, long num, long len,
     switch (mode) {
         case ASCII: return parse_split_ascii(type, data, num, len, stride, file);
         case BINARY: return parse_split_binary(type, data, num, len, stride, swap, file);
-        default: error("invalid parse mode -- '%d'", mode);
+        default: error("invalid parse mode (%d)", mode);
     }
 }
 
@@ -327,6 +327,6 @@ long parse_data_to_long(ParseType type, const void *data, long idx)
         case U64: return ((const uint64_t *)data)[idx];
         case F32: return lrintf(((const float *)data)[idx]);
         case F64: return lrint(((const double *)data)[idx]);
-        default: error("invalid parse type -- '%d'", type);
+        default: error("invalid parse type (%d)", type);
     }
 }

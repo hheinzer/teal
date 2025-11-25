@@ -87,7 +87,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                     case 5: type[num] = VTK_PYRAMID; break;
                     case 6: type[num] = VTK_WEDGE; break;
                     case 8: type[num] = VTK_HEXAHEDRON; break;
-                    default: error("invalid number of nodes -- '%ld'", num_nodes);
+                    default: error("invalid number of nodes (%ld)", num_nodes);
                 }
             }
             else {
@@ -95,7 +95,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                 switch (num_nodes) {
                     case 3: type[num] = VTK_TRIANGLE; break;
                     case 4: type[num] = VTK_QUAD; break;
-                    default: error("invalid number of nodes -- '%ld'", num_nodes);
+                    default: error("invalid number of nodes (%ld)", num_nodes);
                 }
             }
             entity[num] = i;

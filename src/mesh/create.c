@@ -159,7 +159,7 @@ static long num_cells_side(tuple num_cells, long idx)
         case 0: return num_cells.y * num_cells.z;
         case 1: return num_cells.z * num_cells.x;
         case 2: return num_cells.x * num_cells.y;
-        default: error("invalid index -- '%ld'", idx);
+        default: error("invalid index (%ld)", idx);
     }
 }
 
@@ -353,7 +353,7 @@ static vector compute_translation(vector del_coord, long idx)
         case 0: return (vector){sign * del_coord.x, 0, 0};
         case 1: return (vector){0, sign * del_coord.y, 0};
         case 2: return (vector){0, 0, sign * del_coord.z};
-        default: error("invalid index -- '%ld'", idx);
+        default: error("invalid index (%ld)", idx);
     }
 }
 
@@ -446,8 +446,14 @@ static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, t
 Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const bool *periodic,
                   long num_dims)
 {
-    assert(1 <= num_dims && num_dims <= 3);
-    assert(sync.size <= lmax(1, num_cells.x) * lmax(1, num_cells.y) * lmax(1, num_cells.z));
+    if (!(1 <= num_dims && num_dims <= 3)) {
+        error("invalid number of dimensions (%ld)", num_dims);
+    }
+
+    long tot_cells = lmax(1, num_cells.x) * lmax(1, num_cells.y) * lmax(1, num_cells.z);
+    if (sync.size > tot_cells) {
+        error("using more ranks (%ld) than cells (%ld) is not supported", sync.size, tot_cells);
+    }
 
     Mesh *mesh = arena_calloc(1, sizeof(*mesh));
 

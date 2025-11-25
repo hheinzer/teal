@@ -441,5 +441,5 @@ Convective *euler_convective(const char *name)
     if (!strcmp(name, "lxf")) {
         return lxf;
     }
-    error("invalid convective flux -- '%s'", name);
+    error("invalid convective flux (%s)", name);
 }

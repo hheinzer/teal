@@ -67,12 +67,12 @@ scalar simulation_run(Simulation *sim)
         scalar step0 = advance(eqns, &time, residual, courant, max_step, ctx);
 
         if (!isfinite(step0)) {
-            error("invalid timestep at iter = %ld", iter);
+            error("non-finite timestep (%ld)", iter);
         }
 
         for (long i = 0; i < len; i++) {
             if (!isfinite(residual[i])) {
-                error("invalid residual at iter = %ld", iter);
+                error("non-finite residual (%ld)", iter);
             }
         }
 

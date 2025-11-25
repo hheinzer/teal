@@ -42,7 +42,7 @@ static long component_index(char chr)
         case 'x': return 0;
         case 'y': return 1;
         case 'z': return 2;
-        default: error("invalid component index -- '%c'", chr);
+        default: error("invalid component index (%c)", chr);
     }
 }
 
@@ -78,7 +78,7 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
             return;
         }
     }
-    error("invalid variable -- '%.*s'", len, condition);
+    error("invalid termination condition (%s)", condition);
 }
 
 void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
@@ -120,10 +120,10 @@ void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
     if (!strcmp(name, "lserk")) {
         const RungeKutta *ctx = ctx_;
         if (!(1 <= ctx->time_order && ctx->time_order <= 3)) {
-            error("invalid time order -- '%ld'", ctx->time_order);
+            error("invalid time order (%ld)", ctx->time_order);
         }
         if (!(1 <= ctx->num_stages && ctx->num_stages <= 6)) {
-            error("invalid long of stages -- '%ld'", ctx->num_stages);
+            error("invalid long of stages (%ld)", ctx->num_stages);
         }
         sim->advance.ctx = arena_memdup(ctx, 1, sizeof(*ctx));
         sim->advance.method = lserk;
@@ -132,17 +132,17 @@ void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
     if (!strcmp(name, "implicit euler")) {
         const NewtonKrylov *ctx = ctx_;
         if (ctx->newton_tolerance <= 0) {
-            error("invalid newton tolerance -- '%g'", ctx->newton_tolerance);
+            error("invalid newton tolerance (%g)", ctx->newton_tolerance);
         }
         if (ctx->krylov_tolerance <= 0) {
-            error("invalid krylov tolerance -- '%g'", ctx->krylov_tolerance);
+            error("invalid krylov tolerance (%g)", ctx->krylov_tolerance);
         }
         if (ctx->krylov_dimension <= 0) {
-            error("invalid krylov dimension -- '%ld'", ctx->krylov_dimension);
+            error("invalid krylov dimension (%ld)", ctx->krylov_dimension);
         }
         sim->advance.ctx = arena_memdup(ctx, 1, sizeof(*ctx));
         sim->advance.method = implicit_euler;
         return;
     }
-    error("invalid advance method -- '%s'", name);
+    error("invalid advance method (%s)", name);
 }

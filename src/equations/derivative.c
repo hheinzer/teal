@@ -214,7 +214,7 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
             }
             break;
         }
-        default: error("invalid space order -- '%ld'", eqns->space_order);
+        default: error("invalid space order (%ld)", eqns->space_order);
     }
     finalize_derivative(eqns, variable_, derivative_, time);
     return derivative_;

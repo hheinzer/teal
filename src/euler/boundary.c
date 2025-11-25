@@ -279,5 +279,5 @@ Boundary *euler_boundary(const char *name)
     if (!strcmp(name, "farfield")) {
         return farfield;
     }
-    error("invalid boundary condition -- '%s'", name);
+    error("invalid boundary condition (%s)", name);
 }

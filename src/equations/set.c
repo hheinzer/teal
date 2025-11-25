@@ -9,7 +9,7 @@ void equations_set_space_order(Equations *eqns, long space_order)
 {
     assert(eqns);
     if (!(1 <= space_order && space_order <= 2)) {
-        error("invalid space order -- '%ld'", space_order);
+        error("invalid space order (%ld)", space_order);
     }
     eqns->space_order = space_order;
 }
@@ -55,7 +55,7 @@ void equations_set_limiter(Equations *eqns, const char *name, scalar parameter)
         eqns->limiter.compute = venkatakrishnan;
         return;
     }
-    error("invalid limiter -- '%s'", name);
+    error("invalid limiter (%s)", name);
 }
 
 void equations_set_boundary_condition(Equations *eqns, const char *entity, const char *name,
@@ -69,7 +69,7 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
             eqns->boundary.reference[i] = reference;
             eqns->boundary.custom[i] = custom;
             if (!strcmp(name, "custom") && !custom) {
-                error("missing custom function for entity -- '%s'", entity);
+                error("missing custom function (%s)", entity);
             }
             else {
                 assert(eqns->boundary.select);
@@ -78,7 +78,7 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
             return;
         }
     }
-    error("invalid entity -- '%s'", entity);
+    error("invalid entity (%s)", entity);
 }
 
 void equations_set_convective_flux(Equations *eqns, const char *name)
@@ -130,7 +130,7 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
             return;
         }
     }
-    error("invalid entity -- '%s'", entity);
+    error("invalid entity (%s)", entity);
 }
 
 void equations_set_initial_state(Equations *eqns, const char *entity, const void *state)
@@ -155,7 +155,7 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
             return;
         }
     }
-    error("invalid entity -- '%s'", entity);
+    error("invalid entity (%s)", entity);
 }
 
 void equations_set_property(Equations *eqns, const char *name, scalar property)
@@ -167,7 +167,7 @@ void equations_set_property(Equations *eqns, const char *name, scalar property)
             return;
         }
     }
-    error("invalid property -- '%s'", name);
+    error("invalid property (%s)", name);
 }
 
 void equations_set_user_source(Equations *eqns, Source *source)

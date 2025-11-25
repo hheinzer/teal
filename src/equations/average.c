@@ -35,5 +35,5 @@ void equations_average(const Equations *eqns, const char *entity, void *average_
             return;
         }
     }
-    error("invalid entity -- '%s'", entity);
+    error("invalid entity (%s)", entity);
 }

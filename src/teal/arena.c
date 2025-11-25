@@ -48,7 +48,7 @@ void arena_init(long capacity)
     assert(capacity > 0);
     base = malloc(capacity);
     if (!base) {
-        error("could not allocate arena base memory");
+        error("malloc failure (%ld)", capacity);
     }
     arena.beg = base;
     end = base + capacity;
@@ -66,7 +66,7 @@ void *arena_malloc(long num, long size)
     long available = end - arena.beg;
     long padding = -(long)arena.beg & (ALIGN - 1);
     if (num > (available - padding - REDZONE) / size) {
-        error("out of memory trying to allocate %ld blocks of size %ld", num, size);
+        error("out of memory (%ld, %ld)", num, size);
     }
     arena.last = arena.beg + padding + REDZONE;
     arena.beg = arena.last + (num * size);
@@ -95,7 +95,7 @@ void *arena_resize(const void *ptr, long num, long size)
         assert(num >= 0 && size > 0);
         long available = end - arena.last;
         if (num > available / size) {
-            error("out of memory trying to allocate %ld blocks of size %ld", num, size);
+            error("out of memory (%ld, %ld)", num, size);
         }
         long old_size = arena.beg - arena.last;
         long new_size = num * size;

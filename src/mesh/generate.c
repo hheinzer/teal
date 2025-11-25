@@ -475,7 +475,7 @@ static void correct_coord_order(vector *coord, long num_nodes)
                 }
             }
             error("quad vertex order could not be made valid");
-        default: error("invalid number of nodes -- '%ld'", num_nodes);
+        default: error("invalid number of nodes (%ld)", num_nodes);
     }
 }
 
@@ -492,7 +492,7 @@ static scalar compute_face_area(const vector *coord, long num_nodes)
             vector rhs[3] = {coord[0], coord[2], coord[3]};
             return compute_face_area(lhs, 3) + compute_face_area(rhs, 3);
         }
-        default: error("invalid number of nodes -- '%ld'", num_nodes);
+        default: error("invalid number of nodes (%ld)", num_nodes);
     }
 }
 
@@ -516,7 +516,7 @@ static vector compute_face_center(const vector *coord, long num_nodes)
             scalar area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
             return weighted_average(cen, area, 2);
         }
-        default: error("invalid number of nodes -- '%ld'", num_nodes);
+        default: error("invalid number of nodes (%ld)", num_nodes);
     }
 }
 
@@ -536,7 +536,7 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
             }
             return vector_div(normal, vector_norm(normal));
         }
-        default: error("invalid number of nodes -- '%ld'", num_nodes);
+        default: error("invalid number of nodes (%ld)", num_nodes);
     }
 }
 
@@ -621,7 +621,7 @@ static scalar compute_cell_volume(const vector *coord, long num_nodes)
             vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
             return compute_cell_volume(lhs, 6) + compute_cell_volume(rhs, 6);
         }
-        default: error("invalid number of nodes -- '%ld'", num_nodes);
+        default: error("invalid number of nodes (%ld)", num_nodes);
     }
 }
 
@@ -650,7 +650,7 @@ static vector compute_cell_center(const vector *coord, long num_nodes)
             scalar vol[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
             return weighted_average(cen, vol, 2);
         }
-        default: error("invalid number of nodes -- '%ld'", num_nodes);
+        default: error("invalid number of nodes (%ld)", num_nodes);
     }
 }
 
