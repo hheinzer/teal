@@ -1,0 +1,23 @@
+#!/bin/bash
+
+num_cores=1
+frequency=200
+while getopts "n:F:" opt; do
+    case $opt in
+        n) num_cores=$OPTARG ;;
+        F) frequency=$OPTARG ;;
+        *) exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+prog=$1
+args=${@:2}
+
+dat=${prog}_perf.dat
+out=${prog}_perf.out
+pdf=${prog}_perf.pdf
+
+perf record -F $frequency -g -o $dat -- mpirun -n $num_cores $prog $args
+perf report -i $dat --stdio > $out
+perf script -i $dat | gprof2dot -f perf | dot -Tpdf -o $pdf

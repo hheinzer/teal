@@ -15,8 +15,7 @@ CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 #CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 
 # release flags
-#CFLAGS += -O3 -march=native -flto=auto
-#CFLAGS += -DNDEBUG -Wno-unused -Wno-unused-parameter
+#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
 
 # gprof flags
 #CFLAGS += -pg -fno-inline-functions
@@ -38,7 +37,7 @@ clean:
 check:
 	@cppcheck --project=compile_commands.json --check-level=exhaustive --enable=all \
 		--suppress=checkersReport --suppress=missingIncludeSystem \
-		--suppress=unusedFunction --suppress=constVariable --suppress=constVariablePointer
+		--suppress=unusedFunction --suppress=constVariablePointer --suppress=constVariable
 
 tidy: $(OBJ)
 	@clang-tidy $(shell find . -type f -name '*.[ch]')
