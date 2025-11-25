@@ -118,8 +118,7 @@ typedef struct {
 } Mesh;
 
 /* Create a distributed Cartesian mesh with optional per-axis periodicity. */
-Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const bool *periodic,
-                  long num_dims);
+Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const bool *periodic);
 
 /* Read a mesh from disk. */
 Mesh *mesh_read(const char *fname);

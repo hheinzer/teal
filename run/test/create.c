@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     vector max_coord = {9, 3, 1};
     tuple num_cells = {300, 100, 33};
     bool periodic[3] = {true, false, true};
-    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic, 3);
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
 
     for (long i = 0; i < mesh->nodes.num; i++) {
         vector *coord = &mesh->nodes.coord[i];
