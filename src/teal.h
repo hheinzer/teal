@@ -12,10 +12,6 @@ typedef struct {
     long x, y, z;
 } tuple;
 
-typedef struct {
-    bool x, y, z;
-} flags;
-
 /* Call exactly once at program start, before any teal API. */
 void teal_initialize(int *argc, char ***argv);
 

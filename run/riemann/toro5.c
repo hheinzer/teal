@@ -12,8 +12,7 @@ int main(int argc, char **argv)
     vector min_coord = {.x = 0};
     vector max_coord = {.x = 1};
     tuple num_cells = {.x = 100};
-    flags periodic = {.x = false};
-    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0, 1);
     mesh_generate(mesh);
     mesh_summary(mesh);
 
