@@ -19,6 +19,7 @@ Kdtree *kdtree_create(long size_val)
     return tree;
 }
 
+/* Compare two vectors on the axis selected by `depth`. */
 static long veccmp(vector lhs, vector rhs, long depth)
 {
     switch (depth % 3) {
@@ -29,6 +30,7 @@ static long veccmp(vector lhs, vector rhs, long depth)
     }
 }
 
+/* Order keys with full tie-breaking across all axes. */
 static long keycmp(vector lhs, vector rhs, long depth)
 {
     long cmp = veccmp(lhs, rhs, depth);
@@ -84,12 +86,14 @@ void *kdtree_lookup(const Kdtree *self, vector key)
     return 0;
 }
 
+/* Return squared Euclidean distance between two vectors. */
 static scalar squared_distance(vector lhs, vector rhs)
 {
     vector sub = vector_sub(lhs, rhs);
     return vector_dot(sub, sub);
 }
 
+/* Replace the max-heap root and sift down to maintain ordering. */
 static void heap_replace(const void *item_val, scalar item_metric, void *val_, scalar *metric,
                          long num, long size)
 {
@@ -121,6 +125,7 @@ static void heap_replace(const void *item_val, scalar item_metric, void *val_, s
     }
 }
 
+/* Signed difference along the current split axis. */
 static scalar delta(vector lhs, vector rhs, long depth)
 {
     switch (depth % 3) {

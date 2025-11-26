@@ -154,6 +154,7 @@ long h5io_dataset_len(const char *name, hid_t loc)
     return len;
 }
 
+/* Check whether an attribute has the expected length. */
 static bool attribute_num_matchs(hid_t attr, long num)
 {
     bool match = false;
@@ -235,6 +236,7 @@ void h5io_attribute_write(const char *name, const void *buf, long num, hid_t typ
     }
 }
 
+/* Validate dataset shape against expected global rows and column length. */
 static bool dataset_dims_match(hid_t dset, long num, long len)
 {
     bool match = false;
