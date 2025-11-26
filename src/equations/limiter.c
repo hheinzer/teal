@@ -6,6 +6,116 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+void vanleer(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
+             const vector *offset, long num)
+{
+    (void)parameter;
+    scalar psi = 2;
+    for (long i = 0; i < num; i++) {
+        scalar delta2 = vector_dot(*gradient, offset[i]);
+        if (delta2 == 0) {
+            continue;
+        }
+        scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = (2 * ratio) / (1 + ratio);
+        psi = fmin(psi, phi);
+    }
+    vector_scale(gradient, psi);
+}
+
+void vanalbada1(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
+                const vector *offset, long num)
+{
+    (void)parameter;
+    scalar psi = 1;
+    for (long i = 0; i < num; i++) {
+        scalar delta2 = vector_dot(*gradient, offset[i]);
+        if (delta2 == 0) {
+            continue;
+        }
+        scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = (sq(ratio) + ratio) / (sq(ratio) + 1);
+        psi = fmin(psi, phi);
+    }
+    vector_scale(gradient, psi);
+}
+
+void vanalbada2(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
+                const vector *offset, long num)
+{
+    (void)parameter;
+    scalar psi = 1;
+    for (long i = 0; i < num; i++) {
+        scalar delta2 = vector_dot(*gradient, offset[i]);
+        if (delta2 == 0) {
+            continue;
+        }
+        scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = (2 * ratio) / (sq(ratio) + 1);
+        psi = fmin(psi, phi);
+    }
+    vector_scale(gradient, psi);
+}
+
+void mc(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
+        const vector *offset, long num)
+{
+    (void)parameter;
+    scalar psi = 2;
+    for (long i = 0; i < num; i++) {
+        scalar delta2 = vector_dot(*gradient, offset[i]);
+        if (delta2 == 0) {
+            continue;
+        }
+        scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = fmin(fmin(2 * ratio, (1 + ratio) / 2), 2);
+        psi = fmin(psi, phi);
+    }
+    vector_scale(gradient, psi);
+}
+
+void koren(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
+           const vector *offset, long num)
+{
+    (void)parameter;
+    scalar psi = 2;
+    for (long i = 0; i < num; i++) {
+        scalar delta2 = vector_dot(*gradient, offset[i]);
+        if (delta2 == 0) {
+            continue;
+        }
+        scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = fmin(fmin(2 * ratio, (1 + 2 * ratio) / 3), 2);
+        psi = fmin(psi, phi);
+    }
+    vector_scale(gradient, psi);
+}
+
 void minmod(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
             const vector *offset, long num)
 {
@@ -17,7 +127,35 @@ void minmod(vector *gradient, scalar variable, scalar minimum, scalar maximum, s
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
-        psi = fmin(psi, delta1 / delta2);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = fmin(1, ratio);
+        psi = fmin(psi, phi);
+    }
+    vector_scale(gradient, psi);
+}
+
+void superbee(vector *gradient, scalar variable, scalar minimum, scalar maximum, scalar parameter,
+              const vector *offset, long num)
+{
+    (void)parameter;
+    scalar psi = 1;
+    for (long i = 0; i < num; i++) {
+        scalar delta2 = vector_dot(*gradient, offset[i]);
+        if (delta2 == 0) {
+            continue;
+        }
+        scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
+        scalar phi = fmax(fmin(2 * ratio, 1), fmin(ratio, 2));
+        psi = fmin(psi, phi);
     }
     vector_scale(gradient, psi);
 }
@@ -32,6 +170,11 @@ void venkatakrishnan(vector *gradient, scalar variable, scalar minimum, scalar m
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
+        scalar ratio = delta1 / delta2;
+        if (ratio <= 0) {
+            psi = 0;
+            break;
+        }
         scalar numerator = ((sq(delta1) + parameter) * delta2) + (2 * sq(delta2) * delta1);
         scalar denominator = sq(delta1) + (2 * sq(delta2)) + (delta1 * delta2) + parameter;
         psi = fmin(psi, numerator / denominator / delta2);

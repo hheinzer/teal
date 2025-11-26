@@ -46,8 +46,32 @@ void equations_set_limiter(Equations *eqns, const char *name, scalar parameter)
         return;
     }
     strcpy(eqns->limiter.name, name);
+    if (!strcmp(name, "vanleer")) {
+        eqns->limiter.compute = vanleer;
+        return;
+    }
+    if (!strcmp(name, "vanalbada1")) {
+        eqns->limiter.compute = vanalbada1;
+        return;
+    }
+    if (!strcmp(name, "vanalbada2")) {
+        eqns->limiter.compute = vanalbada2;
+        return;
+    }
+    if (!strcmp(name, "mc")) {
+        eqns->limiter.compute = mc;
+        return;
+    }
+    if (!strcmp(name, "koren")) {
+        eqns->limiter.compute = koren;
+        return;
+    }
     if (!strcmp(name, "minmod")) {
         eqns->limiter.compute = minmod;
+        return;
+    }
+    if (!strcmp(name, "superbee")) {
+        eqns->limiter.compute = superbee;
         return;
     }
     if (!strcmp(name, "venkatakrishnan")) {
