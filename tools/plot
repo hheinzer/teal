@@ -155,6 +155,25 @@ def save_screenshot(img, bounds, vmin, vmax, args, fname):
     plt.close()
 
 
+def get_data_range(mesh, args):
+    if args.field is None:
+        return None
+
+    data = mesh[args.field]
+    if data.ndim == 1:
+        vmin, vmax = data.min(), data.max()
+    else:
+        norm = np.linalg.norm(data, axis=1)
+        vmin, vmax = norm.min(), norm.max()
+
+    if args.vmin is not None:
+        vmin = args.vmin
+    if args.vmax is not None:
+        vmax = args.vmax
+
+    return (vmin, vmax)
+
+
 def plot_field(mesh, args, fname=None):
     if fname is None:
         plotter = pv.Plotter(lighting="three lights")
@@ -164,15 +183,9 @@ def plot_field(mesh, args, fname=None):
     if args.explode:
         plotter.disable_ssao()
 
-    vmin, vmax = mesh.get_data_range()
-    if args.vmin is not None:
-        vmin = args.vmin
-    if args.vmax is not None:
-        vmax = args.vmax
-
     kwargs = dict(
         show_edges=args.edges,
-        clim=(vmin, vmax),
+        clim=get_data_range(mesh, args),
         cmap=args.cmap,
         show_scalar_bar=fname is None,
     )
