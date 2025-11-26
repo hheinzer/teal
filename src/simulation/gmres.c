@@ -124,16 +124,16 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
         }
     }
 
-    scalar *coeff = arena_malloc(dim, sizeof(*coeff));
+    scalar *coef = arena_malloc(dim, sizeof(*coef));
     for (long i = iter - 1; i >= 0; i--) {
-        coeff[i] = rhs[i];
+        coef[i] = rhs[i];
         for (long j = i + 1; j < iter; j++) {
-            coeff[i] -= hess[i][j] * coeff[j];
+            coef[i] -= hess[i][j] * coef[j];
         }
-        coeff[i] /= hess[i][i];
+        coef[i] /= hess[i][i];
         for (long j = 0; j < num_inner; j++) {
             for (long k = 0; k < len; k++) {
-                increment[j][k] += coeff[i] * basis[i][j][k];
+                increment[j][k] += coef[i] * basis[i][j][k];
             }
         }
     }
