@@ -226,8 +226,7 @@ static void test_nearest(void)
     kdtree_nearest(tree, key, val, num);
 
     for (long i = 0; i < tot; i++) {
-        vector sub = vector_sub(map[i].key, key);
-        map[i].dist = vector_dot(sub, sub);
+        map[i].dist = vector_norm2(vector_sub(map[i].key, key));
     }
     qsort(map, tot, sizeof(*map), cmp_map);
 
@@ -272,8 +271,7 @@ static void test_radius(void)
     long num = kdtree_radius(tree, key, val, cap, radius);
 
     for (long i = 0; i < tot; i++) {
-        vector sub = vector_sub(map[i].key, key);
-        map[i].dist = vector_dot(sub, sub);
+        map[i].dist = vector_norm2(vector_sub(map[i].key, key));
     }
     qsort(map, tot, sizeof(*map), cmp_map);
 

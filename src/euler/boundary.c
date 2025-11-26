@@ -126,7 +126,7 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     Euler inner = global_to_local(inner_, basis);
     *ghost = global_to_local(reference_, basis);
 
-    scalar velocity2_i = vector_dot(inner.velocity, inner.velocity);
+    scalar velocity2_i = vector_norm2(inner.velocity);
     scalar speed_of_sound2_i = gamma * inner.pressure / inner.density;
     scalar speed_of_sound_i = sqrt(speed_of_sound2_i);
     scalar enthalpy_i = (velocity2_i / 2) + (speed_of_sound2_i / gamma_m1);

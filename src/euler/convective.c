@@ -123,7 +123,7 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
     vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
 
-    scalar velocity2 = vector_dot(velocity, velocity);
+    scalar velocity2 = vector_norm2(velocity);
     scalar speed_of_sound2 = gamma_m1 * (enthalpy - velocity2 / 2);
     scalar speed_of_sound = sqrt(speed_of_sound2);
 
@@ -257,7 +257,7 @@ static void hll(void *flux_, const void *left_, const void *right_, const scalar
     vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
 
-    scalar velocity2 = vector_dot(velocity, velocity);
+    scalar velocity2 = vector_norm2(velocity);
     scalar speed_of_sound = sqrt((gamma - 1) * (enthalpy - velocity2 / 2));
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
@@ -316,7 +316,7 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
     vector velocity = roe_velocity(weight, sqrt_density_l, sqrt_density_r, &left, &right);
     scalar enthalpy = weight * (sqrt_density_l * enthalpy_l + sqrt_density_r * enthalpy_r);
 
-    scalar velocity2 = vector_dot(velocity, velocity);
+    scalar velocity2 = vector_norm2(velocity);
     scalar speed_of_sound = sqrt((gamma - 1) * (enthalpy - velocity2 / 2));
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);

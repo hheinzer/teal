@@ -35,7 +35,11 @@ vector vector_mul(scalar lhs, vector rhs)
 vector vector_div(vector lhs, scalar rhs)
 {
     assert(!is_close(rhs, 0));
-    return vector_mul(1 / rhs, lhs);
+    return (vector){
+        lhs.x / rhs,
+        lhs.y / rhs,
+        lhs.z / rhs,
+    };
 }
 
 vector vector_abs(vector vec)
@@ -114,9 +118,14 @@ scalar vector_subdot(vector lhs, vector rhs, vector dot)
     return ((lhs.x - rhs.x) * dot.x) + ((lhs.y - rhs.y) * dot.y) + ((lhs.z - rhs.z) * dot.z);
 }
 
+scalar vector_norm2(vector vec)
+{
+    return sq(vec.x) + sq(vec.y) + sq(vec.z);
+}
+
 scalar vector_norm(vector vec)
 {
-    return sqrt(vector_dot(vec, vec));
+    return sqrt(sq(vec.x) + sq(vec.y) + sq(vec.z));
 }
 
 vector vector_cross(vector lhs, vector rhs)

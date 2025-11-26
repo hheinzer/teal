@@ -89,8 +89,7 @@ void *kdtree_lookup(const Kdtree *self, vector key)
 /* Return squared Euclidean distance between two vectors. */
 static scalar squared_distance(vector lhs, vector rhs)
 {
-    vector sub = vector_sub(lhs, rhs);
-    return vector_dot(sub, sub);
+    return vector_norm2(vector_sub(lhs, rhs));
 }
 
 /* Replace the max-heap root and sift down to maintain ordering. */
