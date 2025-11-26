@@ -67,6 +67,7 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     cells->cell.idx = arena_smuggle(idx, cells->cell.off[cells->num], sizeof(*idx));
 }
 
+/* Pick the next unmapped inner cell with the smallest geometric center. */
 static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const long *map)
 {
     long seed = -1;
@@ -479,6 +480,7 @@ static void correct_coord_order(vector *coord, long num_nodes)
     }
 }
 
+/* Area of a triangular or quadrilateral face. */
 static scalar compute_face_area(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -496,6 +498,7 @@ static scalar compute_face_area(const vector *coord, long num_nodes)
     }
 }
 
+/* Weighted average of vectors with scalar weights. */
 static vector weighted_average(const vector *arr, const scalar *wgt, long num)
 {
     vector wsum = {0};
@@ -505,6 +508,7 @@ static vector weighted_average(const vector *arr, const scalar *wgt, long num)
     return vector_div(wsum, array_fsum(wgt, num));
 }
 
+/* Face centroid for triangles/quads (quad via area-weighted triangles). */
 static vector compute_face_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -520,6 +524,7 @@ static vector compute_face_center(const vector *coord, long num_nodes)
     }
 }
 
+/* Unit normal for triangles/quads. */
 static vector compute_face_normal(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -540,6 +545,7 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
     }
 }
 
+/* Orthonormal basis on a face aligned with its normal. */
 static Basis compute_face_basis(const vector *coord, long num_nodes)
 {
     Basis basis;
@@ -597,6 +603,7 @@ static void compute_face_geometry(const MeshNodes *nodes, const MeshCells *cells
     faces->basis = basis;
 }
 
+/* Volume of supported cell types by tetrahedral decomposition. */
 static scalar compute_cell_volume(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -625,6 +632,7 @@ static scalar compute_cell_volume(const vector *coord, long num_nodes)
     }
 }
 
+/* Cell centroid, volume-weighted for mixed splits. */
 static vector compute_cell_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -685,6 +693,7 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
     arena_load(save);
 }
 
+/* Compute cell volumes, centers, and axis-aligned projections. */
 static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, const MeshFaces *faces,
                                   const MeshEntities *entities, const MeshNeighbors *neighbors)
 {
@@ -753,6 +762,7 @@ void compute_cell_offsets(const MeshNodes *nodes, MeshCells *cells)
     cells->offset = offset;
 }
 
+/* Least-squares weights for gradient reconstruction on faces. */
 static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();

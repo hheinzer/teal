@@ -34,6 +34,7 @@ static void read_file(Mesh *mesh, const char *fname)
     error("invalid file extension (%s)", ext);
 }
 
+/* Count inner cells from entity offsets. */
 static long count_inner_cells(const MeshEntities *entities)
 {
     long count = 0;
@@ -194,6 +195,7 @@ typedef struct {
     long peer;
 } Edge;
 
+/* Sort edges by (cell, peer). */
 static int cmp_edge(const void *lhs_, const void *rhs_)
 {
     const Edge *lhs = lhs_;
@@ -201,7 +203,7 @@ static int cmp_edge(const void *lhs_, const void *rhs_)
     return (lhs->cell > rhs->cell) - (lhs->cell < rhs->cell);
 }
 
-/* For each periodic link, request the peer cell's global id from its owner. */
+/* Collect unique periodic edge pairs from neighbor relations. */
 static Edge *collect_edges(const MeshCells *cells, const Kdtree *center2link, long *num_edges)
 {
     Arena save = arena_save();
@@ -360,6 +362,7 @@ static void connect_periodic(const MeshNodes *nodes, const MeshCells *cells,
     dual->adjncy = adjncy;
 }
 
+/* Rotate string at separator `sep` to choose partitioned file name. */
 static long rotate_at_char(char *dst, const char *src, char sep)
 {
     char *pos = strchr(src, sep);
@@ -411,7 +414,7 @@ static Dual connect_cells(const MeshNodes *nodes, const MeshCells *cells,
     return dual;
 }
 
-/* Set partitions of outer cells to their adjacent inner cell's partition. */
+/* Fill partition ids for ghost and periodic cells. */
 static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t *part)
 {
     Arena save = arena_save();
@@ -488,7 +491,7 @@ static void collect_outer_parts(const MeshCells *cells, const Dual *dual, idx_t 
     arena_load(save);
 }
 
-/* Partition the dual graph (k-way) and refine with ParMETIS. */
+/* Partition cells with ParMETIS and broadcast the result. */
 static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t *part)
 {
     Arena save = arena_save();
@@ -565,7 +568,7 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
     arena_load(save);
 }
 
-/* Gather remote adjacency ids, grouped by destination partition. */
+/* Gather adjacency entries that cross partitions. */
 static long *collect_adjncys(const MeshCells *cells, const Dual *dual, const idx_t *part,
                              long *num_adjncy)
 {
@@ -882,6 +885,7 @@ typedef struct {
     long node[MAX_CELL_NODES];
 } Cell;
 
+/* Sort cells by entity to preserve grouping after redistribution. */
 static int cmp_cell(const void *lhs_, const void *rhs_)
 {
     const Cell *lhs = lhs_;
@@ -1340,6 +1344,7 @@ static void collect_neighbor_ranks(const MeshNodes *nodes, const MeshCells *cell
     arena_load(save);
 }
 
+/* Permute outer cells/recv entries by entity then rank. */
 static void compute_cell_map(const MeshCells *cells, const MeshEntities *entities, const Recv *recv,
                              long tot, long *map)
 {
@@ -1403,7 +1408,6 @@ static void reorder(MeshCells *cells, const MeshEntities *entities, Recv *recv, 
     arena_load(save);
 }
 
-/* Build neighbor groups from outers sorted by (entity,rank). */
 static void create_neighbors(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
                              MeshNeighbors *neighbors)
 {

@@ -7,6 +7,7 @@
 #include "teal/arena.h"
 #include "teal/vector.h"
 
+/* Find entity index by name; return -1 if missing. */
 static long find_entity(const MeshEntities *entities, const char *entity)
 {
     for (long i = 0; i < entities->num; i++) {

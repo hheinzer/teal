@@ -7,6 +7,7 @@
 #include "teal/h5io.h"
 #include "teal/sync.h"
 
+/* Read nodes group: global ids and coordinates. */
 static void read_nodes(MeshNodes *nodes, hid_t loc)
 {
     hid_t group = h5io_group_open("nodes", loc);
@@ -35,6 +36,7 @@ static void read_nodes(MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
+/* Read cell-to-node graph from HDF5. */
 static void read_node_graph(Graph *node, long num_cells, hid_t loc)
 {
     hid_t group = h5io_group_open("node", loc);
@@ -66,6 +68,7 @@ static void read_node_graph(Graph *node, long num_cells, hid_t loc)
     h5io_group_close(group);
 }
 
+/* Read cells group: connectivity, geometry, and projections. */
 static void read_cells(MeshCells *cells, hid_t loc)
 {
     hid_t group = h5io_group_open("cells", loc);
@@ -91,6 +94,7 @@ static void read_cells(MeshCells *cells, hid_t loc)
     h5io_group_close(group);
 }
 
+/* Read entities group: names, ranges, and translations. */
 static void read_entities(MeshEntities *entities, hid_t loc)
 {
     hid_t group = h5io_group_open("entities", loc);
@@ -116,6 +120,7 @@ static void read_entities(MeshEntities *entities, hid_t loc)
     h5io_group_close(group);
 }
 
+/* Reorder cells and entities using stored permutation. */
 static void reorder(MeshCells *cells, MeshEntities *entities, hid_t loc)
 {
     Arena save = arena_save();

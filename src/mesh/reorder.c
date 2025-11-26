@@ -7,6 +7,7 @@
 #include "teal/array.h"
 #include "teal/utils.h"
 
+/* Check that map is a permutation of [0,num). */
 static bool is_valid(const long *map, long num)
 {
     Arena save = arena_save();
@@ -131,6 +132,7 @@ typedef struct {
     Adjacent cell;
 } Face;
 
+/* Sort faces by key for stable reordering. */
 static int cmp_face(const void *lhs_, const void *rhs_)
 {
     const Face *lhs = lhs_;

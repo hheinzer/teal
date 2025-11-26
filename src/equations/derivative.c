@@ -8,6 +8,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+/* Allocate and zero the inner-cell derivative buffer. */
 static void initialize_derivative(const Equations *eqns, void **derivative_)
 {
     long num_inner = eqns->mesh->cells.num_inner;
@@ -19,6 +20,7 @@ static void initialize_derivative(const Equations *eqns, void **derivative_)
     *derivative_ = memset(derivative, 0, num_inner * sizeof(*derivative));
 }
 
+/* Integrate first-order convective fluxes over all faces. */
 static void integrate_convective_flux(const Equations *eqns, void *variable_, void *derivative_)
 {
     Arena save = arena_save();
@@ -75,6 +77,7 @@ static void integrate_convective_flux(const Equations *eqns, void *variable_, vo
     arena_load(save);
 }
 
+/* Linear reconstruction of a face state using gradients and offsets. */
 static void reconstruct(scalar *variable_k, const scalar *variable, const vector *gradient,
                         vector offset, long stride)
 {
@@ -83,6 +86,7 @@ static void reconstruct(scalar *variable_k, const scalar *variable, const vector
     }
 }
 
+/* Integrate second-order convective fluxes with reconstructed states. */
 static void integrate_reconstructed_convective_flux(const Equations *eqns, void *variable_,
                                                     void *derivative_, void *gradient_)
 {
@@ -149,6 +153,7 @@ static void integrate_reconstructed_convective_flux(const Equations *eqns, void 
     arena_load(save);
 }
 
+/* Divide flux sums by cell volume and add optional source terms. */
 static void finalize_derivative(const Equations *eqns, void *variable_, void *derivative_,
                                 scalar time)
 {

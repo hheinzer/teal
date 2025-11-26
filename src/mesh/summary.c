@@ -6,6 +6,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+/* Count cells received from ranks other than self. */
 static long count_exchange_cells(const MeshNeighbors *neighbors)
 {
     long count = 0;

@@ -16,6 +16,7 @@
             : (void)fprintf(stderr, "[%ld] %s:%d: %s: Check `%s` failed.\n", sync.rank, __FILE__, \
                             __LINE__, __func__, #expr))
 
+/* Verify node counts, indices, and coordinates. */
 static void test_nodes(const MeshNodes *nodes)
 {
     Arena save = arena_save();
@@ -48,6 +49,7 @@ static void test_nodes(const MeshNodes *nodes)
     arena_load(save);
 }
 
+/* Generic CSR graph checks for degree and index bounds. */
 static void test_graph(Graph graph, long num, long min_deg, long max_deg, long min_idx,
                        long max_idx)
 {
@@ -67,6 +69,7 @@ static void test_graph(Graph graph, long num, long min_deg, long max_deg, long m
     }
 }
 
+/* Check whether rhs appears in the adjacency of lhs. */
 static bool has_neighbor(Graph graph, long lhs, long rhs)
 {
     for (long i = graph.off[lhs]; i < graph.off[lhs + 1]; i++) {
@@ -77,6 +80,7 @@ static bool has_neighbor(Graph graph, long lhs, long rhs)
     return false;
 }
 
+/* Validate cell ordering, connectivity, and geometry arrays. */
 static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
 {
     Arena save = arena_save();
@@ -145,6 +149,7 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
     arena_load(save);
 }
 
+/* Validate face ordering, connectivity, geometry, and orientations. */
 static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const MeshFaces *faces)
 {
     Arena save = arena_save();
@@ -240,6 +245,7 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
     arena_load(save);
 }
 
+/* Validate entity ranges, names, translations, and cell/face pairing. */
 static void test_entities(const MeshCells *cells, const MeshFaces *faces,
                           const MeshEntities *entities)
 {
@@ -301,6 +307,7 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
     }
 }
 
+/* Validate neighbor ranks and send/recv graphs. */
 static void test_neighbors(const MeshCells *cells, const MeshNeighbors *neighbors)
 {
     Arena save = arena_save();

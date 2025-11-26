@@ -153,6 +153,7 @@ static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, 
     nodes->global = global;
 }
 
+/* Number of cells on a given side of the Cartesian block. */
 static long num_cells_side(tuple num_cells, long idx)
 {
     switch (idx / 2) {
@@ -163,6 +164,7 @@ static long num_cells_side(tuple num_cells, long idx)
     }
 }
 
+/* Whether this side lies on the global domain boundary. */
 static bool is_edge_side(const int *dims, const int *coords, long idx)
 {
     return (idx % 2 == 0) ? (coords[idx / 2] == 0) : (coords[idx / 2] == dims[idx / 2] - 1);
@@ -346,6 +348,7 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
     arena_load(save);
 }
 
+/* Translation vector for a periodic copy on side idx. */
 static vector compute_translation(vector del_coord, long idx)
 {
     scalar sign = (idx % 2) ? -1 : +1;
@@ -406,7 +409,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     entities->translation = translation;
 }
 
-/* Create neighbor metadata in the order [periodic, neighbor]. */
+/* Build neighbor metadata and send/recv graphs for MPI ranks. */
 static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, tuple num_cells,
                              long ndims, const int *dims, const int *coords, const int *neighbor)
 {
