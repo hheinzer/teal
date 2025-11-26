@@ -261,7 +261,7 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
 
 Boundary *euler_boundary(const char *name)
 {
-    if (!strcmp(name, "symmetry") || !strcmp(name, "slipwall")) {
+    if (!strcmp(name, "symmetry") || !strcmp(name, "slipwall") || !strcmp(name, "wall")) {
         return symmetry;
     }
     if (!strcmp(name, "supersonic inflow")) {
