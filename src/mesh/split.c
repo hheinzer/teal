@@ -5,6 +5,7 @@
 #include "mesh.h"
 #include "reorder.h"
 #include "teal/arena.h"
+#include "teal/utils.h"
 #include "teal/vector.h"
 
 /* Find entity index by name; return -1 if missing. */
@@ -15,7 +16,7 @@ static long find_entity(const MeshEntities *entities, const char *entity)
             return i;
         }
     }
-    return -1;
+    error("invalid entity (%s)", entity);
 }
 
 /* Grow entities arrays by one slot. */
@@ -97,7 +98,6 @@ void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal)
     assert(mesh);
 
     long idx = find_entity(&mesh->entities, entity);
-    assert(idx != -1);
 
     grow_entities(&mesh->entities, idx);
 
