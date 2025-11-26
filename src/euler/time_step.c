@@ -2,8 +2,8 @@
 
 #include "euler.h"
 
-scalar euler_timestep(const void *variable_, const scalar *property, scalar volume,
-                      vector projection)
+scalar euler_time_step(const void *variable_, const scalar *property, scalar volume,
+                       vector projection)
 {
     const Euler *variable = variable_;
     scalar gamma = property[0];

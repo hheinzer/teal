@@ -67,7 +67,7 @@ scalar simulation_run(Simulation *sim)
         scalar step0 = advance(eqns, &time, residual, courant, max_step, ctx);
 
         if (!isfinite(step0)) {
-            error("non-finite timestep (%ld)", iter);
+            error("non-finite time step (%ld)", iter);
         }
 
         for (long i = 0; i < len; i++) {

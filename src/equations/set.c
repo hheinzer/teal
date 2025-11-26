@@ -14,10 +14,10 @@ void equations_set_space_order(Equations *eqns, long space_order)
     eqns->space_order = space_order;
 }
 
-void equations_set_timestep(Equations *eqns, Timestep *timestep)
+void equations_set_time_step(Equations *eqns, TimeStep *time_step)
 {
-    assert(eqns && timestep);
-    eqns->timestep = timestep;
+    assert(eqns && time_step);
+    eqns->time_step = time_step;
 }
 
 void equations_set_boundary_select(Equations *eqns, BoundarySelect *select)

@@ -15,7 +15,7 @@ typedef struct {
 Update euler_conserved, euler_primitive;
 
 /* Compute the Euler time-step restriction. */
-Timestep euler_timestep;
+TimeStep euler_time_step;
 
 /* Select an Euler boundary condition by name. */
 BoundarySelect euler_boundary;

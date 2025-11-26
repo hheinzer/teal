@@ -4,7 +4,7 @@
 #include "equations.h"
 #include "teal/sync.h"
 
-scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *step)
+scalar equations_time_step(const Equations *eqns, const void *variable_, scalar *step)
 {
     assert(eqns && variable_);
 
@@ -14,20 +14,20 @@ scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *
 
     long stride = eqns->variables.stride;
     scalar *property = eqns->properties.data;
-    Timestep *timestep = eqns->timestep;
+    TimeStep *time_step = eqns->time_step;
 
     const scalar(*variable)[stride] = variable_;
 
     scalar min = INFINITY;
     if (step) {
         for (long i = 0; i < num_inner; i++) {
-            step[i] = timestep(variable[i], property, volume[i], projection[i]);
+            step[i] = time_step(variable[i], property, volume[i], projection[i]);
             min = fmin(min, step[i]);
         }
     }
     else {
         for (long i = 0; i < num_inner; i++) {
-            min = fmin(min, timestep(variable[i], property, volume[i], projection[i]));
+            min = fmin(min, time_step(variable[i], property, volume[i], projection[i]));
         }
     }
     return sync_fmin(min);

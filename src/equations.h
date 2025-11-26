@@ -25,7 +25,7 @@ typedef void Update(void *variable_, const scalar *property);
 
 /* Compute the local stability time step for a single cell; return a non-negative finite value. The
  * global time step is the minimum over all cells. */
-typedef scalar Timestep(const void *variable_, const scalar *property, scalar volume,
+typedef scalar TimeStep(const void *variable_, const scalar *property, scalar volume,
                         vector projection);
 
 /* Compute cell variables at (center, time) with optional context: ignored for initial conditions,
@@ -122,7 +122,7 @@ typedef struct {
     long space_order;
     EquationsVariables variables;
     EquationsProperties properties;
-    Timestep *timestep;
+    TimeStep *time_step;
     EquationsBoundary boundary;
     EquationsConvective convective;
     EquationsViscous viscous;
@@ -152,8 +152,8 @@ void equations_create_exact_solution(Equations *eqns, Compute *compute);
 /* Set the spatial order of the reconstruction (1 or 2). */
 void equations_set_space_order(Equations *eqns, long space_order);
 
-/* Set the local timestep function used by `equations_timestep()`. */
-void equations_set_timestep(Equations *eqns, Timestep *timestep);
+/* Set the local time step function used by `equations_time_step()`. */
+void equations_set_time_step(Equations *eqns, TimeStep *time_step);
 
 /* Set the boundary condition factory used by `equations_set_boundary_condition()`. */
 void equations_set_boundary_select(Equations *eqns, BoundarySelect *select);
@@ -196,8 +196,8 @@ void equations_summary(const Equations *eqns);
 /* Restart the equation system and update time and index from the restart state. */
 void equations_restart(const Equations *eqns, scalar *time, long *index);
 
-/* Compute the global stable timestep. */
-scalar equations_timestep(const Equations *eqns, const void *variable_, scalar *step);
+/* Compute the global stable time step. */
+scalar equations_time_step(const Equations *eqns, const void *variable_, scalar *step);
 
 /* Apply boundary conditions to all ghost cells at the specified time. */
 void equations_boundary(const Equations *eqns, void *variable_, scalar time);

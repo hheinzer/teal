@@ -17,7 +17,7 @@ Equations *euler_create(const Mesh *mesh)
     equations_create_properties(eqns, property, &gamma, 1);
 
     equations_set_space_order(eqns, 2);
-    equations_set_timestep(eqns, euler_timestep);
+    equations_set_time_step(eqns, euler_time_step);
     equations_set_boundary_select(eqns, euler_boundary);
     equations_set_convective_select(eqns, euler_convective);
     equations_set_limiter(eqns, "minmod", 0);

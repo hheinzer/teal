@@ -46,6 +46,6 @@ void simulation_summary(const Simulation *sim)
         println("\t krylov dimension : %ld", ctx->krylov_dimension);
     }
 
-    scalar step0 = sim->courant * equations_timestep(sim->eqns, sim->eqns->variables.data, 0);
-    println("\t initial timestep : %g", step0);
+    scalar step0 = sim->courant * equations_time_step(sim->eqns, sim->eqns->variables.data, 0);
+    println("\t initial time step : %g", step0);
 }

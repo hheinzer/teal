@@ -105,7 +105,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     }
 
     equations_boundary(eqns, variable, time);
-    equations_timestep(eqns, variable, step);
+    equations_time_step(eqns, variable, step);
 
     write_variables(dim, name, variable, num, stride, num_cells, group);
 
