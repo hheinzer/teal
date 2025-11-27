@@ -24,11 +24,13 @@ int main(int argc, char **argv)
     equations_set_boundary_condition(eqns, "outlet", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "airfoil", "wall", 0, 0);
     equations_set_initial_state(eqns, "domain", &state);
+    equations_set_space_order(eqns, 1);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_iter(sim, 5000);
-    simulation_set_output_iter(sim, 500);
+    simulation_set_out_iter(sim, 500);
+    simulation_set_advance(sim, "euler", 0);
     simulation_summary(sim);
 
     scalar time = simulation_run(sim);
