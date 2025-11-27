@@ -4,13 +4,13 @@ from argparse import ArgumentParser, BooleanOptionalAction as Boolean
 from pathlib import Path
 import subprocess
 
+import darkdetect
 import h5py
 import matplotlib.pyplot as plt
 from mpi4py import MPI
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import pyvista as pv
-import darkdetect
 
 
 def set_global_theme():
