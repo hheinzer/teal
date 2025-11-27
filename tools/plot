@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument("--clip", action=Boolean, help="Add clip plane")
     parser.add_argument("--crinkle", action=Boolean, help="Crinkle clip")
     parser.add_argument("--line", action=Boolean, help="Plot over line")
+    parser.add_argument("--video", action=Boolean, help="Create a video")
     parser.add_argument("--vmin", type=float, help="Minimum field value")
     parser.add_argument("--vmax", type=float, help="Maximum field value")
     parser.add_argument("--cmap", default="coolwarm", help="Colormap")
@@ -65,7 +66,8 @@ def read_mesh(fname):
 
 
 def prepare_mesh(mesh, args):
-    mesh.set_active_scalars(args.field)
+    if args.field:
+        mesh.set_active_scalars(args.field)
 
     if args.points:
         mesh = mesh.cell_data_to_point_data()
@@ -122,10 +124,13 @@ def plot_line(mesh, args, fname=None):
     fig.tight_layout()
     if fname is None:
         plt.show()
-    else:
+    elif args.video:
         fname = Path(fname).with_suffix(".png")
         fig.savefig(fname, dpi=600, bbox_inches="tight")
-        plt.close()
+    else:
+        fname = Path(fname).with_suffix(".pdf")
+        fig.savefig(fname, dpi=600, bbox_inches="tight")
+    plt.close()
 
 
 def save_screenshot(img, bounds, vmin, vmax, args, fname):
@@ -150,14 +155,18 @@ def save_screenshot(img, bounds, vmin, vmax, args, fname):
     ax.set_ylabel("y-axis")
 
     fig.tight_layout()
-    fname = Path(fname).with_suffix(".png")
-    fig.savefig(fname, dpi=600, bbox_inches="tight")
+    if args.video:
+        fname = Path(fname).with_suffix(".png")
+        fig.savefig(fname, dpi=600, bbox_inches="tight")
+    else:
+        fname = Path(fname).with_suffix(".pdf")
+        fig.savefig(fname, dpi=600, bbox_inches="tight")
     plt.close()
 
 
 def get_data_range(mesh, args):
     if args.field is None:
-        return None
+        return None, None
 
     data = mesh[args.field]
     if data.ndim == 1:
@@ -183,9 +192,10 @@ def plot_field(mesh, args, fname=None):
     if args.explode:
         plotter.disable_ssao()
 
+    vmin, vmax = get_data_range(mesh, args)
     kwargs = dict(
         show_edges=args.edges,
-        clim=get_data_range(mesh, args),
+        clim=(vmin, vmax) if vmin is not None and vmax is not None else None,
         cmap=args.cmap,
         show_scalar_bar=fname is None,
     )
@@ -206,6 +216,37 @@ def plot_field(mesh, args, fname=None):
 
 
 def make_video(args):
+    prefix = "_".join(args.fnames[0].split("_")[:-1])
+    command = [
+        "ffmpeg",
+        "-y",
+        "-framerate",
+        "20",
+        "-i",
+        f"{prefix}_%05d.png",
+        "-pix_fmt",
+        "yuv420p",
+        "-vf",
+        "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+        "-r",
+        "60",
+        f"{prefix}_{args.field}.mp4",
+    ]
+    subprocess.run(command)
+
+
+def make_pdf(args):
+    prefix = "_".join(args.fnames[0].split("_")[:-1])
+    fnames = [str(Path(fname).with_suffix(".pdf")) for fname in args.fnames]
+    command = [
+        "pdfunite",
+        *fnames,
+        f"{prefix}_{args.field}.pdf",
+    ]
+    subprocess.run(command)
+
+
+def plot_frames(args):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -221,23 +262,10 @@ def make_video(args):
 
     comm.Barrier()
     if rank == 0:
-        prefix = "_".join(args.fnames[0].split("_")[:-1])
-        command = [
-            "ffmpeg",
-            "-y",
-            "-framerate",
-            "20",
-            "-i",
-            f"{prefix}_%05d.png",
-            "-pix_fmt",
-            "yuv420p",
-            "-vf",
-            "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-            "-r",
-            "60",
-            f"{prefix}_{args.field}.mp4",
-        ]
-        subprocess.run(command)
+        if args.video:
+            make_video(args)
+        else:
+            make_pdf(args)
 
 
 def main():
@@ -260,7 +288,7 @@ def main():
         return
 
     if args.field:
-        make_video(args)
+        plot_frames(args)
 
 
 if __name__ == "__main__":
