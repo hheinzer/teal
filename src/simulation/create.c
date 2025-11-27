@@ -16,10 +16,10 @@ Simulation *simulation_create(const Equations *eqns, const char *prefix)
     sim->courant = 0.99;  // NOLINT(readability-magic-numbers)
 
     sim->time.max = INFINITY;
-    sim->time.output = INFINITY;
+    sim->time.out = INFINITY;
 
     sim->iter.max = LONG_MAX;
-    sim->iter.output = LONG_MAX;
+    sim->iter.out = LONG_MAX;
 
     RungeKutta ctx = {
         .time_order = eqns->space_order,

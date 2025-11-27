@@ -18,10 +18,10 @@ void simulation_set_max_time(Simulation *sim, scalar time)
     sim->time.max = time;
 }
 
-void simulation_set_output_time(Simulation *sim, scalar time)
+void simulation_set_out_time(Simulation *sim, scalar time)
 {
     assert(sim && time > 0);
-    sim->time.output = time;
+    sim->time.out = time;
 }
 
 void simulation_set_max_iter(Simulation *sim, long iter)
@@ -30,10 +30,10 @@ void simulation_set_max_iter(Simulation *sim, long iter)
     sim->iter.max = iter;
 }
 
-void simulation_set_output_iter(Simulation *sim, long iter)
+void simulation_set_out_iter(Simulation *sim, long iter)
 {
     assert(sim && iter > 0);
-    sim->iter.output = iter;
+    sim->iter.out = iter;
 }
 
 static long component_index(char chr)

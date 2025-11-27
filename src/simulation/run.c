@@ -29,10 +29,10 @@ scalar simulation_run(Simulation *sim)
     scalar courant = sim->courant;
 
     scalar max_time = sim->time.max;
-    scalar out_time = sim->time.output;
+    scalar out_time = sim->time.out;
 
     long max_iter = sim->iter.max;
-    long out_iter = sim->iter.output;
+    long out_iter = sim->iter.out;
 
     const char *term_condition = sim->termination.condition;
     long term_variable = sim->termination.variable;
@@ -93,11 +93,11 @@ scalar simulation_run(Simulation *sim)
             if (prefix) {
                 equations_write(eqns, prefix, time, index++);
             }
-            if (isfinite(sim->time.output)) {
-                out_time = time + sim->time.output;
+            if (isfinite(sim->time.out)) {
+                out_time = time + sim->time.out;
             }
-            if (sim->iter.output < LONG_MAX) {
-                out_iter = iter + sim->iter.output;
+            if (sim->iter.out < LONG_MAX) {
+                out_iter = iter + sim->iter.out;
             }
             println("\t %13ld %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
             wtime_last = wtime_now;

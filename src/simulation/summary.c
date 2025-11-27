@@ -17,15 +17,15 @@ void simulation_summary(const Simulation *sim)
     if (isfinite(sim->time.max)) {
         println("\t max time          : %g", sim->time.max);
     }
-    if (isfinite(sim->time.output)) {
-        println("\t output time       : %g", sim->time.output);
+    if (isfinite(sim->time.out)) {
+        println("\t output time       : %g", sim->time.out);
     }
 
     if (sim->iter.max < LONG_MAX) {
         println("\t max iter          : %ld", sim->iter.max);
     }
-    if (sim->iter.output < LONG_MAX) {
-        println("\t output iter       : %ld", sim->iter.output);
+    if (sim->iter.out < LONG_MAX) {
+        println("\t output iter       : %ld", sim->iter.out);
     }
 
     if (sim->termination.condition) {

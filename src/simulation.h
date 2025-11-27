@@ -7,12 +7,12 @@ typedef scalar Advance(const Equations *eqns, scalar *time, void *residual_, sca
 
 typedef struct {
     scalar max;
-    scalar output;
+    scalar out;
 } SimulationTime;
 
 typedef struct {
     long max;
-    long output;
+    long out;
 } SimulationIter;
 
 typedef struct {
@@ -54,11 +54,11 @@ void simulation_set_courant(Simulation *sim, scalar courant);
 
 void simulation_set_max_time(Simulation *sim, scalar time);
 
-void simulation_set_output_time(Simulation *sim, scalar time);
+void simulation_set_out_time(Simulation *sim, scalar time);
 
 void simulation_set_max_iter(Simulation *sim, long iter);
 
-void simulation_set_output_iter(Simulation *sim, long iter);
+void simulation_set_out_iter(Simulation *sim, long iter);
 
 void simulation_set_termination(Simulation *sim, const char *condition, scalar residual);
 
