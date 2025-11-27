@@ -4,7 +4,7 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    Mesh *mesh = mesh_read("run/ffs/quad.msh");
+    Mesh *mesh = mesh_read("run/ffs/mesh.msh");
     mesh_generate(mesh);
     mesh_summary(mesh);
 
@@ -20,6 +20,7 @@ int main(int argc, char **argv)
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_time(sim, 2);
+    simulation_set_output_time(sim, 0.2);
     simulation_summary(sim);
 
     simulation_run(sim);
