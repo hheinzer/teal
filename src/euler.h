@@ -28,3 +28,7 @@ Equations *euler_create(const Mesh *mesh);
 
 /* Solve the exact Riemann problem for the Euler equations. */
 Euler euler_riemann(const Euler *left, const Euler *right, scalar gamma, scalar location);
+
+/* Compute pressure coefficient distribution and lift/drag coefficients for an airfoil entity. */
+void euler_polar(const Simulation *sim, const char *entity, const Euler *reference, scalar length,
+                 scalar time);
