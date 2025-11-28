@@ -69,7 +69,7 @@ static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, 
         long extra = *num_cells % dims[dim];
         long offset = (coords[dim] * base) + lmin(coords[dim], extra);
         *num_cells = base + (coords[dim] < extra);
-        *min_coord = offset * width;
+        *min_coord = *min_coord + (offset * width);
         *max_coord = *min_coord + (*num_cells * width);
     }
     else {
