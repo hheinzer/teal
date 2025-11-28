@@ -68,14 +68,15 @@ tools used across all modules.
 
 Contributions are welcome!
 
-See [CONTRIBUTING](CONTRIBUTING.md) for guidelines on environment, workflow, and coding style.
-
 If you find a bug or have a feature request, please open an issue. To contribute code:
 
 1. Fork the repository
 2. Create a new branch for your feature or bug fix
 3. Commit your changes and push to your fork
 4. Open a pull request to the main branch
+
+See [contributing](CONTRIBUTING.md) instructions for guidelines on environment, workflow, and coding
+style.
 
 ## Acknowledgments
 
