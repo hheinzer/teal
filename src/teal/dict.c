@@ -21,7 +21,7 @@ Dict *dict_create(long size_key, long size_val)
     return dict;
 }
 
-/* Compute the 64-bit FNV-1a hash for a byte string. */
+// Compute the 64-bit FNV-1a hash for a byte string.
 static uint64_t fnv1a(const void *ptr, long size)
 {
     static const uint64_t basis = 0xcbf29ce484222325;

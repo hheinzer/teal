@@ -9,7 +9,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-/* Factor `sync.size` into a Cartesian grid, biased by global cell counts to balance work. */
+// Factor `sync.size` into a Cartesian grid, biased by global cell counts to balance work.
 static void compute_dims(tuple num_cells, long ndims, int *dims)
 {
     long cells[3] = {lmax(1, num_cells.x), lmax(1, num_cells.y), lmax(1, num_cells.z)};
@@ -57,8 +57,8 @@ static void compute_dims(tuple num_cells, long ndims, int *dims)
     }
 }
 
-/* Split physical bounds and cell counts for this rank's Cartesian slice. If axis is inactive,
- * collapse that axis to 1 cell; otherwise compute the rank's local sub-interval and cells count. */
+// Split physical bounds and cell counts for this rank's Cartesian slice. If axis is inactive,
+// collapse that axis to 1 cell; otherwise compute the rank's local sub-interval and cells count.
 static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, long dim,
                          long ndims, const int *dims, const int *coords)
 {
@@ -80,7 +80,7 @@ static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, 
     }
 }
 
-/* Allocate node coordinates of the local Cartesian grid and count inner nodes. */
+// Allocate node coordinates of the local Cartesian grid and count inner nodes.
 static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, tuple num_cells,
                          tuple num_nodes, const int *coords)
 {
@@ -106,7 +106,7 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
     nodes->coord = coord;
 }
 
-/* Fill local inner nodes lexicographically, then exchange boundary indices with neighbor ranks. */
+// Fill local inner nodes lexicographically, then exchange boundary indices with neighbor ranks.
 static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, const int *coords,
                             const int *neighbor)
 {
@@ -153,7 +153,7 @@ static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, 
     nodes->global = global;
 }
 
-/* Number of cells on a given side of the Cartesian block. */
+// Number of cells on a given side of the Cartesian block.
 static long num_cells_side(tuple num_cells, long idx)
 {
     switch (idx / 2) {
@@ -164,13 +164,13 @@ static long num_cells_side(tuple num_cells, long idx)
     }
 }
 
-/* Whether this side lies on the global domain boundary. */
+// Whether this side lies on the global domain boundary.
 static bool is_edge_side(const int *dims, const int *coords, long idx)
 {
     return (idx % 2 == 0) ? (coords[idx / 2] == 0) : (coords[idx / 2] == dims[idx / 2] - 1);
 }
 
-/* Build cell-to-node connectivity for inner, ghost, periodic, and neighbor cells. */
+// Build cell-to-node connectivity for inner, ghost, periodic, and neighbor cells.
 static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, long ndims,
                          const int *dims, const int *coords, const int *neighbor)
 {
@@ -273,7 +273,7 @@ static void create_cells(MeshCells *cells, tuple num_cells, tuple num_nodes, lon
     assert(cells->node.idx);
 }
 
-/* Build node reorder map to [inner, neighbor] for the current rank. */
+// Build node reorder map to [inner, neighbor] for the current rank.
 static void compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int *coords, long *map)
 {
     long num = 0;
@@ -297,7 +297,7 @@ static void compute_node_map(const MeshNodes *nodes, tuple num_nodes, const int 
     assert(num_neighbors == num - num_inner);
 }
 
-/* Build cell reorder map to [inner, ghost, periodic, neighbor] for the current rank. */
+// Build cell reorder map to [inner, ghost, periodic, neighbor] for the current rank.
 static void compute_cell_map(const MeshCells *cells, tuple num_cells, long ndims, const int *dims,
                              const int *coords, const int *neighbor, long *map)
 {
@@ -330,7 +330,7 @@ static void compute_cell_map(const MeshCells *cells, tuple num_cells, long ndims
     assert(num_neighbors == num - num_inner - num_ghost - num_periodic);
 }
 
-/* Reorder nodes then cells; fix connectivity using in-place maps. */
+// Reorder nodes then cells; fix connectivity using in-place maps.
 static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple num_nodes,
                     long ndims, const int *dims, const int *coords, const int *neighbor)
 {
@@ -348,7 +348,7 @@ static void reorder(MeshNodes *nodes, MeshCells *cells, tuple num_cells, tuple n
     arena_load(save);
 }
 
-/* Translation vector for a periodic copy on side idx. */
+// Translation vector for a periodic copy on side idx.
 static vector compute_translation(vector del_coord, long idx)
 {
     scalar sign = (idx % 2) ? -1 : +1;
@@ -360,7 +360,7 @@ static vector compute_translation(vector del_coord, long idx)
     }
 }
 
-/* Create entities in the order [inner, ghost, periodic]. */
+// Create entities in the order [inner, ghost, periodic].
 static void create_entities(MeshEntities *entities, tuple num_cells, vector del_coord, long ndims,
                             const int *dims, const int *periods, const int *coords,
                             const int *neighbor)
@@ -409,7 +409,7 @@ static void create_entities(MeshEntities *entities, tuple num_cells, vector del_
     entities->translation = translation;
 }
 
-/* Build neighbor metadata and send/recv graphs for MPI ranks. */
+// Build neighbor metadata and send/recv graphs for MPI ranks.
 static void create_neighbors(const MeshCells *cells, MeshNeighbors *neighbors, tuple num_cells,
                              long ndims, const int *dims, const int *coords, const int *neighbor)
 {

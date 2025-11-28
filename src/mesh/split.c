@@ -8,7 +8,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-/* Find entity index by name; return -1 if missing. */
+// Find entity index by name; return -1 if missing.
 static long find_entity(const MeshEntities *entities, const char *entity)
 {
     for (long i = 0; i < entities->num; i++) {
@@ -19,7 +19,7 @@ static long find_entity(const MeshEntities *entities, const char *entity)
     error("invalid entity (%s)", entity);
 }
 
-/* Grow entities arrays by one slot. */
+// Grow entities arrays by one slot.
 static void grow_entities(MeshEntities *entities, long idx)
 {
     if (idx < entities->num_inner) {
@@ -42,7 +42,7 @@ static void grow_entities(MeshEntities *entities, long idx)
         memcpy(translation, entities->translation, (entities->num - 1) * sizeof(*translation));
 }
 
-/* Reorder cells based on which side of the splitting plane they are on. */
+// Reorder cells based on which side of the splitting plane they are on.
 static long reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities *entities,
                     vector root, vector normal, long idx)
 {
@@ -79,7 +79,7 @@ static long reorder(const MeshNodes *nodes, MeshCells *cells, const MeshEntities
     return beg + off;
 }
 
-/* Split entity metadata at `idx` into two consecutive entities. */
+// Split entity metadata at `idx` into two consecutive entities.
 static void split_entities(MeshEntities *entities, long idx, long cell_off)
 {
     for (long i = entities->num - 1; i > idx; i--) {

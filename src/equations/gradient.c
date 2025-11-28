@@ -4,7 +4,7 @@
 #include "sync.h"
 #include "teal/arena.h"
 
-/* Accumulate a weighted difference into a gradient component. */
+// Accumulate a weighted difference into a gradient component.
 static void increment(vector *gradient, scalar diff, vector weight)
 {
     gradient->x += diff * weight.x;

@@ -7,7 +7,7 @@
 #include "teal/h5io.h"
 #include "teal/sync.h"
 
-/* Write global field data (properties and time) to the VTKHDF file. */
+// Write global field data (properties and time) to the VTKHDF file.
 static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
 {
     hid_t group = h5io_group_create("FieldData", loc);
@@ -27,7 +27,7 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
     h5io_group_close(group);
 }
 
-/* Write a strided set of variables, splitting by component count. */
+// Write a strided set of variables, splitting by component count.
 static void write_variables(const long *dim, const Name *name, const void *variable_, long num,
                             long stride, long num_cells, hid_t loc)
 {
@@ -46,7 +46,7 @@ static void write_variables(const long *dim, const Name *name, const void *varia
     }
 }
 
-/* Compute and write user variables at the given time. */
+// Compute and write user variables at the given time.
 static void write_user_variables(const Equations *eqns, scalar time, long num_cells, hid_t loc)
 {
     Arena save = arena_save();
@@ -83,7 +83,7 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
     arena_load(save);
 }
 
-/* Write primary variables, time step, and optional user fields. */
+// Write primary variables, time step, and optional user fields.
 static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 {
     Arena save = arena_save();

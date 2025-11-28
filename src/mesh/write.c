@@ -6,7 +6,7 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-/* Write node counts and coordinates. */
+// Write node counts and coordinates.
 static void write_nodes(const MeshNodes *nodes, hid_t loc)
 {
     hid_t group = h5io_group_create("nodes", loc);
@@ -24,7 +24,7 @@ static void write_nodes(const MeshNodes *nodes, hid_t loc)
     h5io_group_close(group);
 }
 
-/* Write cell-to-node CSR graph with global node indices. */
+// Write cell-to-node CSR graph with global node indices.
 static void write_node_graph(Graph node, const long *global, long num_cells, hid_t loc)
 {
     Arena save = arena_save();
@@ -52,7 +52,7 @@ static void write_node_graph(Graph node, const long *global, long num_cells, hid
     arena_load(save);
 }
 
-/* Write cells, connectivity, metadata, and geometry. */
+// Write cells, connectivity, metadata, and geometry.
 static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
                         const MeshEntities *entities, hid_t loc)
 {
@@ -123,7 +123,7 @@ static void write_cells(const MeshNodes *nodes, const MeshCells *cells,
     arena_load(save);
 }
 
-/* Write entity counts and names. */
+// Write entity counts and names.
 static void write_entities(const MeshEntities *entities, hid_t loc)
 {
     hid_t group = h5io_group_create("entities", loc);

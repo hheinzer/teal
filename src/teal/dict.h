@@ -18,11 +18,11 @@ struct DictItem {
     DictItem *next;
 };
 
-/* Returns empty dictionary; if `size_val == 0` it behaves as a set (values ignored). */
+// Returns empty dictionary; if `size_val == 0` it behaves as a set (values ignored).
 Dict *dict_create(long size_key, long size_val);
 
-/* Returns pointer to stored value if `key` is already present; else inserts and returns `0`. */
+// Returns pointer to stored value if `key` is already present; else inserts and returns `0`.
 void *dict_insert(Dict *self, const void *key, const void *val);
 
-/* Returns pointer to stored value if `key` is present or `0` if absent. */
+// Returns pointer to stored value if `key` is present or `0` if absent.
 void *dict_lookup(const Dict *self, const void *key);

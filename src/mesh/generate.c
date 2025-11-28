@@ -12,7 +12,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-/* Build dual (cell->cell) graph from cell->node with METIS; drop outer-outer edges. */
+// Build dual (cell->cell) graph from cell->node with METIS; drop outer-outer edges.
 static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
@@ -67,7 +67,7 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
     cells->cell.idx = arena_smuggle(idx, cells->cell.off[cells->num], sizeof(*idx));
 }
 
-/* Pick the next unmapped inner cell with the smallest geometric center. */
+// Pick the next unmapped inner cell with the smallest geometric center.
 static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const long *map)
 {
     long seed = -1;
@@ -90,7 +90,7 @@ static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const
     return seed;
 }
 
-/* BFS-reorder inner cells [0,num_inner); remap cell->cell accordingly. */
+// BFS-reorder inner cells [0,num_inner); remap cell->cell accordingly.
 static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
@@ -127,7 +127,7 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
     arena_load(save);
 }
 
-/* Collect new global node indices for outer nodes from owning ranks. */
+// Collect new global node indices for outer nodes from owning ranks.
 static void collect_global(long *global, const long *map, long num_inner, long num)
 {
     Arena save = arena_save();
@@ -201,7 +201,7 @@ static void collect_global(long *global, const long *map, long num_inner, long n
     arena_load(save);
 }
 
-/* Reorder nodes so inner nodes used by cells come first, then outer nodes. */
+// Reorder nodes so inner nodes used by cells come first, then outer nodes.
 static void improve_node_ordering(MeshNodes *nodes, MeshCells *cells)
 {
     Arena save = arena_save();
@@ -246,7 +246,7 @@ static void improve_node_ordering(MeshNodes *nodes, MeshCells *cells)
     arena_load(save);
 }
 
-/* Fill `node` with node indices common to cells left and right and return the count. */
+// Fill `node` with node indices common to cells left and right and return the count.
 static long compute_intersection(long *node, const MeshCells *cells, long left, long right)
 {
     long num = 0;
@@ -261,7 +261,7 @@ static long compute_intersection(long *node, const MeshCells *cells, long left, 
     return num;
 }
 
-/* Build faces: one per unique adjacent cell pair; fill face->node and face->cell. */
+// Build faces: one per unique adjacent cell pair; fill face->node and face->cell.
 static void create_faces(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
@@ -324,7 +324,7 @@ static void create_faces(const MeshCells *cells, MeshFaces *faces)
     faces->cell = arena_smuggle(cell, num, sizeof(*cell));
 }
 
-/* Reorder faces: inner first (by left), then outer (by right). */
+// Reorder faces: inner first (by left), then outer (by right).
 static void reorder(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();
@@ -343,7 +343,7 @@ static void reorder(const MeshCells *cells, MeshFaces *faces)
     arena_load(save);
 }
 
-/* Compute per-entity face offsets: inner faces first, then one face per outer cell by entity. */
+// Compute per-entity face offsets: inner faces first, then one face per outer cell by entity.
 static void compute_face_entities(const MeshFaces *faces, MeshEntities *entities)
 {
     long *face_off = arena_malloc(entities->num + 1, sizeof(*face_off));
@@ -357,7 +357,7 @@ static void compute_face_entities(const MeshFaces *faces, MeshEntities *entities
     entities->face_off = face_off;
 }
 
-/* Build send lists: match neighbors' requested receive centers to local cells. */
+// Build send lists: match neighbors' requested receive centers to local cells.
 static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
                                const MeshEntities *entities, MeshNeighbors *neighbors)
 {
@@ -458,7 +458,7 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     neighbors->send.idx = arena_smuggle(idx, tot_send, sizeof(*idx));
 }
 
-/* Ensure quad vertex order yields a valid planar quad; triangles are always valid. */
+// Ensure quad vertex order yields a valid planar quad; triangles are always valid.
 static void correct_coord_order(vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -480,7 +480,7 @@ static void correct_coord_order(vector *coord, long num_nodes)
     }
 }
 
-/* Area of a triangular or quadrilateral face. */
+// Area of a triangular or quadrilateral face.
 static scalar compute_face_area(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -498,7 +498,7 @@ static scalar compute_face_area(const vector *coord, long num_nodes)
     }
 }
 
-/* Weighted average of vectors with scalar weights. */
+// Weighted average of vectors with scalar weights.
 static vector weighted_average(const vector *arr, const scalar *wgt, long num)
 {
     vector wsum = {0};
@@ -508,7 +508,7 @@ static vector weighted_average(const vector *arr, const scalar *wgt, long num)
     return vector_div(wsum, array_fsum(wgt, num));
 }
 
-/* Face centroid for triangles/quads (quad via area-weighted triangles). */
+// Face centroid for triangles/quads (quad via area-weighted triangles).
 static vector compute_face_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -524,7 +524,7 @@ static vector compute_face_center(const vector *coord, long num_nodes)
     }
 }
 
-/* Unit normal for triangles/quads. */
+// Unit normal for triangles/quads.
 static vector compute_face_normal(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -545,7 +545,7 @@ static vector compute_face_normal(const vector *coord, long num_nodes)
     }
 }
 
-/* Orthonormal basis on a face aligned with its normal. */
+// Orthonormal basis on a face aligned with its normal.
 static Basis compute_face_basis(const vector *coord, long num_nodes)
 {
     Basis basis;
@@ -563,7 +563,7 @@ static Basis compute_face_basis(const vector *coord, long num_nodes)
     return basis;
 }
 
-/* Flip the face normal so it points from the left cell to the right cell if necessary. */
+// Flip the face normal so it points from the left cell to the right cell if necessary.
 static void correct_face_basis(const MeshNodes *nodes, const MeshCells *cells, long left,
                                vector center, Basis *basis)
 {
@@ -603,7 +603,7 @@ static void compute_face_geometry(const MeshNodes *nodes, const MeshCells *cells
     faces->basis = basis;
 }
 
-/* Volume of supported cell types by tetrahedral decomposition. */
+// Volume of supported cell types by tetrahedral decomposition.
 static scalar compute_cell_volume(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -632,7 +632,7 @@ static scalar compute_cell_volume(const vector *coord, long num_nodes)
     }
 }
 
-/* Cell centroid, volume-weighted for mixed splits. */
+// Cell centroid, volume-weighted for mixed splits.
 static vector compute_cell_center(const vector *coord, long num_nodes)
 {
     switch (num_nodes) {
@@ -662,7 +662,7 @@ static vector compute_cell_center(const vector *coord, long num_nodes)
     }
 }
 
-/* Exchange centers for outer cells so neighbor/periodic copies receive an interior center. */
+// Exchange centers for outer cells so neighbor/periodic copies receive an interior center.
 static void collect_centers(const MeshNeighbors *neighbors, vector *center)
 {
     Arena save = arena_save();
@@ -693,7 +693,7 @@ static void collect_centers(const MeshNeighbors *neighbors, vector *center)
     arena_load(save);
 }
 
-/* Compute cell volumes, centers, and axis-aligned projections. */
+// Compute cell volumes, centers, and axis-aligned projections.
 static void compute_cell_geometry(const MeshNodes *nodes, MeshCells *cells, const MeshFaces *faces,
                                   const MeshEntities *entities, const MeshNeighbors *neighbors)
 {
@@ -762,7 +762,7 @@ void compute_cell_offsets(const MeshNodes *nodes, MeshCells *cells)
     cells->offset = offset;
 }
 
-/* Least-squares weights for gradient reconstruction on faces. */
+// Least-squares weights for gradient reconstruction on faces.
 static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 {
     Arena save = arena_save();

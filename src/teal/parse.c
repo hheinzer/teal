@@ -69,7 +69,7 @@ void parse_set_offset(ParseFile file, long offset)
     }
 }
 
-/* Read next ASCII token from stream; unquote string it the `type == STR` and quotes are used. */
+// Read next ASCII token from stream; unquote string it the `type == STR` and quotes are used.
 static long next(ParseType type, char *token, long size, FILE *stream)
 {
     long chr;
@@ -104,7 +104,7 @@ static long next(ParseType type, char *token, long size, FILE *stream)
     return len;
 }
 
-/* Convert token string into to the data type at index `idx`. */
+// Convert token string into to the data type at index `idx`.
 static void token_to_data(ParseType type, void *data, long idx, const char *token)
 {
     errno = 0;
@@ -148,7 +148,7 @@ void parse_ascii(ParseType type, void *data, long num, ParseFile file)
     MPI_Bcast(data, num, datatype_of[type], 0, sync.comm);
 }
 
-/* Perform byte swap for data based on the item size. */
+// Perform byte swap for data based on the item size.
 static void swap_data(void *data, long num, long size)
 {
     switch (size) {

@@ -1,6 +1,6 @@
-/*
- * Toro 1999, sec. 4.9
- */
+//
+// Toro 1999, sec. 4.9
+//
 #include <assert.h>
 #include <math.h>
 
@@ -11,7 +11,7 @@ static const scalar pvrs_threshold = 2;
 static const scalar prel_tolerance = 1e-6;
 static const long max_newton = 20;
 
-/* Return a robust starting value for the Newton solve of the star pressure. */
+// Return a robust starting value for the Newton solve of the star pressure.
 static scalar guess_pressure(const Euler *left, const Euler *right, scalar left_c, scalar right_c,
                              const scalar *gam)
 {
@@ -42,7 +42,7 @@ static scalar guess_pressure(const Euler *left, const Euler *right, scalar left_
     return (scale_l * left->pressure + scale_r * right->pressure + diff) / (scale_l + scale_r);
 }
 
-/* Compute wave curve f_k(p) and derivative f'_k(p) for a single state. */
+// Compute wave curve f_k(p) and derivative f'_k(p) for a single state.
 static void prefun(scalar *state_f, scalar *state_df, scalar pold, const Euler *state,
                    scalar state_c, const scalar *gam)
 {
@@ -60,7 +60,7 @@ static void prefun(scalar *state_f, scalar *state_df, scalar pold, const Euler *
     }
 }
 
-/* Newton iteration to solve for (p*, u*) satisfying f_L(p*) + f_R(p*) + (u_R - u_L) = 0. */
+// Newton iteration to solve for (p*, u*) satisfying f_L(p*) + f_R(p*) + (u_R - u_L) = 0.
 static void solve(scalar *star_u, scalar *star_p, const Euler *left, const Euler *right,
                   scalar left_c, scalar right_c, const scalar *gam)
 {
@@ -86,7 +86,7 @@ static void solve(scalar *star_u, scalar *star_p, const Euler *left, const Euler
     error("newton solver did not converge (%ld)", max_newton);
 }
 
-/* Return Euler state at the query location loc = x/t. */
+// Return Euler state at the query location loc = x/t.
 static Euler sample(const Euler *left, const Euler *right, scalar left_c, scalar right_c,
                     scalar star_u, scalar star_p, const scalar *gam, scalar location)
 {

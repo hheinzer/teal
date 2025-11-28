@@ -1,37 +1,35 @@
-/*
- * The mesh is composed of nodes, cells, faces, entities, and neighbor communication meta data.
- *
- * Mesh components are ordered as follows:
- * - Nodes: inner nodes first, then neighbor nodes
- * - Cells: inner cells, then ghost cells (for boundary conditions), then periodic cells, then
- *   neighbor cells (used for communication only)
- * - Faces: inner faces, then ghost faces, then neighbor faces
- * - Entities: inner entities (subsets of the interior mesh), then ghost entities, then periodic
- *   entities
- * - Neighbors: periodic neighbors first, then MPI neighbors
- * This ordering guarantees deterministic global indices and enables slicing by category.
- *
- * Connectivity is stored in compressed sparse row (CSR) form:
- * - For a graph with N rows, off has length N+1, idx has length off[N]
- * - Row r spans idx[ off[r] ... off[r+1]-1 ]
- *
- * Entities represent groups of cells/faces. Each entity has a name, a contiguous range of
- * cells/faces, and (for periodic boundaries) a translation. Face ranges are only defined for
- * non-inner entities, while inner entities always refer to subsets of interior mesh (useful for
- * specifying initial conditions).
- *
- * Neighbor meta data describes MPI ranks adjacent to the own rank and contains send/recv graphs
- * that define which cells are exchanged during communication.
- *
- * All geometry information is computed by `mesh_generate()` after mesh creation or reading. The
- * mesh may be modified before, but not after, as derived data could be invalidated.
- *
- * Supported cell types are:
- * - 2D: triangle (3 nodes), quadrangle (4 nodes)
- * - 3D: tetrahedron (4 nodes), pyramid (5 nodes), wedge (6 nodes), hexahedron (8 nodes)
- *
- * Periodic boundaries must be representable through translation; rotations is not supported.
- */
+// The mesh is composed of nodes, cells, faces, entities, and neighbor communication meta data.
+//
+// Mesh components are ordered as follows:
+// - Nodes: inner nodes first, then neighbor nodes
+// - Cells: inner cells, then ghost cells (for boundary conditions), then periodic cells, then
+//   neighbor cells (used for communication only)
+// - Faces: inner faces, then ghost faces, then neighbor faces
+// - Entities: inner entities (subsets of the interior mesh), then ghost entities, then periodic
+//   entities
+// - Neighbors: periodic neighbors first, then MPI neighbors
+// This ordering guarantees deterministic global indices and enables slicing by category.
+//
+// Connectivity is stored in compressed sparse row (CSR) form:
+// - For a graph with N rows, off has length N+1, idx has length off[N]
+// - Row r spans idx[ off[r] ... off[r+1]-1 ]
+//
+// Entities represent groups of cells/faces. Each entity has a name, a contiguous range of
+// cells/faces, and (for periodic boundaries) a translation. Face ranges are only defined for
+// non-inner entities, while inner entities always refer to subsets of interior mesh (useful for
+// specifying initial conditions).
+//
+// Neighbor meta data describes MPI ranks adjacent to the own rank and contains send/recv graphs
+// that define which cells are exchanged during communication.
+//
+// All geometry information is computed by `mesh_generate()` after mesh creation or reading. The
+// mesh may be modified before, but not after, as derived data could be invalidated.
+//
+// Supported cell types are:
+// - 2D: triangle (3 nodes), quadrangle (4 nodes)
+// - 3D: tetrahedron (4 nodes), pyramid (5 nodes), wedge (6 nodes), hexahedron (8 nodes)
+//
+// Periodic boundaries must be representable through translation; rotations is not supported.
 #pragma once
 
 #include "teal.h"
@@ -117,23 +115,23 @@ typedef struct {
     MeshNeighbors neighbors;
 } Mesh;
 
-/* Create a distributed Cartesian mesh with optional per-axis periodicity. */
+// Create a distributed Cartesian mesh with optional per-axis periodicity.
 Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const bool *periodic);
 
-/* Read a mesh from disk. */
+// Read a mesh from disk.
 Mesh *mesh_read(const char *fname);
 
-/* Split an entity's cells by a plane through `root` with normal `normal`. */
+// Split an entity's cells by a plane through `root` with normal `normal`.
 void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 
-/* Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights. */
+// Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights.
 void mesh_generate(Mesh *mesh);
 
-/* Check the mesh integrety and report violations. */
+// Check the mesh integrety and report violations.
 void mesh_check(const Mesh *mesh);
 
-/* Print a global mesh summary. */
+// Print a global mesh summary.
 void mesh_summary(const Mesh *mesh);
 
-/* Create HDF5 file `<prefix>_mesh.h5` and write nodes, cells, and entities groups. */
+// Create HDF5 file `<prefix>_mesh.h5` and write nodes, cells, and entities groups.
 void mesh_write(const Mesh *mesh, const char *prefix);

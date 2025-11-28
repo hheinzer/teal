@@ -10,7 +10,7 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-/* Read the $MeshFormat section and extract mode, word size, and endianness. */
+// Read the $MeshFormat section and extract mode, word size, and endianness.
 static void read_format(double *version, ParseMode *mode, ParseType *SIZE, bool *swap,
                         ParseFile file)
 {
@@ -49,7 +49,7 @@ typedef struct {
     Physical *physical;
 } Physicals;
 
-/* Read physical names and tags. */
+// Read physical names and tags.
 static void read_physicals(Physicals *physicals, ParseFile file)
 {
     char line[128];
@@ -81,7 +81,7 @@ typedef struct {
     int32_t *physical_tag;
 } Point;
 
-/* Read all $Nodes entries with physical tags. */
+// Read all $Nodes entries with physical tags.
 static Point *read_points(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Point *point = arena_malloc(num, sizeof(*point));
@@ -105,7 +105,7 @@ typedef struct {
     int32_t *point_tag;
 } Curve;
 
-/* Read $Curves with bounding points and physical tags. */
+// Read $Curves with bounding points and physical tags.
 static Curve *read_curves(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Curve *curve = arena_malloc(num, sizeof(*curve));
@@ -133,7 +133,7 @@ typedef struct {
     int32_t *curve_tag;
 } Surface;
 
-/* Read $Surfaces with physical tags. */
+// Read $Surfaces with physical tags.
 static Surface *read_surfaces(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Surface *surface = arena_malloc(num, sizeof(*surface));
@@ -161,7 +161,7 @@ typedef struct {
     int32_t *surface_tag;
 } Volume;
 
-/* Read $Volumes with physical tags. */
+// Read $Volumes with physical tags.
 static Volume *read_volumes(ParseMode mode, ParseType SIZE, long num, bool swap, ParseFile file)
 {
     Volume *volume = arena_malloc(num, sizeof(*volume));
@@ -191,7 +191,7 @@ typedef struct {
     Volume *volume;
 } Entities;
 
-/* Read the $Entities section aggregating points, curves, surfaces, and volumes. */
+// Read the $Entities section aggregating points, curves, surfaces, and volumes.
 static void read_entities(Entities *entities, ParseMode mode, ParseType SIZE, bool swap,
                           ParseFile file)
 {
@@ -234,7 +234,7 @@ typedef struct {
     double *coord;
 } NodeBlock;
 
-/* Read a single block inside $Nodes and fill contiguous tags/coords. */
+// Read a single block inside $Nodes and fill contiguous tags/coords.
 static long read_node_block(NodeBlock *block, long beg, long end, long off, ParseMode mode,
                             ParseType SIZE, bool swap, ParseFile file)
 {
@@ -283,7 +283,7 @@ typedef struct {
     NodeBlock *block;
 } Nodes;
 
-/* Read all node blocks from $Nodes. */
+// Read all node blocks from $Nodes.
 static void read_nodes(Nodes *nodes, ParseMode mode, ParseType SIZE, bool swap, ParseFile file)
 {
     char line[128];
@@ -323,7 +323,7 @@ typedef struct {
     SizePtr node_tag;
 } ElementBlock;
 
-/* Number of node tags per element type (for parsing). */
+// Number of node tags per element type (for parsing).
 static long num_node_tags(long element_type)
 {
     switch (element_type) {
@@ -337,7 +337,7 @@ static long num_node_tags(long element_type)
     }
 }
 
-/* Read a single block inside $Elements and gather element connectivity. */
+// Read a single block inside $Elements and gather element connectivity.
 static long read_element_block(ElementBlock *block, long beg, long end, long off, ParseMode mode,
                                ParseType SIZE, bool swap, ParseFile file)
 {
@@ -394,7 +394,7 @@ typedef struct {
     ElementBlock *block;
 } Elements;
 
-/* Read all element blocks from $Elements. */
+// Read all element blocks from $Elements.
 static void read_elements(Elements *elements, ParseMode mode, ParseType SIZE, bool swap,
                           ParseFile file)
 {
@@ -433,7 +433,7 @@ typedef struct {
     Elements elements;
 } Gmsh;
 
-/* Populate MeshNodes from parsed Gmsh nodes. */
+// Populate MeshNodes from parsed Gmsh nodes.
 static void create_nodes(MeshNodes *nodes, ParseType SIZE, const Gmsh *gmsh)
 {
     long num_blocks = parse_data_to_long(SIZE, &gmsh->nodes.num_blocks, 0);
@@ -467,7 +467,7 @@ typedef struct {
     long idx;
 } Map;
 
-/* Sort helper for mapping tags to indices. */
+// Sort helper for mapping tags to indices.
 static int cmp_map(const void *lhs_, const void *rhs_)
 {
     const Map *lhs = lhs_;
@@ -475,7 +475,7 @@ static int cmp_map(const void *lhs_, const void *rhs_)
     return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
-/* Replace gmsh node tags in elements with local node indices. */
+// Replace gmsh node tags in elements with local node indices.
 static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cells, ParseType SIZE,
                                          const Gmsh *gmsh)
 {
@@ -534,7 +534,7 @@ static void convert_node_tags_to_indices(const MeshNodes *nodes, MeshCells *cell
     arena_load(save);
 }
 
-/* Populate MeshCells from gmsh elements, partitioning inner/outer. */
+// Populate MeshCells from gmsh elements, partitioning inner/outer.
 static void create_cells(const MeshNodes *nodes, MeshCells *cells, ParseType SIZE, const Gmsh *gmsh)
 {
     long num_blocks = parse_data_to_long(SIZE, &gmsh->elements.num_blocks, 0);
@@ -579,7 +579,7 @@ static void create_cells(const MeshNodes *nodes, MeshCells *cells, ParseType SIZ
     convert_node_tags_to_indices(nodes, cells, SIZE, gmsh);
 }
 
-/* Sort physicals lexicographically by name then tag. */
+// Sort physicals lexicographically by name then tag.
 static int cmp_physical(const void *lhs_, const void *rhs_)
 {
     const Physical *lhs = lhs_;
@@ -595,7 +595,7 @@ static int cmp_physical(const void *lhs_, const void *rhs_)
     return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
-/* Build MeshEntities from gmsh physical groups. */
+// Build MeshEntities from gmsh physical groups.
 static void create_entities(MeshEntities *entities, const Gmsh *gmsh)
 {
     Arena save = arena_save();
@@ -630,7 +630,7 @@ static void create_entities(MeshEntities *entities, const Gmsh *gmsh)
     entities->name = name;
 }
 
-/* Sort surfaces by physical tag then by element tag. */
+// Sort surfaces by physical tag then by element tag.
 static int cmp_surface(const void *lhs_, const void *rhs_)
 {
     const Surface *lhs = lhs_;
@@ -638,7 +638,7 @@ static int cmp_surface(const void *lhs_, const void *rhs_)
     return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
-/* Sort volumes by physical tag then by element tag. */
+// Sort volumes by physical tag then by element tag.
 static int cmp_volume(const void *lhs_, const void *rhs_)
 {
     const Volume *lhs = lhs_;
@@ -646,7 +646,7 @@ static int cmp_volume(const void *lhs_, const void *rhs_)
     return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
-/* Map each cell to its owning entity based on physical tags. */
+// Map each cell to its owning entity based on physical tags.
 static void compute_entity_map(long *entity, const MeshCells *cells, ParseType SIZE,
                                const Gmsh *gmsh)
 {
@@ -706,7 +706,7 @@ static void compute_entity_map(long *entity, const MeshCells *cells, ParseType S
     arena_load(save);
 }
 
-/* Reorder entities and cells to match inner/ghost/periodic layout. */
+// Reorder entities and cells to match inner/ghost/periodic layout.
 static void reorder(MeshCells *cells, MeshEntities *entities, ParseType SIZE, const Gmsh *gmsh)
 {
     Arena save = arena_save();

@@ -12,7 +12,7 @@ scalar array_fsum(const scalar *arr, long num);
 
 void array_unique(long *arr, long *num);
 
-/* Return index of first `arr[i] > val` in sorted array; if beyond bounds return `0` or `num`. */
+// Return index of first `arr[i] > val` in sorted array; if beyond bounds return `0` or `num`.
 long array_digitize(const long *arr, long val, long num);
 
 scalar array_dot(const scalar *lhs, const scalar *rhs, long num);
