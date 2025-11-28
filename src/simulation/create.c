@@ -21,11 +21,7 @@ Simulation *simulation_create(const Equations *eqns, const char *prefix)
     sim->iter.max = LONG_MAX;
     sim->iter.out = LONG_MAX;
 
-    RungeKutta ctx = {
-        .time_order = eqns->space_order,
-        .num_stages = eqns->space_order + 1,
-    };
-    simulation_set_advance(sim, "lserk", &ctx);
+    simulation_set_advance(sim, (eqns->space_order == 1) ? "euler" : "lserk", 0);
 
     return sim;
 }
