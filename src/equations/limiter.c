@@ -18,10 +18,6 @@ void vanleer(vector *gradient, scalar variable, scalar minimum, scalar maximum, 
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = (2 * ratio) / (1 + ratio);
         psi = fmin(psi, phi);
     }
@@ -40,10 +36,6 @@ void vanalbada1(vector *gradient, scalar variable, scalar minimum, scalar maximu
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = (sq(ratio) + ratio) / (sq(ratio) + 1);
         psi = fmin(psi, phi);
     }
@@ -62,10 +54,6 @@ void vanalbada2(vector *gradient, scalar variable, scalar minimum, scalar maximu
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = (2 * ratio) / (sq(ratio) + 1);
         psi = fmin(psi, phi);
     }
@@ -84,10 +72,6 @@ void mc(vector *gradient, scalar variable, scalar minimum, scalar maximum, scala
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = fmin(fmin(2 * ratio, (1 + ratio) / 2), 2);
         psi = fmin(psi, phi);
     }
@@ -106,10 +90,6 @@ void koren(vector *gradient, scalar variable, scalar minimum, scalar maximum, sc
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = fmin(fmin(2 * ratio, (1 + 2 * ratio) / 3), 2);
         psi = fmin(psi, phi);
     }
@@ -128,10 +108,6 @@ void minmod(vector *gradient, scalar variable, scalar minimum, scalar maximum, s
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = fmin(1, ratio);
         psi = fmin(psi, phi);
     }
@@ -150,10 +126,6 @@ void superbee(vector *gradient, scalar variable, scalar minimum, scalar maximum,
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar phi = fmax(fmin(2 * ratio, 1), fmin(ratio, 2));
         psi = fmin(psi, phi);
     }
@@ -170,11 +142,6 @@ void venkatakrishnan(vector *gradient, scalar variable, scalar minimum, scalar m
             continue;
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
-        scalar ratio = delta1 / delta2;
-        if (ratio <= 0) {
-            psi = 0;
-            break;
-        }
         scalar numerator = ((sq(delta1) + parameter) * delta2) + (2 * sq(delta2) * delta1);
         scalar denominator = sq(delta1) + (2 * sq(delta2)) + (delta1 * delta2) + parameter;
         psi = fmin(psi, numerator / denominator / delta2);
