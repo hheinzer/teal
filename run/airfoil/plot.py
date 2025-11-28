@@ -1,5 +1,3 @@
-#!/bin/python
-
 from argparse import ArgumentParser
 
 import h5py
