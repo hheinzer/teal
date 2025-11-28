@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python3
 
 from argparse import ArgumentParser, BooleanOptionalAction as Boolean
 from pathlib import Path
@@ -204,12 +204,11 @@ def plot_field(mesh, args, fname=None):
     else:
         plotter.add_mesh(mesh, **kwargs)
 
-    plotter.view_xy()
     if fname is None:
         plotter.show_bounds(xtitle="x-axis", ytitle="y-axis", ztitle="z-axis")
         plotter.show()
     else:
-        plotter.camera.tight()
+        plotter.camera.tight(view="xy")
         img = plotter.screenshot(None, transparent_background=True, return_img=True)
         plotter.close()
         save_screenshot(img, mesh.bounds, vmin, vmax, args, fname)
