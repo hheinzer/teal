@@ -68,6 +68,8 @@ tools used across all modules.
 
 Contributions are welcome!
 
+See [CONTRIBUTING](CONTRIBUTING.md) for guidelines on environment, workflow, and coding style.
+
 If you find a bug or have a feature request, please open an issue. To contribute code:
 
 1. Fork the repository
