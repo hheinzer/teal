@@ -1,4 +1,4 @@
-![teal](img/teal.svg)
+![](img/teal.svg)
 
 Teal is a general-purpose computational fluid dynamics library for solving hyperbolic-parabolic
 conservation laws on 3D unstructured meshes using the finite-volume method. It includes a simple
@@ -39,10 +39,16 @@ The best way to get started with teal is by running test cases in [run](run/). F
 shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube):
 
 ```bash
-mpirun -n 4 bin/riemann/sod
+mpirun -n 2 bin/riemann/sod
 ```
 
-The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition,"
+Results can be inspected directly in ParaView or with the included plot script:
+
+```bash
+mpirun -n 2 tools/plot bin/riemann/sod_*.vtkhdf -f density --line
+```
+
+The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
 you can follow the program flow directly in the source.
 
 Check the [installation](INSTALL.md) instructions if you run into compilation issues.

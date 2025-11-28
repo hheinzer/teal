@@ -9,6 +9,8 @@ Windows, I recommend that you use WSL.
 - MPI implementation with `mpicc` (Open MPI or MPICH)
 - HDF5 **built with MPI support** (headers + libs)
 - METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
+- Gmsh (to generate meshes from `.geo` in `run/`)
+- Python + matplotlib/pyvista/mpi4py (for `tools/plot` and helper scripts)
 
 ## Compilers
 
