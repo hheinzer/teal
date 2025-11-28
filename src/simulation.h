@@ -34,7 +34,7 @@ typedef struct {
 
 typedef struct {
     Name name;
-    void *ctx;
+    const void *ctx;
     Advance *method;
 } SimulationAdvance;
 
