@@ -1,6 +1,5 @@
-#include <math.h>
-
 #include "euler.h"
+#include "teal/vector.h"
 
 Euler inner = {.density = 1, .pressure = 1};
 Euler outer = {.density = 0.125, .pressure = 0.1};
@@ -39,6 +38,6 @@ int main(int argc, char **argv)
 void initial(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
     Euler *variable = variable_;
-    scalar radius = sqrt((center.x * center.x) + (center.y * center.y) + (center.z * center.z));
+    scalar radius = vector_norm(center);
     *variable = (radius <= 0.4) ? inner : outer;
 }

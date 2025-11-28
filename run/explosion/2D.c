@@ -1,6 +1,5 @@
-#include <math.h>
-
 #include "euler.h"
+#include "teal/vector.h"
 
 Euler inner = {.density = 1, .pressure = 1};
 Euler outer = {.density = 0.125, .pressure = 0.1};
@@ -10,9 +9,9 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    vector min_coord = {.x = -1, .y = -1};
-    vector max_coord = {.x = 1, .y = 1};
-    tuple num_cells = {.x = 100, .y = 100};
+    vector min_coord = {-1, -1, -1};
+    vector max_coord = {1, 1, 1};
+    tuple num_cells = {100, 100, 1};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
     mesh_generate(mesh);
     mesh_summary(mesh);
@@ -37,6 +36,6 @@ int main(int argc, char **argv)
 void initial(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
     Euler *variable = variable_;
-    scalar radius = hypot(center.x, center.y);
+    scalar radius = vector_norm(center);
     *variable = (radius <= 0.4) ? inner : outer;
 }
