@@ -92,8 +92,10 @@ void equations_set_boundary_condition(Equations *eqns, const char *entity, const
             strcpy(eqns->boundary.name[i], name);
             eqns->boundary.reference[i] = reference;
             eqns->boundary.custom[i] = custom;
-            if (!strcmp(name, "custom") && !custom) {
-                error("missing custom function (%s)", entity);
+            if (!strcmp(name, "custom")) {
+                if (!custom) {
+                    error("missing custom function (%s)", entity);
+                }
             }
             else {
                 assert(eqns->boundary.select);
