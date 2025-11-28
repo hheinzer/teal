@@ -54,10 +54,10 @@ void source(void *source_, const void *variable_, const scalar *property, vector
 {
     scalar *source = source_;
     const Euler *variable = variable_;
-    scalar fac = -alpha / center.x;
-    source[0] = fac * variable->momentum.x;
-    source[1] = fac * variable->momentum.x * variable->velocity.x;
+    scalar factor = -alpha / center.x;
+    source[0] = factor * variable->momentum.x;
+    source[1] = factor * variable->momentum.x * variable->velocity.x;
     source[2] = 0;
     source[3] = 0;
-    source[4] = fac * (variable->energy + variable->pressure) * variable->velocity.x;
+    source[4] = factor * (variable->energy + variable->pressure) * variable->velocity.x;
 }

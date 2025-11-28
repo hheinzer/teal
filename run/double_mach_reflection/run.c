@@ -26,17 +26,17 @@ int main(int argc, char **argv)
     mesh_summary(mesh);
 
     Equations *eqns = euler_create(mesh);
+    equations_set_boundary_condition(eqns, "left", "supersonic inflow", &downstream, 0);
+    equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "bottom-a", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "bottom-b", "slipwall", 0, 0);
-    equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "top", "custom", 0, dmr);
-    equations_set_boundary_condition(eqns, "left", "supersonic inflow", &downstream, 0);
     equations_set_initial_condition(eqns, "domain", dmr, 0);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_time(sim, 0.2);
-    simulation_set_out_time(sim, 0.02);
+    simulation_set_out_time(sim, 0.002);
     simulation_summary(sim);
 
     simulation_run(sim);
