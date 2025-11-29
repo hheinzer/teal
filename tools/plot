@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser, BooleanOptionalAction as Boolean
+from argparse import ArgumentParser
 import os
 from pathlib import Path
 import subprocess
@@ -23,19 +23,19 @@ def set_global_theme():
 
 def parse_args():
     parser = ArgumentParser(description="Visualize an unstructured grid")
-    parser.add_argument("fnames", nargs="+", help="Input file(s)")
-    parser.add_argument("-f", "--field", help="Field to plot")
-    parser.add_argument("-l", "--list", action=Boolean, help="List all plottable fields")
-    parser.add_argument("--points", action=Boolean, help="Interpolate to points")
-    parser.add_argument("--explode", action=Boolean, help="Explode cells")
-    parser.add_argument("--edges", action=Boolean, help="Show edges")
-    parser.add_argument("--clip", action=Boolean, help="Add clip plane")
-    parser.add_argument("--crinkle", action=Boolean, help="Crinkle clip")
-    parser.add_argument("--line", action=Boolean, help="Plot over line")
-    parser.add_argument("--video", action=Boolean, help="Create a video")
-    parser.add_argument("--vmin", type=float, help="Minimum field value")
-    parser.add_argument("--vmax", type=float, help="Maximum field value")
-    parser.add_argument("--cmap", default="coolwarm", help="Colormap")
+    parser.add_argument("fnames", nargs="+", help="input file(s)")
+    parser.add_argument("-f", "--field", help="field to plot")
+    parser.add_argument("-l", "--list", action="store_true", help="list all plottable fields")
+    parser.add_argument("--points", action="store_true", help="interpolate to points")
+    parser.add_argument("--explode", action="store_true", help="explode cells")
+    parser.add_argument("--edges", action="store_true", help="show edges")
+    parser.add_argument("--clip", action="store_true", help="add clip plane")
+    parser.add_argument("--crinkle", action="store_true", help="crinkle clip")
+    parser.add_argument("--line", action="store_true", help="plot over line")
+    parser.add_argument("--video", action="store_true", help="create a video")
+    parser.add_argument("--vmin", type=float, help="minimum field value")
+    parser.add_argument("--vmax", type=float, help="maximum field value")
+    parser.add_argument("--cmap", default="coolwarm", help="colormap")
     return parser.parse_args()
 
 

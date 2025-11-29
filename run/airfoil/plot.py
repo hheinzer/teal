@@ -7,8 +7,8 @@ import numpy as np
 
 def parse_args():
     parser = ArgumentParser(description="Visualize an airfoil polar")
-    parser.add_argument("fname", help="Input file")
-    parser.add_argument("refs", nargs="*", help="Reference polars")
+    parser.add_argument("fname", help="input file")
+    parser.add_argument("refs", nargs="*", help="reference polars")
     return parser.parse_args()
 
 
