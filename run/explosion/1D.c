@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "euler.h"
+#include "teal/arena.h"
 
-scalar alpha = 0;
+scalar alpha;
 Euler inner = {.density = 1, .pressure = 1};
 Euler outer = {.density = 0.125, .pressure = 0.1};
 Compute initial;
@@ -13,32 +13,36 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    if (argc > 1) {
-        alpha = strtod(argv[1], 0);
+    for (int i = 0; i < 3; i++) {
+        Arena save = arena_save();
+
+        alpha = i;
+
+        vector min_coord = {.x = 0};
+        vector max_coord = {.x = 1};
+        tuple num_cells = {.x = 1000};
+        Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
+        mesh_generate(mesh);
+        mesh_summary(mesh);
+
+        Equations *eqns = euler_create(mesh);
+        equations_set_user_source(eqns, source);
+        equations_set_boundary_condition(eqns, "left", "symmetry", 0, 0);
+        equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
+        equations_set_initial_condition(eqns, "domain", initial, 0);
+        equations_summary(eqns);
+
+        char prefix[128];
+        sprintf(prefix, "%s_alpha_%g", argv[0], alpha);
+
+        Simulation *sim = simulation_create(eqns, prefix);
+        simulation_set_max_time(sim, 0.25);
+        simulation_summary(sim);
+
+        simulation_run(sim);
+
+        arena_load(save);
     }
-
-    vector min_coord = {.x = 0};
-    vector max_coord = {.x = 1};
-    tuple num_cells = {.x = 1000};
-    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
-    mesh_generate(mesh);
-    mesh_summary(mesh);
-
-    Equations *eqns = euler_create(mesh);
-    equations_set_user_source(eqns, source);
-    equations_set_boundary_condition(eqns, "left", "symmetry", 0, 0);
-    equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
-    equations_set_initial_condition(eqns, "domain", initial, 0);
-    equations_summary(eqns);
-
-    char prefix[128];
-    sprintf(prefix, "%s_alpha_%g", argv[0], alpha);
-
-    Simulation *sim = simulation_create(eqns, prefix);
-    simulation_set_max_time(sim, 0.25);
-    simulation_summary(sim);
-
-    simulation_run(sim);
 
     teal_finalize();
 }
