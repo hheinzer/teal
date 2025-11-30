@@ -59,3 +59,5 @@ glad you’re here to improve it.
 - Keep bullet lines terminal-punctuation-free as in this file
 - Validate commands are runnable in the current sandbox; prefer fast, local checks
 - Mirror the existing logging and allocation patterns; avoid inventing new helpers without need
+- For Python helpers stick to stdlib and existing deps, avoid type hints, and surface errors plainly
+  instead of wrapping them
