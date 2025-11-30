@@ -2,7 +2,7 @@
 
 Teal is a general-purpose computational fluid dynamics library for solving hyperbolic-parabolic
 conservation laws on 3D unstructured meshes using the finite-volume method. It includes a simple
-mesh generator and integrates with GMSH for complex geometries. Built-in solvers cover the
+mesh generator and integrates with Gmsh for complex geometries. Built-in solvers cover the
 compressible Euler and Navier-Stokes equations, with support for user-defined source terms. The teal
 API is designed for flexibility, making it straightforward to extend to other systems of equations.
 
@@ -11,7 +11,7 @@ API is designed for flexibility, making it straightforward to extend to other sy
 - **Meshes**
     - 3D unstructured mixed meshes
     - Built-in Cartesian mesh generator
-    - Readers for GMSH and internal formats
+    - Readers for Gmsh and internal formats
     - Extensible to additional formats
 - **Accuracy**
     - 2nd-order spatial accuracy
