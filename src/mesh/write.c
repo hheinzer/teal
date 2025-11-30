@@ -140,6 +140,35 @@ static void write_entities(const MeshEntities *entities, hid_t loc)
     h5io_group_close(group);
 }
 
+// Create a VTKHDF view of the mesh by linking to existing datasets.
+static void write_vtkhdf(const char *fname, hid_t loc)
+{
+    hid_t group = h5io_group_create("VTKHDF", loc);
+
+    h5io_attribute_write("Version", (long[]){1, 0}, 2, H5IO_LONG, group);
+    h5io_attribute_write("Type", "UnstructuredGrid", 1, H5IO_STRING, group);
+
+    h5io_link_create(fname, "/nodes/tot", "NumberOfPoints", group);
+    h5io_link_create(fname, "/nodes/coord", "Points", group);
+
+    h5io_link_create(fname, "/cells/tot", "NumberOfCells", group);
+    h5io_link_create(fname, "/cells/tot_idx", "NumberOfConnectivityIds", group);
+    h5io_link_create(fname, "/cells/node/off", "Offsets", group);
+    h5io_link_create(fname, "/cells/node/idx", "Connectivity", group);
+    h5io_link_create(fname, "/cells/type", "Types", group);
+
+    hid_t cell_data = h5io_group_create("CellData", group);
+    h5io_link_create(fname, "/cells/entity", "entity", cell_data);
+    h5io_link_create(fname, "/cells/index", "index", cell_data);
+    h5io_link_create(fname, "/cells/rank", "rank", cell_data);
+    h5io_link_create(fname, "/cells/volume", "volume", cell_data);
+    h5io_link_create(fname, "/cells/center", "center", cell_data);
+    h5io_link_create(fname, "/cells/projection", "projection", cell_data);
+    h5io_group_close(cell_data);
+
+    h5io_group_close(group);
+}
+
 void mesh_write(const Mesh *mesh, const char *prefix)
 {
     assert(mesh && prefix);
@@ -152,6 +181,8 @@ void mesh_write(const Mesh *mesh, const char *prefix)
     write_nodes(&mesh->nodes, file);
     write_cells(&mesh->nodes, &mesh->cells, &mesh->entities, file);
     write_entities(&mesh->entities, file);
+
+    write_vtkhdf(fname, file);
 
     h5io_file_close(file);
 }

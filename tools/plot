@@ -40,30 +40,10 @@ def parse_args():
 
 
 def read_mesh(fname):
-    if not fname.endswith("_mesh.h5"):
-        return pv.read(fname)
+    if fname.endswith("_mesh.h5"):
+        return pv.read(fname, force_ext=".vtkhdf")
 
-    with h5py.File(fname, "r") as file:
-        coords = file["nodes/coord"][...]
-        node_offs = file["cells/node/off"][...]
-        node_idxs = file["cells/node/idx"][...]
-        types = file["cells/type"][...]
-        fields = {
-            name: field[...]
-            for name, field in file["cells/"].items()
-            if isinstance(field, h5py.Dataset) and field.shape[0] == types.shape[0]
-        }
-
-    cells = []
-    for beg, end in zip(node_offs, node_offs[1:]):
-        cells.append(end - beg)
-        cells.extend(node_idxs[beg:end])
-
-    mesh = pv.UnstructuredGrid(cells, types, coords)
-    for name, field in fields.items():
-        mesh[name] = field
-
-    return mesh
+    return pv.read(fname)
 
 
 def prepare_mesh(mesh, args):
@@ -206,7 +186,7 @@ def plot_field(mesh, args, fname=None):
         plotter.add_mesh(mesh, **kwargs)
 
     if fname is None:
-        plotter.show_bounds(xtitle="x-axis", ytitle="y-axis", ztitle="z-axis")
+        plotter.view_xy()
         plotter.show()
     else:
         plotter.camera.tight(view="xy")
