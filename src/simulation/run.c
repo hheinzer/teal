@@ -26,7 +26,7 @@ scalar simulation_run(Simulation *sim)
     long len = eqns->variables.len;
 
     const char *prefix = sim->prefix;
-    scalar courant = sim->courant;
+    scalar courant = sim->advance.courant;
 
     scalar max_time = sim->time.max;
     scalar out_time = sim->time.out;
@@ -64,7 +64,7 @@ scalar simulation_run(Simulation *sim)
 
     for (long iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
         scalar max_step = fmin(max_time, out_time) - time;
-        scalar step0 = advance(eqns, &time, residual, courant, max_step, ctx);
+        scalar step0 = advance(eqns, &time, residual, max_step, courant, ctx);
 
         if (!isfinite(step0)) {
             error("non-finite time step (%ld)", iter);

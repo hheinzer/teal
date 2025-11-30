@@ -6,7 +6,7 @@
 #include "teal/arena.h"
 #include "teal/sync.h"
 
-scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
+scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
              const void *ctx_)
 {
     (void)ctx_;
@@ -38,8 +38,8 @@ scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar couran
     return step0;
 }
 
-scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-                scalar max_step, const void *ctx_)
+scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
+                scalar courant, const void *ctx_)
 {
     (void)ctx_;
     Arena save = arena_save();
@@ -81,7 +81,7 @@ scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar cou
     return step0;
 }
 
-scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
+scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
             const void *ctx_)
 {
     (void)ctx_;
@@ -124,8 +124,8 @@ scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar courant
     return step0;
 }
 
-scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-               scalar max_step, const void *ctx_)
+scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
+               scalar courant, const void *ctx_)
 {
     (void)ctx_;
     Arena save = arena_save();
@@ -167,8 +167,8 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar cour
     return step0;
 }
 
-scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
-              const void *ctx_)
+scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
+              scalar courant, const void *ctx_)
 {
     (void)ctx_;
     Arena save = arena_save();
@@ -210,8 +210,8 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar coura
     return step0;
 }
 
-scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
-              const void *ctx_)
+scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
+              scalar courant, const void *ctx_)
 {
     (void)ctx_;
     Arena save = arena_save();
@@ -264,7 +264,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar coura
     return step0;
 }
 
-scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
+scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
            const void *ctx_)
 {
     (void)ctx_;
@@ -319,7 +319,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     return step0;
 }
 
-scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
+scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
            const void *ctx_)
 {
     (void)ctx_;
@@ -385,7 +385,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar courant,
     return step0;
 }
 
-scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar courant, scalar max_step,
+scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
              const void *ctx_)
 {
     Arena save = arena_save();
@@ -452,8 +452,8 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar couran
     return step0;
 }
 
-scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scalar courant,
-                      scalar max_step, const void *ctx_)
+scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
+                      scalar courant, const void *ctx_)
 {
     Arena save = arena_save();
 

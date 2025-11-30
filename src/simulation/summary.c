@@ -12,7 +12,6 @@ void simulation_summary(const Simulation *sim)
 
     println("Simulation summary");
     println("\t prefix            : %s", sim->prefix);
-    println("\t courant           : %g", sim->courant);
 
     if (isfinite(sim->time.max)) {
         println("\t max time          : %g", sim->time.max);
@@ -34,6 +33,7 @@ void simulation_summary(const Simulation *sim)
     }
 
     println("\t advance method    : %s", sim->advance.name);
+    println("\t courant           : %g", sim->advance.courant);
     if (!strcmp(sim->advance.name, "lserk")) {
         const RungeKutta *ctx = sim->advance.ctx;
         println("\t time order        : %ld", ctx->time_order);
@@ -46,6 +46,7 @@ void simulation_summary(const Simulation *sim)
         println("\t krylov dimension  : %ld", ctx->krylov_dimension);
     }
 
-    scalar step0 = sim->courant * equations_time_step(sim->eqns, sim->eqns->variables.data, 0);
+    scalar courant = sim->advance.courant;
+    scalar step0 = courant * equations_time_step(sim->eqns, sim->eqns->variables.data, 0);
     println("\t initial time step : %g", step0);
 }

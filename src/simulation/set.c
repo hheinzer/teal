@@ -6,12 +6,6 @@
 #include "teal/arena.h"
 #include "teal/utils.h"
 
-void simulation_set_courant(Simulation *sim, scalar courant)
-{
-    assert(sim && courant > 0);
-    sim->courant = courant;
-}
-
 void simulation_set_max_time(Simulation *sim, scalar time)
 {
     assert(sim && time > 0);
@@ -81,10 +75,11 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
     error("invalid termination condition (%s)", condition);
 }
 
-void simulation_set_advance(Simulation *sim, const char *name, const void *ctx_)
+void simulation_set_advance(Simulation *sim, const char *name, scalar courant, const void *ctx_)
 {
-    assert(sim && name);
+    assert(sim && name && courant > 0);
     strcpy(sim->advance.name, name);
+    sim->advance.courant = courant;
     if (!strcmp(name, "euler")) {
         sim->advance.method = euler;
         return;

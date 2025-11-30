@@ -1,20 +1,12 @@
 #define _GNU_SOURCE
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "euler.h"
-#include "teal.h"
-#include "teal/utils.h"
 
 int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
-
-    if (argc > 1 && !strcmp(argv[1], "-h")) {
-        println("usage: %s -- [-h] [fname] [mach] [alpha]", argv[0]);
-        teal_exit(EXIT_SUCCESS);
-    }
 
     const char *fname = (argc > 1 ? argv[1] : "run/airfoil/naca2312.msh");
     const scalar mach = (argc > 2 ? strtod(argv[2], 0) : 0.5);
@@ -32,17 +24,16 @@ int main(int argc, char **argv)
 
     Equations *eqns = euler_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
-    equations_set_boundary_condition(eqns, "airfoil", "slipwall", 0, 0);
+    equations_set_boundary_condition(eqns, "airfoil", "wall", 0, 0);
     equations_set_boundary_condition(eqns, "farfield", "farfield", &farfield, 0);
     equations_set_initial_state(eqns, "domain", &farfield);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
-    simulation_set_courant(sim, 100);
     simulation_set_max_iter(sim, 10000);
-    simulation_set_out_iter(sim, 1);
+    simulation_set_out_iter(sim, 100);
     simulation_set_termination(sim, "density", 1e-5);
-    simulation_set_advance(sim, "implicit euler", 0);
+    simulation_set_advance(sim, "implicit euler", 100, 0);
     simulation_summary(sim);
 
     scalar time = simulation_run(sim);
