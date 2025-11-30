@@ -96,16 +96,13 @@ static void subsonic_outflow(void *ghost_, const void *inner_, const void *refer
     ghost->velocity.z = inner->velocity.z - (factor * basis->normal.z);
 }
 
-static Euler global_to_local(const Euler *global, const Basis *basis)
+static Euler global_to_local(const Euler *global, const scalar *property, const Basis *basis)
 {
     Euler local;
     local.density = global->density;
     transform_to_local(&local.velocity, basis, &global->velocity);
     local.pressure = global->pressure;
-    local.momentum.x = local.density * local.velocity.x;
-    local.momentum.y = local.density * local.velocity.y;
-    local.momentum.z = local.density * local.velocity.z;
-    local.energy = global->energy;
+    euler_conserved(&local, property);
     return local;
 }
 
@@ -123,8 +120,8 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
     scalar gamma = property[0];
     scalar gamma_m1 = gamma - 1;
 
-    Euler inner = global_to_local(inner_, basis);
-    *ghost = global_to_local(reference_, basis);
+    Euler inner = global_to_local(inner_, property, basis);
+    *ghost = global_to_local(reference_, property, basis);
 
     scalar velocity2_i = vector_norm2(inner.velocity);
     scalar speed_of_sound2_i = gamma * inner.pressure / inner.density;
