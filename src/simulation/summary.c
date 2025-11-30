@@ -33,7 +33,7 @@ void simulation_summary(const Simulation *sim)
     }
 
     println("\t advance method    : %s", sim->advance.name);
-    println("\t courant           : %g", sim->advance.courant);
+    println("\t courant number    : %g", sim->advance.courant);
     if (!strcmp(sim->advance.name, "lserk")) {
         const RungeKutta *ctx = sim->advance.ctx;
         println("\t time order        : %ld", ctx->time_order);
