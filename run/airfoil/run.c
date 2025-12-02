@@ -8,9 +8,9 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    const char *fname = (argc > 1 ? argv[1] : "run/airfoil/naca2312.msh");
-    const scalar mach = (argc > 2 ? strtod(argv[2], 0) : 0.5);
-    const scalar alpha = (argc > 3 ? strtod(argv[3], 0) : 3) * M_PI / 180;
+    const char *fname = (argc > 1) ? argv[1] : "run/airfoil/naca2312.msh";
+    scalar mach = (argc > 2) ? strtod(argv[2], 0) : 0.5;
+    scalar alpha = ((argc > 3) ? strtod(argv[3], 0) : 3) * M_PI / 180;
 
     Mesh *mesh = mesh_read(fname);
     mesh_generate(mesh);

@@ -42,6 +42,7 @@ void equations_set_limiter(Equations *eqns, const char *name, scalar parameter)
 {
     assert(eqns);
     if (!name) {
+        eqns->limiter.name[0] = 0;
         eqns->limiter.compute = 0;
         return;
     }
@@ -111,6 +112,7 @@ void equations_set_convective_flux(Equations *eqns, const char *name)
 {
     assert(eqns);
     if (!name) {
+        eqns->convective.name[0] = 0;
         eqns->convective.flux = 0;
         return;
     }
@@ -123,6 +125,7 @@ void equations_set_viscous_flux(Equations *eqns, const char *name)
 {
     assert(eqns);
     if (!name) {
+        eqns->viscous.name[0] = 0;
         eqns->viscous.flux = 0;
         return;
     }

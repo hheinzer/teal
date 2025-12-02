@@ -50,5 +50,5 @@ void mesh_summary(const Mesh *mesh)
     println("\t number of exchange cells : %ld", exchange_cells);
     println("\t min/max coord            : %g %g %g / %g %g %g", min_coord.x, min_coord.y,
             min_coord.z, max_coord.x, max_coord.y, max_coord.z);
-    println("\t min/max volume           : %g / %g / %g", min_volume, max_volume, sum_volume);
+    println("\t min/max/sum volume       : %g / %g / %g", min_volume, max_volume, sum_volume);
 }

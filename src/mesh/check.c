@@ -11,10 +11,15 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-#define check(expr)                                                                               \
-    ((expr) ? (void)0                                                                             \
-            : (void)fprintf(stderr, "[%ld] %s:%d: %s: Check `%s` failed.\n", sync.rank, __FILE__, \
-                            __LINE__, __func__, #expr))
+#define check(expr)                                                                       \
+    do {                                                                                  \
+        static bool has_failed_before = false;                                            \
+        if (!has_failed_before && !(expr)) {                                              \
+            fprintf(stderr, "[%ld] %s:%d: %s: Check `%s` failed.\n", sync.rank, __FILE__, \
+                    __LINE__, __func__, #expr);                                           \
+            has_failed_before = true;                                                     \
+        }                                                                                 \
+    } while (false)
 
 // Verify node counts, indices, and coordinates.
 static void test_nodes(const MeshNodes *nodes)
