@@ -45,9 +45,9 @@ static void test_nodes(const MeshNodes *nodes)
 
     if (nodes->coord) {
         for (long i = 0; i < nodes->num; i++) {
-            check(isfinite(nodes->coord[i].x));
-            check(isfinite(nodes->coord[i].y));
-            check(isfinite(nodes->coord[i].z));
+            assert(isfinite(nodes->coord[i].x));
+            assert(isfinite(nodes->coord[i].y));
+            assert(isfinite(nodes->coord[i].z));
         }
     }
 
@@ -115,7 +115,7 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
 
     if (cells->volume) {
         for (long i = 0; i < cells->num; i++) {
-            check(isfinite(cells->volume[i]));
+            assert(isfinite(cells->volume[i]));
             if (i < cells->num_inner) {
                 check(is_greater(cells->volume[i], 0));
             }
@@ -127,17 +127,17 @@ static void test_cells(const MeshNodes *nodes, const MeshCells *cells)
 
     if (cells->center) {
         for (long i = 0; i < cells->num; i++) {
-            check(isfinite(cells->center[i].x));
-            check(isfinite(cells->center[i].y));
-            check(isfinite(cells->center[i].z));
+            assert(isfinite(cells->center[i].x));
+            assert(isfinite(cells->center[i].y));
+            assert(isfinite(cells->center[i].z));
         }
     }
 
     if (cells->projection) {
         for (long i = 0; i < cells->num; i++) {
-            check(isfinite(cells->projection[i].x));
-            check(isfinite(cells->projection[i].y));
-            check(isfinite(cells->projection[i].z));
+            assert(isfinite(cells->projection[i].x));
+            assert(isfinite(cells->projection[i].y));
+            assert(isfinite(cells->projection[i].z));
             if (i < cells->num_inner) {
                 check(is_greater(cells->projection[i].x, 0));
                 check(is_greater(cells->projection[i].y, 0));
@@ -195,30 +195,30 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
 
     if (faces->area) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->area[i]));
+            assert(isfinite(faces->area[i]));
             check(is_greater(faces->area[i], 0));
         }
     }
 
     if (faces->center) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->center[i].x));
-            check(isfinite(faces->center[i].y));
-            check(isfinite(faces->center[i].z));
+            assert(isfinite(faces->center[i].x));
+            assert(isfinite(faces->center[i].y));
+            assert(isfinite(faces->center[i].z));
         }
     }
 
     if (faces->basis) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->basis[i].normal.x));
-            check(isfinite(faces->basis[i].normal.y));
-            check(isfinite(faces->basis[i].normal.z));
-            check(isfinite(faces->basis[i].tangent1.x));
-            check(isfinite(faces->basis[i].tangent1.y));
-            check(isfinite(faces->basis[i].tangent1.z));
-            check(isfinite(faces->basis[i].tangent2.x));
-            check(isfinite(faces->basis[i].tangent2.y));
-            check(isfinite(faces->basis[i].tangent2.z));
+            assert(isfinite(faces->basis[i].normal.x));
+            assert(isfinite(faces->basis[i].normal.y));
+            assert(isfinite(faces->basis[i].normal.z));
+            assert(isfinite(faces->basis[i].tangent1.x));
+            assert(isfinite(faces->basis[i].tangent1.y));
+            assert(isfinite(faces->basis[i].tangent1.z));
+            assert(isfinite(faces->basis[i].tangent2.x));
+            assert(isfinite(faces->basis[i].tangent2.y));
+            assert(isfinite(faces->basis[i].tangent2.z));
             check(is_close(vector_norm(faces->basis[i].normal), 1));
             check(is_close(vector_norm(faces->basis[i].tangent1), 1));
             check(is_close(vector_norm(faces->basis[i].tangent2), 1));
@@ -241,12 +241,12 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
 
     if (faces->weight) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->weight[i].left.x));
-            check(isfinite(faces->weight[i].left.y));
-            check(isfinite(faces->weight[i].left.z));
-            check(isfinite(faces->weight[i].right.x));
-            check(isfinite(faces->weight[i].right.y));
-            check(isfinite(faces->weight[i].right.z));
+            assert(isfinite(faces->weight[i].left.x));
+            assert(isfinite(faces->weight[i].left.y));
+            assert(isfinite(faces->weight[i].left.z));
+            assert(isfinite(faces->weight[i].right.x));
+            assert(isfinite(faces->weight[i].right.y));
+            assert(isfinite(faces->weight[i].right.z));
         }
     }
 
@@ -297,9 +297,9 @@ static void test_entities(const MeshCells *cells, const MeshFaces *faces,
 
     if (entities->translation) {
         for (long i = 0; i < entities->num; i++) {
-            check(isfinite(entities->translation[i].x));
-            check(isfinite(entities->translation[i].y));
-            check(isfinite(entities->translation[i].z));
+            assert(isfinite(entities->translation[i].x));
+            assert(isfinite(entities->translation[i].y));
+            assert(isfinite(entities->translation[i].z));
             if (i < entities->off_ghost) {
                 check(is_close(entities->translation[i].x, 0));
                 check(is_close(entities->translation[i].y, 0));

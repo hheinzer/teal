@@ -3,6 +3,7 @@
 
 #include "equations.h"
 #include "teal/sync.h"
+#include "teal/utils.h"
 
 scalar equations_time_step(const Equations *eqns, const void *variable_, scalar *step)
 {
@@ -18,7 +19,7 @@ scalar equations_time_step(const Equations *eqns, const void *variable_, scalar 
 
     const scalar(*variable)[stride] = variable_;
 
-    scalar min = INFINITY;
+    scalar min = SCALAR_MAX;
     if (step) {
         for (long i = 0; i < num_inner; i++) {
             step[i] = time_step(variable[i], property, volume[i], projection[i]);

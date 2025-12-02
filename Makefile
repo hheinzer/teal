@@ -15,7 +15,7 @@ CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 #CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 
 # release flags
-#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
+#CFLAGS += -O3 -ffast-math -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
 
 # gprof flags
 #CFLAGS += -pg -fno-inline-functions

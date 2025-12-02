@@ -1,7 +1,6 @@
 #include "kdtree.h"
 
 #include <assert.h>
-#include <math.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,7 +146,7 @@ void kdtree_nearest(const Kdtree *self, vector key, void *val, long num)
 
     scalar *metric = arena_malloc(num, sizeof(*metric));
     for (long i = 0; i < num; i++) {
-        metric[i] = INFINITY;
+        metric[i] = SCALAR_MAX;
     }
 
     Stack *stack = arena_malloc(self->num, sizeof(*stack));

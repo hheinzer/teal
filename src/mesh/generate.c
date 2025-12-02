@@ -71,7 +71,7 @@ static void connect_cells(const MeshNodes *nodes, MeshCells *cells)
 static long find_seed_cell(const MeshNodes *nodes, const MeshCells *cells, const long *map)
 {
     long seed = -1;
-    vector min_center = {INFINITY, INFINITY, INFINITY};
+    vector min_center = {SCALAR_MAX, SCALAR_MAX, SCALAR_MAX};
     for (long i = 0; i < cells->num_inner; i++) {
         if (map[i] == -1) {
             vector center = {0};

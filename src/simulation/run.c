@@ -66,14 +66,9 @@ scalar simulation_run(Simulation *sim)
         scalar max_step = fmin(max_time, out_time) - time;
         scalar step0 = advance(eqns, &time, residual, max_step, courant, ctx);
 
-        if (!isfinite(step0)) {
-            error("non-finite time step (%ld)", iter);
-        }
-
+        assert(isfinite(step0));
         for (long i = 0; i < len; i++) {
-            if (!isfinite(residual[i])) {
-                error("non-finite residual (%ld)", iter);
-            }
+            assert(isfinite(residual[i]));
         }
 
         iter += 1;
@@ -93,7 +88,7 @@ scalar simulation_run(Simulation *sim)
             if (prefix) {
                 equations_write(eqns, prefix, time, index++);
             }
-            if (isfinite(sim->time.out)) {
+            if (is_less(sim->time.out, SCALAR_MAX)) {
                 out_time = time + sim->time.out;
             }
             if (sim->iter.out < LONG_MAX) {

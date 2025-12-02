@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <limits.h>
-#include <math.h>
 #include <string.h>
 
 #include "simulation.h"
@@ -13,10 +12,10 @@ void simulation_summary(const Simulation *sim)
     println("Simulation summary");
     println("\t prefix            : %s", sim->prefix);
 
-    if (isfinite(sim->time.max)) {
+    if (is_less(sim->time.max, SCALAR_MAX)) {
         println("\t max time          : %g", sim->time.max);
     }
-    if (isfinite(sim->time.out)) {
+    if (is_less(sim->time.out, SCALAR_MAX)) {
         println("\t output time       : %g", sim->time.out);
     }
 

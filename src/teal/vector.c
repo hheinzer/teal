@@ -75,7 +75,7 @@ void vector_scale(vector *lhs, scalar rhs)
 vector vector_min(const vector *vec, long num)
 {
     assert(vec ? (num >= 0) : (num == 0));
-    vector min = {INFINITY, INFINITY, INFINITY};
+    vector min = {SCALAR_MAX, SCALAR_MAX, SCALAR_MAX};
     for (long i = 0; i < num; i++) {
         min.x = fmin(min.x, vec[i].x);
         min.y = fmin(min.y, vec[i].y);
@@ -87,7 +87,7 @@ vector vector_min(const vector *vec, long num)
 vector vector_max(const vector *vec, long num)
 {
     assert(vec ? (num >= 0) : (num == 0));
-    vector max = {-INFINITY, -INFINITY, -INFINITY};
+    vector max = {-SCALAR_MAX, -SCALAR_MAX, -SCALAR_MAX};
     for (long i = 0; i < num; i++) {
         max.x = fmax(max.x, vec[i].x);
         max.y = fmax(max.y, vec[i].y);

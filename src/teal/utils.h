@@ -1,8 +1,12 @@
 #pragma once
 
+#include <float.h>
+
 #include "teal.h"
 
 #define NON_NULL ((void *)(int)1)  // NOLINT(performance-no-int-to-ptr)
+
+#define SCALAR_MAX (sizeof(scalar) == sizeof(float) ? FLT_MAX : DBL_MAX)
 
 #define count_of(arr) (sizeof(arr) / sizeof(*(arr)))
 

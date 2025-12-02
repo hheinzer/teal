@@ -40,7 +40,7 @@ long array_lsum(const long *arr, long num)
 scalar array_fmin(const scalar *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    scalar min = INFINITY;
+    scalar min = SCALAR_MAX;
     for (long i = 0; i < num; i++) {
         min = fmin(min, arr[i]);
     }
@@ -50,7 +50,7 @@ scalar array_fmin(const scalar *arr, long num)
 scalar array_fmax(const scalar *arr, long num)
 {
     assert(arr ? (num >= 0) : (num == 0));
-    scalar max = -INFINITY;
+    scalar max = -SCALAR_MAX;
     for (long i = 0; i < num; i++) {
         max = fmax(max, arr[i]);
     }

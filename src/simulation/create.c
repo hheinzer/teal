@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <limits.h>
-#include <math.h>
 
 #include "simulation.h"
 #include "teal/arena.h"
+#include "teal/utils.h"
 
 Simulation *simulation_create(const Equations *eqns, const char *prefix)
 {
@@ -13,8 +13,8 @@ Simulation *simulation_create(const Equations *eqns, const char *prefix)
     sim->eqns = eqns;
     sim->prefix = prefix;
 
-    sim->time.max = INFINITY;
-    sim->time.out = INFINITY;
+    sim->time.max = SCALAR_MAX;
+    sim->time.out = SCALAR_MAX;
 
     sim->iter.max = LONG_MAX;
     sim->iter.out = LONG_MAX;
