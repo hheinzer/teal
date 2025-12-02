@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 
     Equations *eqns = euler_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
-    equations_set_boundary_condition(eqns, "airfoil", "wall", 0, 0);
+    equations_set_boundary_condition(eqns, "airfoil", "slipwall", 0, 0);
     equations_set_boundary_condition(eqns, "farfield", "farfield", &farfield, 0);
     equations_set_initial_state(eqns, "domain", &farfield);
     equations_summary(eqns);
