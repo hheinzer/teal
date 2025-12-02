@@ -73,6 +73,10 @@ typedef struct {
 
 typedef struct {
     vector left, right;
+} Weight;
+
+typedef struct {
+    vector left, right;
 } Offset;
 
 typedef struct {
@@ -84,7 +88,7 @@ typedef struct {
     scalar *area;
     vector *center;
     Basis *basis;    // local orthonormal basis
-    vector *weight;  // least-squares weights for gradient reconstruction
+    Weight *weight;  // least-squares weights for gradient reconstruction
     Offset *offset;  // cell-to-face offset
 } MeshFaces;
 

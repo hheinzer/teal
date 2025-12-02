@@ -22,7 +22,7 @@ void *equations_gradient(const Equations *eqns, void *variable_)
     long num_inner = eqns->mesh->faces.num_inner;
     long off_ghost = eqns->mesh->faces.off_ghost;
     Adjacent *cell = eqns->mesh->faces.cell;
-    vector *weight = eqns->mesh->faces.weight;
+    Weight *weight = eqns->mesh->faces.weight;
 
     long stride = eqns->variables.stride;
     scalar(*variable)[stride] = variable_;
@@ -35,8 +35,8 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         long right = cell[i].right;
         for (long j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            increment(&gradient[left][j], diff, weight[i]);
-            increment(&gradient[right][j], diff, weight[i]);
+            increment(&gradient[left][j], diff, weight[i].left);
+            increment(&gradient[right][j], -diff, weight[i].right);
         }
     }
     for (long i = num_inner; i < off_ghost; i++) {
@@ -44,7 +44,7 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         long right = cell[i].right;
         for (long j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            increment(&gradient[left][j], diff, weight[i]);
+            increment(&gradient[left][j], diff, weight[i].left);
         }
     }
 
@@ -55,7 +55,7 @@ void *equations_gradient(const Equations *eqns, void *variable_)
         long right = cell[i].right;
         for (long j = 0; j < stride; j++) {
             scalar diff = variable[right][j] - variable[left][j];
-            increment(&gradient[left][j], diff, weight[i]);
+            increment(&gradient[left][j], diff, weight[i].left);
         }
     }
 

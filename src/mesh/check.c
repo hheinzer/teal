@@ -236,9 +236,12 @@ static void test_faces(const MeshNodes *nodes, const MeshCells *cells, const Mes
 
     if (faces->weight) {
         for (long i = 0; i < faces->num; i++) {
-            check(isfinite(faces->weight[i].x));
-            check(isfinite(faces->weight[i].y));
-            check(isfinite(faces->weight[i].z));
+            check(isfinite(faces->weight[i].left.x));
+            check(isfinite(faces->weight[i].left.y));
+            check(isfinite(faces->weight[i].left.z));
+            check(isfinite(faces->weight[i].right.x));
+            check(isfinite(faces->weight[i].right.y));
+            check(isfinite(faces->weight[i].right.z));
         }
     }
 

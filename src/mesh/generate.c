@@ -762,6 +762,36 @@ void compute_cell_offsets(const MeshNodes *nodes, MeshCells *cells)
     cells->offset = offset;
 }
 
+static vector compute_weight(const scalar *r11, const scalar *r12, const scalar *r22,
+                             const scalar *r13, const scalar *r23, const scalar *r33, vector delta,
+                             long idx)
+{
+    vector weight = {0};
+    scalar beta = (r12[idx] * r23[idx] - r13[idx] * r22[idx]) / (r11[idx] * r22[idx]);
+    vector alpha;
+    alpha.x = delta.x / sq(r11[idx]);
+    alpha.y = (delta.y - r12[idx] / r11[idx] * delta.x) / sq(r22[idx]);
+    alpha.z = (delta.z - r23[idx] / r22[idx] * delta.y + beta * delta.x) / sq(r33[idx]);
+    if (!is_close(delta.x, 0)) {
+        weight.x += alpha.x;
+    }
+    if (!is_close(delta.y, 0)) {
+        weight.x += -r12[idx] / r11[idx] * alpha.y;
+        weight.y += alpha.y;
+    }
+    if (!is_close(delta.z, 0)) {
+        weight.x += beta * alpha.z;
+        weight.y += -r23[idx] / r22[idx] * alpha.z;
+        weight.z += alpha.z;
+    }
+    scalar theta2 = 1 / vector_norm2(delta);
+    vector_scale(&weight, theta2);
+    assert(isfinite(weight.x));
+    assert(isfinite(weight.y));
+    assert(isfinite(weight.z));
+    return weight;
+}
+
 // Least-squares weights for gradient reconstruction on faces.
 static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
 {
@@ -777,7 +807,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
         vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = sq(1 / vector_norm(delta));
+        scalar theta2 = 1 / vector_norm2(delta);
         r11[left] += theta2 * delta.x * delta.x;
         r12[left] += theta2 * delta.x * delta.y;
         r22[left] += theta2 * delta.y * delta.y;
@@ -802,33 +832,16 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i])));
     }
 
-    vector *weight = arena_calloc(faces->num, sizeof(*weight));
+    Weight *weight = arena_malloc(faces->num, sizeof(*weight));
     for (long i = 0; i < faces->num; i++) {
         long left = faces->cell[i].left;
         long right = faces->cell[i].right;
-        vector delta = vector_sub(cells->center[right], cells->center[left]);
-        scalar theta2 = sq(1 / vector_norm(delta));
-        scalar beta = (r12[left] * r23[left] - r13[left] * r22[left]) / (r11[left] * r22[left]);
-        vector alpha;
-        alpha.x = delta.x / sq(r11[left]);
-        alpha.y = (delta.y - r12[left] / r11[left] * delta.x) / sq(r22[left]);
-        alpha.z = (delta.z - r23[left] / r22[left] * delta.y + beta * delta.x) / sq(r33[left]);
-        if (!is_close(cells->center[left].x, cells->center[right].x)) {
-            weight[i].x += alpha.x;
+        vector delta_l = vector_sub(cells->center[right], cells->center[left]);
+        weight[i].left = compute_weight(r11, r12, r22, r13, r23, r33, delta_l, left);
+        if (right < cells->num_inner) {
+            vector delta_r = vector_sub(cells->center[left], cells->center[right]);
+            weight[i].right = compute_weight(r11, r12, r22, r13, r23, r33, delta_r, right);
         }
-        if (!is_close(cells->center[left].y, cells->center[right].y)) {
-            weight[i].x += -r12[left] / r11[left] * alpha.y;
-            weight[i].y += alpha.y;
-        }
-        if (!is_close(cells->center[left].z, cells->center[right].z)) {
-            weight[i].x += beta * alpha.z;
-            weight[i].y += -r23[left] / r22[left] * alpha.z;
-            weight[i].z += alpha.z;
-        }
-        vector_scale(&weight[i], theta2);
-        assert(isfinite(weight[i].x));
-        assert(isfinite(weight[i].y));
-        assert(isfinite(weight[i].z));
     }
 
     arena_load(save);
