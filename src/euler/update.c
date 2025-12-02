@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "euler.h"
+#include "teal/vector.h"
 
 void euler_conserved(void *variable_, const scalar *property)
 {
@@ -10,11 +11,8 @@ void euler_conserved(void *variable_, const scalar *property)
     variable->momentum.x = variable->density * variable->velocity.x;
     variable->momentum.y = variable->density * variable->velocity.y;
     variable->momentum.z = variable->density * variable->velocity.z;
-    variable->energy =
-        (variable->pressure / (gamma - 1)) + (((variable->momentum.x * variable->velocity.x) +
-                                               (variable->momentum.y * variable->velocity.y) +
-                                               (variable->momentum.z * variable->velocity.z)) /
-                                              2);
+    variable->energy = (variable->pressure / (gamma - 1)) +
+                       (vector_dot(variable->momentum, variable->velocity) / 2);
 }
 
 void euler_primitive(void *variable_, const scalar *property)
@@ -30,10 +28,7 @@ void euler_primitive(void *variable_, const scalar *property)
     variable->velocity.y = factor * variable->momentum.y;
     variable->velocity.z = factor * variable->momentum.z;
     variable->pressure =
-        (gamma - 1) * (variable->energy - ((variable->momentum.x * variable->velocity.x) +
-                                           (variable->momentum.y * variable->velocity.y) +
-                                           (variable->momentum.z * variable->velocity.z)) /
-                                              2);
+        (gamma - 1) * (variable->energy - (vector_dot(variable->momentum, variable->velocity) / 2));
 
     static const scalar min_pressure = 1e-8;
     variable->pressure = fmax(min_pressure, variable->pressure);

@@ -167,8 +167,8 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar max_
     return step0;
 }
 
-scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
-              scalar courant, const void *ctx_)
+scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
+              const void *ctx_)
 {
     (void)ctx_;
     Arena save = arena_save();
@@ -210,8 +210,8 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar max_s
     return step0;
 }
 
-scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar max_step,
-              scalar courant, const void *ctx_)
+scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar max_step, scalar courant,
+              const void *ctx_)
 {
     (void)ctx_;
     Arena save = arena_save();

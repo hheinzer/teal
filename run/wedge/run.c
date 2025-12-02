@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
-    simulation_set_max_iter(sim, 5000);
+    simulation_set_max_iter(sim, 500);
     simulation_set_out_iter(sim, 50);
     simulation_summary(sim);
 

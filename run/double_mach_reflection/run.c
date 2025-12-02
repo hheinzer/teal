@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_time(sim, 0.2);
-    simulation_set_out_time(sim, 0.002);
+    simulation_set_out_time(sim, 0.02);
     simulation_summary(sim);
 
     simulation_run(sim);
