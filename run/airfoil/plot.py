@@ -19,14 +19,6 @@ def get_order(center):
     return np.concatenate((order, [order[0]]))
 
 
-def get_side(center):
-    beg = np.argmin(center[:, 0])
-    end = np.argmax(center[:, 0])
-    if beg < end:
-        return np.arange(beg, end)
-    return np.arange(end, beg)
-
-
 def main():
     args = parse_args()
 
@@ -39,15 +31,14 @@ def main():
     order = get_order(center)
     center, pressure_c = center[order], pressure_c[order]
 
-    side = get_side(center)
-
     fig, ax = plt.subplots(nrows=2, height_ratios=(3, 1))
 
     ax[0].plot(center[:, 0], pressure_c)
-    ax[0].plot(center[side, 0], pressure_c[side], "w:")
-
     ax[1].plot(center[:, 0], center[:, 1])
-    ax[1].plot(center[side, 0], center[side, 1], "w:")
+
+    for ref in args.refs:
+        data = np.genfromtxt(ref, skip_header=True)
+        ax[0].plot(data[:, 0], data[:, 1], "--")
 
     ax[0].set_xlabel("x-axis")
     ax[0].set_ylabel("pressure coefficient")
