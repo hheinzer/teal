@@ -6,7 +6,6 @@
 #include "teal/arena.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
-#include "teal/utils.h"
 
 // Write global field data (properties and time) to the VTKHDF file.
 static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
@@ -15,7 +14,7 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
 
     bool root = (sync.rank == 0);
 
-    int num = eqns->properties.num;
+    long num = eqns->properties.num;
     Name *name = eqns->properties.name;
     scalar *property = eqns->properties.data;
 
