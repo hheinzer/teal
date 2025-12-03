@@ -24,8 +24,7 @@ static long veccmp(vector lhs, vector rhs, long depth)
     switch (depth % 3) {
         case 0: return is_close(lhs.x, rhs.x) ? 0 : (lhs.x > rhs.x) - (lhs.x < rhs.x);
         case 1: return is_close(lhs.y, rhs.y) ? 0 : (lhs.y > rhs.y) - (lhs.y < rhs.y);
-        case 2: return is_close(lhs.z, rhs.z) ? 0 : (lhs.z > rhs.z) - (lhs.z < rhs.z);
-        default: abort();
+        default: return is_close(lhs.z, rhs.z) ? 0 : (lhs.z > rhs.z) - (lhs.z < rhs.z);
     }
 }
 
@@ -129,8 +128,7 @@ static scalar delta(vector lhs, vector rhs, long depth)
     switch (depth % 3) {
         case 0: return lhs.x - rhs.x;
         case 1: return lhs.y - rhs.y;
-        case 2: return lhs.z - rhs.z;
-        default: abort();
+        default: return lhs.z - rhs.z;
     }
 }
 

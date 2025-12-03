@@ -46,7 +46,7 @@ void option_init(int *argc, char ***argv)
                 println("option requires argument -- '%c'", optopt);
                 help(argv, EXIT_FAILURE);
                 break;
-            default: abort();
+            default: help(argv, EXIT_FAILURE);
         }
     }
 

@@ -86,6 +86,7 @@ void error(const char *fmt, ...)
         fputc('\n', stderr);
         fflush(stderr);
     }
+    MPI_Abort(sync.comm, EXIT_FAILURE);
     abort();
 }
 
