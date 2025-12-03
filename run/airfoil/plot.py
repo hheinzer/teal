@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def parse_args():
