@@ -16,10 +16,7 @@ typedef enum { I8, I16, I32, I64, U8, U16, U32, U64, F32, F64, STR } ParseType;
 ParseFile parse_open(const char *fname);
 void parse_close(ParseFile file);
 
-// Return byte offset of file on rank `0`; `-1` on other ranks.
 long parse_get_offset(ParseFile file);
-
-// Seek file to offset on rank `0`; no-op on other ranks.
 void parse_set_offset(ParseFile file, long offset);
 
 // Parse `num` ASCII tokens from file into data. For `type == STR`, `num` is the destination
@@ -30,7 +27,6 @@ void parse_ascii(ParseType type, void *data, long num, ParseFile file);
 // rank `0` and broadcast to other ranks.
 void parse_binary(ParseType type, void *data, long num, bool swap, ParseFile file);
 
-// Dispatch `parse_ascii()` or `parse_binary()` based on mode; `swap` is ignored for ASCII.
 void parse(ParseMode mode, ParseType type, void *data, long num, bool swap, ParseFile file);
 
 // Parse `num` groups of `len` ASCII tokens with a stride of `stride` tokens into data. Set file
@@ -46,10 +42,7 @@ long parse_split_ascii(ParseType type, void *data, long num, long len, long stri
 long parse_split_binary(ParseType type, void *data, long num, long len, long stride, bool swap,
                         ParseFile file);
 
-// Dispatch `parse_split_ascii()` or `parse_split_binary()` based on mode; `swap` is ignored for
-// ASCII. In ASCII `stride` counts tokens, in BINARY `stride` counts bytes.
 long parse_split(ParseMode mode, ParseType type, void *data, long num, long len, long stride,
                  bool swap, ParseFile file);
 
-// Return value at `idx` from data interpreted as type, cast to long (rounded for `F32/F64`).
 long parse_data_to_long(ParseType type, const void *data, long idx);

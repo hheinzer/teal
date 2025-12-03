@@ -121,5 +121,6 @@ scalar array_dot(const scalar *lhs, const scalar *rhs, long num)
 
 scalar array_norm(const scalar *arr, long num)
 {
+    assert(arr ? (num >= 0) : (num == 0));
     return sqrt(array_dot(arr, arr, num));
 }

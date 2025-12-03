@@ -92,68 +92,6 @@ long h5io_attribute_num(const char *name, hid_t loc)
     return num;
 }
 
-long h5io_dataset_num(const char *name, hid_t loc)
-{
-    assert(name);
-
-    hid_t dset = H5Dopen(loc, name, H5P_DEFAULT);
-    assert(dset != H5I_INVALID_HID);
-
-    hid_t space = H5Dget_space(dset);
-    assert(space != H5I_INVALID_HID);
-
-    long ndims = H5Sget_simple_extent_ndims(space);
-    long num = 0;
-    if (ndims == 0) {
-        num = 1;
-    }
-    else if (ndims == 1 || ndims == 2) {
-        hsize_t dims[2];
-        H5Sget_simple_extent_dims(space, dims, 0);
-        num = dims[0];
-    }
-
-    H5Sclose(space);
-    H5Dclose(dset);
-    return num;
-}
-
-long h5io_dataset_len(const char *name, hid_t loc)
-{
-    assert(name);
-
-    hid_t dset = H5Dopen(loc, name, H5P_DEFAULT);
-    assert(dset != H5I_INVALID_HID);
-
-    hid_t space = H5Dget_space(dset);
-    assert(space != H5I_INVALID_HID);
-
-    hid_t type = H5Dget_type(dset);
-    assert(type != H5I_INVALID_HID);
-
-    long len = 0;
-    if (H5Tget_class(type) == H5T_STRING) {
-        assert(H5Tis_variable_str(type) <= 0);
-        len = H5Tget_size(type);
-    }
-    else {
-        long ndims = H5Sget_simple_extent_ndims(space);
-        if (ndims == 0 || ndims == 1) {
-            len = 1;
-        }
-        else if (ndims == 2) {
-            hsize_t dims[2];
-            H5Sget_simple_extent_dims(space, dims, 0);
-            len = dims[1];
-        }
-    }
-
-    H5Tclose(type);
-    H5Sclose(space);
-    H5Dclose(dset);
-    return len;
-}
-
 // Check whether an attribute has the expected length.
 static bool attribute_num_matchs(hid_t attr, long num)
 {
@@ -234,6 +172,68 @@ void h5io_attribute_write(const char *name, const void *buf, long num, hid_t typ
     if (close_type) {
         H5Tclose(type);
     }
+}
+
+long h5io_dataset_num(const char *name, hid_t loc)
+{
+    assert(name);
+
+    hid_t dset = H5Dopen(loc, name, H5P_DEFAULT);
+    assert(dset != H5I_INVALID_HID);
+
+    hid_t space = H5Dget_space(dset);
+    assert(space != H5I_INVALID_HID);
+
+    long ndims = H5Sget_simple_extent_ndims(space);
+    long num = 0;
+    if (ndims == 0) {
+        num = 1;
+    }
+    else if (ndims == 1 || ndims == 2) {
+        hsize_t dims[2];
+        H5Sget_simple_extent_dims(space, dims, 0);
+        num = dims[0];
+    }
+
+    H5Sclose(space);
+    H5Dclose(dset);
+    return num;
+}
+
+long h5io_dataset_len(const char *name, hid_t loc)
+{
+    assert(name);
+
+    hid_t dset = H5Dopen(loc, name, H5P_DEFAULT);
+    assert(dset != H5I_INVALID_HID);
+
+    hid_t space = H5Dget_space(dset);
+    assert(space != H5I_INVALID_HID);
+
+    hid_t type = H5Dget_type(dset);
+    assert(type != H5I_INVALID_HID);
+
+    long len = 0;
+    if (H5Tget_class(type) == H5T_STRING) {
+        assert(H5Tis_variable_str(type) <= 0);
+        len = H5Tget_size(type);
+    }
+    else {
+        long ndims = H5Sget_simple_extent_ndims(space);
+        if (ndims == 0 || ndims == 1) {
+            len = 1;
+        }
+        else if (ndims == 2) {
+            hsize_t dims[2];
+            H5Sget_simple_extent_dims(space, dims, 0);
+            len = dims[1];
+        }
+    }
+
+    H5Tclose(type);
+    H5Sclose(space);
+    H5Dclose(dset);
+    return len;
 }
 
 // Validate dataset shape against expected global rows and column length.
