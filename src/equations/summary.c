@@ -16,7 +16,7 @@ void equations_summary(const Equations *eqns)
     long num = eqns->boundary.num;
     Name *name = eqns->boundary.name;
 
-    long width = 0;
+    int width = 0;
     for (long i = num_inner; i < num_entities; i++) {
         width = lmax(width, strlen(entity[i]));
     }
