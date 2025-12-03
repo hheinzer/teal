@@ -1,6 +1,3 @@
-//
-// Toro 1999, sec. 4.9
-//
 #include <assert.h>
 #include <math.h>
 

@@ -9,6 +9,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+// Locate a named entity index or abort.
 static long find_entity(const MeshEntities *entities, const char *entity)
 {
     for (long i = 0; i < entities->num; i++) {

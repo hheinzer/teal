@@ -14,7 +14,7 @@ typedef struct {
 // Convert primitive and conserved variables.
 Update euler_conserved, euler_primitive;
 
-// Compute the Euler time-step restriction.
+// Compute the Euler time step restriction.
 TimeStep euler_time_step;
 
 // Select an Euler boundary condition by name.

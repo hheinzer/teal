@@ -6,6 +6,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+// Reflect normal velocity component; keep tangential momentum and pressure unchanged.
 static void symmetry(void *ghost_, const void *inner_, const void *reference_,
                      const scalar *property, const Basis *basis)
 {
@@ -96,6 +97,7 @@ static void subsonic_outflow(void *ghost_, const void *inner_, const void *refer
     ghost->velocity.z = inner->velocity.z - (factor * basis->normal.z);
 }
 
+// Rotate global states into a face-aligned basis for characteristic BC handling.
 static Euler global_to_local(const Euler *global, const scalar *property, const Basis *basis)
 {
     Euler local;
@@ -106,6 +108,7 @@ static Euler global_to_local(const Euler *global, const scalar *property, const 
     return local;
 }
 
+// Rotate local state back into global coordinates after the BC is applied.
 static void local_to_global(Euler *ghost, const Basis *basis)
 {
     vector velocity;
@@ -113,6 +116,7 @@ static void local_to_global(Euler *ghost, const Basis *basis)
     ghost->velocity = velocity;
 }
 
+// Characteristic farfield boundary: mix inflow/outflow based on eigenstructure.
 static void farfield(void *ghost_, const void *inner_, const void *reference_,
                      const scalar *property, const Basis *basis)
 {

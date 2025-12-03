@@ -6,6 +6,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+// Rotate global conserved/primitive into a face-aligned basis for 1D Riemann solves.
 static Euler global_to_local(const Euler *global, const scalar *property, const Basis *basis)
 {
     Euler local;
@@ -40,6 +41,7 @@ static void local_to_global(Conserved *flux, const Basis *basis)
     flux->momentum = momentum;
 }
 
+// Exact Godunov flux via the exact Riemann solver.
 static void godunov(void *flux_, const void *left_, const void *right_, const scalar *property,
                     const Basis *basis)
 {
@@ -105,6 +107,7 @@ static vector roe_velocity(scalar weight, scalar sqrt_density_l, scalar sqrt_den
     return velocity;
 }
 
+// Roe flux with entropy fix on eigenvalues.
 static void roe(void *flux_, const void *left_, const void *right_, const scalar *property,
                 const Basis *basis)
 {
@@ -240,6 +243,7 @@ static void average_flux(Conserved *flux, const Euler *left, const Euler *right,
     flux->energy = factor * (flux_l.energy - flux_r.energy + jump.energy);
 }
 
+// HLL two-wave solver using Roe-averaged signal speeds.
 static void hll(void *flux_, const void *left_, const void *right_, const scalar *property,
                 const Basis *basis)
 {
@@ -299,6 +303,7 @@ static void contact_flux(Conserved *flux, const Euler *state_k, scalar signal_sp
     flux->energy += signal_speed_k * (factor * conserved[4] - state_k->energy);
 }
 
+// HLLC with restored contact/tangential waves.
 static void hllc(void *flux_, const void *left_, const void *right_, const scalar *property,
                  const Basis *basis)
 {
@@ -347,6 +352,7 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
     local_to_global(flux, basis);
 }
 
+// HLLE with Einfeldt speeds to avoid carbuncles.
 static void hlle(void *flux_, const void *left_, const void *right_, const scalar *property,
                  const Basis *basis)
 {
@@ -390,6 +396,7 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
     local_to_global(flux, basis);
 }
 
+// Lax-Friedrichs/Rusanov with max signal speed estimate.
 static void lxf(void *flux_, const void *left_, const void *right_, const scalar *property,
                 const Basis *basis)
 {
