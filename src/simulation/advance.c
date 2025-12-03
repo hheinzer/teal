@@ -21,7 +21,7 @@ scalar euler(const Equations *eqns, scalar *time, void *residual_, scalar max_st
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     for (long i = 0; i < num_inner; i++) {
@@ -54,7 +54,7 @@ scalar midpoint(const Equations *eqns, scalar *time, void *residual_, scalar max
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -97,7 +97,7 @@ scalar heun(const Equations *eqns, scalar *time, void *residual_, scalar max_ste
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -140,7 +140,7 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar max_
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -183,7 +183,7 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar max_s
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -226,7 +226,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar max_s
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -280,7 +280,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar max_step
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -335,7 +335,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar max_step
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*derivative)[len] = equations_derivative(eqns, variable, 0, *time);
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*variable1)[stride] = arena_malloc(num_cells, sizeof(*variable1));
@@ -431,7 +431,7 @@ scalar lserk(const Equations *eqns, scalar *time, void *residual_, scalar max_st
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*variable0)[stride] = arena_memdup(variable, num_inner, sizeof(*variable));
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     scalar(*derivative)[len] = arena_malloc(num_inner, sizeof(*derivative));
@@ -469,7 +469,7 @@ scalar implicit_euler(const Equations *eqns, scalar *time, void *residual_, scal
     scalar(*variable)[stride] = eqns->variables.data;
     scalar(*variable0)[stride] = arena_memdup(variable, num_inner, sizeof(*variable));
 
-    scalar step0 = courant * equations_time_step(eqns, variable, 0);
+    scalar step0 = courant * equations_time_step(eqns, variable);
     scalar step = fmin(step0, max_step);
 
     *time += step;

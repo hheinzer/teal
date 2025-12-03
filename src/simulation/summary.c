@@ -46,6 +46,6 @@ void simulation_summary(const Simulation *sim)
     }
 
     scalar courant = sim->advance.courant;
-    scalar step0 = courant * equations_time_step(sim->eqns, sim->eqns->variables.data, 0);
+    scalar step0 = courant * equations_time_step(sim->eqns, sim->eqns->variables.data);
     println("\t initial time step : %g", step0);
 }

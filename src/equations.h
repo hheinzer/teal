@@ -195,7 +195,7 @@ void equations_summary(const Equations *eqns);
 void equations_restart(const Equations *eqns, scalar *time, long *index);
 
 // Compute the global stable time step.
-scalar equations_time_step(const Equations *eqns, const void *variable_, scalar *step);
+scalar equations_time_step(const Equations *eqns, const void *variable_);
 
 // Apply boundary conditions to all ghost cells at the specified time.
 void equations_boundary(const Equations *eqns, void *variable_, scalar time);

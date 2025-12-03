@@ -91,7 +91,6 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 
     hid_t group = h5io_group_create("CellData", loc);
 
-    long num_inner = eqns->mesh->cells.num_inner;
     long num_cells = eqns->mesh->cells.off_periodic;
 
     long num = eqns->variables.num;
@@ -100,17 +99,8 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     Name *name = eqns->variables.name;
     scalar(*variable)[stride] = eqns->variables.data;
 
-    scalar *step = arena_malloc(num_cells, sizeof(*step));
-    for (long i = num_inner; i < num_cells; i++) {
-        step[i] = SCALAR_MAX;
-    }
-
     equations_boundary(eqns, variable, time);
-    equations_time_step(eqns, variable, step);
-
     write_variables(dim, name, variable, num, stride, num_cells, group);
-
-    h5io_dataset_write("step", step, num_cells, 1, H5IO_SCALAR, group);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);
