@@ -16,7 +16,7 @@
 enum { MAX_TOKEN = 4096 };
 
 static const MPI_Datatype datatype_of[] = {
-    [I8] = MPI_INT8_T,  [I16] = MPI_INT16_T,  [I32] = MPI_INT32_T,  [I64] = MPI_UINT64_T,
+    [I8] = MPI_INT8_T,  [I16] = MPI_INT16_T,  [I32] = MPI_INT32_T,  [I64] = MPI_INT64_T,
     [U8] = MPI_UINT8_T, [U16] = MPI_UINT16_T, [U32] = MPI_UINT32_T, [U64] = MPI_UINT64_T,
     [F32] = MPI_FLOAT,  [F64] = MPI_DOUBLE,   [STR] = MPI_CHAR,
 };

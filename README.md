@@ -45,7 +45,7 @@ mpirun -n 2 bin/riemann/sod
 Results can be inspected directly in ParaView or with the included plot script:
 
 ```bash
-mpirun -n 2 tools/plot bin/riemann/sod_*.vtkhdf -f density --line
+mpirun -n 2 tools/plot bin/riemann/sod_*.vtkhdf --field density --line
 ```
 
 The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
