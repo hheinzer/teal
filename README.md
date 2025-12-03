@@ -75,7 +75,7 @@ If you find a bug or have a feature request, please open an issue. To contribute
 3. Commit your changes and push to your fork
 4. Open a pull request to the main branch
 
-See [contributing](CONTRIBUTING.md) instructions for guidelines on environment, workflow, and coding
+See [contributing](CONTRIB.md) instructions for guidelines on environment, workflow, and coding
 style.
 
 ## Acknowledgments

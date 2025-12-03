@@ -12,7 +12,7 @@ glad you’re here to improve it.
 
 ## Environment
 
-- See [INSTALL](INSTALL.md) for required dependencies
+- See [installation](INSTALL.md) instructions for required dependencies
 - Default build uses Clang via `mpicc` with debug flags; switch to release flags in the
   [Makefile](Makefile) when benchmarking
 - Build everything with `make` at repo root
