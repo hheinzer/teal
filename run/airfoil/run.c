@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
-    simulation_set_max_iter(sim, 1000);
+    simulation_set_max_iter(sim, 10000);
     simulation_set_out_iter(sim, 100);
     simulation_set_termination(sim, "density", 1e-5);
     simulation_set_advance(sim, "implicit euler", 100, 0);
