@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--clip", action="store_true", help="add clip plane")
     parser.add_argument("--crinkle", action="store_true", help="crinkle clip")
     parser.add_argument("--line", action="store_true", help="plot over line")
+    parser.add_argument("--save", action="store_true", help="save plot instead of showing it")
     parser.add_argument("--video", action="store_true", help="create a video")
     parser.add_argument("--vmin", type=float, help="minimum field value")
     parser.add_argument("--vmax", type=float, help="maximum field value")
@@ -247,13 +248,15 @@ def main():
         print("\n".join(mesh.array_names))
         return
 
+    save = fnames[0] if args.save else None
+
     if len(fnames) == 1:
         mesh = read_mesh(fnames[0])
         mesh = prepare_mesh(mesh, args)
         if args.line and args.field:
-            plot_line(mesh, args)
+            plot_line(mesh, args, save)
         else:
-            plot_field(mesh, args)
+            plot_field(mesh, args, save)
         return
 
     if args.field:
