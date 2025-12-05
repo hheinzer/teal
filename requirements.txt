@@ -1,0 +1,6 @@
+numpy
+pyvista
+matplotlib
+mpi4py
+imageio
+PyPDF2
