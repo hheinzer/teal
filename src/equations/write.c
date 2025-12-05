@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "equations.h"
+#include "sync.h"
 #include "teal/arena.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
@@ -90,7 +91,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 
     hid_t group = h5io_group_create("CellData", loc);
 
-    long num_cells = eqns->mesh->cells.off_periodic;
+    long num_cells = eqns->mesh->cells.num;
 
     long num = eqns->variables.num;
     long stride = eqns->variables.stride;
@@ -98,8 +99,15 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     Name *name = eqns->variables.name;
     scalar(*variable)[stride] = eqns->variables.data;
 
+    Request req = sync_variables(eqns, variable, stride);
+
     equations_boundary(eqns, variable, time);
+
+    sync_wait(eqns, req.recv);
+
     write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
+
+    sync_wait(eqns, req.send);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);
@@ -119,7 +127,7 @@ void equations_write(const Equations *eqns, const char *prefix, scalar time, lon
 
     char lname[128];
     char *slash = strrchr(prefix, '/');
-    sprintf(lname, "%s_mesh.h5", slash ? (slash + 1) : prefix);
+    sprintf(lname, "%s_mesh.vtkhdf", slash ? (slash + 1) : prefix);
 
     hid_t file = h5io_file_create(fname);
     hid_t vtkhdf = h5io_group_create("VTKHDF", file);
@@ -127,14 +135,14 @@ void equations_write(const Equations *eqns, const char *prefix, scalar time, lon
     h5io_attribute_write("Version", (long[]){1, 0}, 2, H5IO_LONG, vtkhdf);
     h5io_attribute_write("Type", "UnstructuredGrid", 1, H5IO_STRING, vtkhdf);
 
-    h5io_link_create(lname, "/nodes/tot", "NumberOfPoints", vtkhdf);
-    h5io_link_create(lname, "/nodes/coord", "Points", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/NumberOfPoints", "NumberOfPoints", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/Points", "Points", vtkhdf);
 
-    h5io_link_create(lname, "/cells/tot", "NumberOfCells", vtkhdf);
-    h5io_link_create(lname, "/cells/tot_idx", "NumberOfConnectivityIds", vtkhdf);
-    h5io_link_create(lname, "/cells/node/off", "Offsets", vtkhdf);
-    h5io_link_create(lname, "/cells/node/idx", "Connectivity", vtkhdf);
-    h5io_link_create(lname, "/cells/type", "Types", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/NumberOfCells", "NumberOfCells", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/NumberOfConnectivityIds", "NumberOfConnectivityIds", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/Offsets", "Offsets", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/Connectivity", "Connectivity", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/Types", "Types", vtkhdf);
 
     write_field_data(eqns, time, vtkhdf);
     write_cell_data(eqns, time, vtkhdf);

@@ -5,7 +5,6 @@
 
 #include "teal/arena.h"
 #include "teal/array.h"
-#include "teal/utils.h"
 
 // Check that map is a permutation of [0,num).
 static bool is_valid(const long *map, long num)
@@ -33,19 +32,13 @@ void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *map)
     assert(is_valid(map, nodes->num));
     Arena save = arena_save();
 
-    struct {
-        long global;
-        vector coord;
-    } *node = arena_malloc(nodes->num, sizeof(*node));
-
+    vector *coord = arena_malloc(nodes->num, sizeof(*coord));
     for (long i = 0; i < nodes->num; i++) {
-        node[map[i]].global = nodes->global[i];
-        node[map[i]].coord = nodes->coord[i];
+        coord[map[i]] = nodes->coord[i];
     }
 
     for (long i = 0; i < nodes->num; i++) {
-        nodes->global[i] = node[i].global;
-        nodes->coord[i] = node[i].coord;
+        nodes->coord[i] = coord[i];
     }
 
     if (cells) {

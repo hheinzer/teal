@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "mesh.h"
@@ -29,19 +28,6 @@ static void test_nodes(const MeshNodes *nodes)
     check(nodes->num > 0);
     check(nodes->num_inner >= 0);
     check(nodes->num_inner <= nodes->num);
-
-    if (nodes->global) {
-        long *global = arena_malloc(nodes->num, sizeof(*global));
-        for (long i = 0; i < nodes->num; i++) {
-            check(nodes->global[i] >= 0);
-            global[i] = nodes->global[i];
-        }
-
-        qsort(global, nodes->num, sizeof(*global), cmp_long);
-        for (long i = 1; i < nodes->num; i++) {
-            check(global[i - 1] != global[i]);
-        }
-    }
 
     if (nodes->coord) {
         for (long i = 0; i < nodes->num; i++) {

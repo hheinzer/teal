@@ -1,5 +1,3 @@
-#include "read.h"
-
 #include <assert.h>
 #include <parmetis.h>
 #include <stdio.h>
@@ -16,16 +14,14 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+void mesh_read_gmsh(Mesh *mesh, const char *fname);
+
 // Dispatch to reader based on file extension.
 static void read_file(Mesh *mesh, const char *fname)
 {
     char *ext = strrchr(fname, '.');
     if (!ext) {
         error("invalid file name (%s)", fname);
-    }
-    if (!strcmp(ext, ".h5")) {
-        mesh_read_hdf5(mesh, fname);
-        return;
     }
     if (!strcmp(ext, ".msh")) {
         mesh_read_gmsh(mesh, fname);
@@ -1194,8 +1190,6 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
 
     arena_load(save);
-
-    nodes->global = arena_smuggle(global, nodes->num, sizeof(*global));
 }
 
 // Translation between periodic pair = mean(center_rhs) - mean(center_lhs).

@@ -41,7 +41,6 @@ enum { MAX_FACE_NODES = 4 };
 typedef struct {
     long num;
     long num_inner;
-    long *global;
     vector *coord;
 } MeshNodes;
 
@@ -137,5 +136,5 @@ void mesh_check(const Mesh *mesh);
 // Print a global mesh summary.
 void mesh_summary(const Mesh *mesh);
 
-// Create HDF5 file `<prefix>_mesh.h5` and write nodes, cells, and entities groups.
+// Write mesh to a VTKHDF file.
 void mesh_write(const Mesh *mesh, const char *prefix);

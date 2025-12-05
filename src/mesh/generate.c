@@ -127,80 +127,6 @@ static void improve_cell_ordering(const MeshNodes *nodes, MeshCells *cells)
     arena_load(save);
 }
 
-// Collect new global node indices for outer nodes from owning ranks.
-static void collect_global(long *global, const long *map, long num_inner, long num)
-{
-    Arena save = arena_save();
-
-    long *num_nodes = arena_malloc(sync.size + 1, sizeof(*num_nodes));
-    num_nodes[0] = 0;
-    MPI_Allgather(&num_inner, 1, MPI_LONG, &num_nodes[1], 1, MPI_LONG, sync.comm);
-    for (long i = 0; i < sync.size; i++) {
-        num_nodes[i + 1] += num_nodes[i];
-    }
-
-    int *num_recv = arena_calloc(sync.size, sizeof(*num_recv));
-    for (long i = num_inner; i < num; i++) {
-        long rank = array_digitize(&num_nodes[1], global[i], sync.size);
-        num_recv[rank] += 1;
-    }
-
-    int *off_recv = arena_malloc(sync.size + 1, sizeof(*off_recv));
-    off_recv[0] = 0;
-    for (long i = 0; i < sync.size; i++) {
-        off_recv[i + 1] = off_recv[i] + num_recv[i];
-    }
-
-    long *idx_recv = arena_malloc(num, sizeof(*idx_recv));
-    for (long i = 0; i < sync.size; i++) {
-        off_recv[i + 1] -= num_recv[i];
-    }
-    for (long i = num_inner; i < num; i++) {
-        long rank = array_digitize(&num_nodes[1], global[i], sync.size);
-        idx_recv[off_recv[rank + 1]++] = global[i] - num_nodes[rank];
-    }
-    for (long i = 0; i < sync.size; i++) {
-        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
-    }
-
-    int *num_send = arena_malloc(sync.size, sizeof(*num_send));
-    MPI_Alltoall(num_recv, 1, MPI_INT, num_send, 1, MPI_INT, sync.comm);
-
-    int *off_send = arena_malloc(sync.size + 1, sizeof(*off_send));
-    off_send[0] = 0;
-    for (long i = 0; i < sync.size; i++) {
-        off_send[i + 1] = off_send[i] + num_send[i];
-    }
-
-    long tot_send = off_send[sync.size];
-    long *idx_send = arena_malloc(tot_send, sizeof(*idx_send));
-    MPI_Alltoallv(idx_recv, num_recv, off_recv, MPI_LONG, idx_send, num_send, off_send, MPI_LONG,
-                  sync.comm);
-
-    long *global_send = arena_malloc(tot_send, sizeof(*global_send));
-    for (long i = 0; i < tot_send; i++) {
-        global_send[i] = global[map[idx_send[i]]];
-    }
-
-    long tot_recv = off_recv[sync.size];
-    long *global_recv = arena_malloc(tot_recv, sizeof(*global_recv));
-    MPI_Alltoallv(global_send, num_send, off_send, MPI_LONG, global_recv, num_recv, off_recv,
-                  MPI_LONG, sync.comm);
-
-    for (long i = 0; i < sync.size; i++) {
-        off_recv[i + 1] -= num_recv[i];
-    }
-    for (long i = num_inner; i < num; i++) {
-        long rank = array_digitize(&num_nodes[1], global[i], sync.size);
-        global[i] = global_recv[off_recv[rank + 1]++];
-    }
-    for (long i = 0; i < sync.size; i++) {
-        assert(off_recv[i + 1] - off_recv[i] == num_recv[i]);
-    }
-
-    arena_load(save);
-}
-
 // Reorder nodes so inner nodes used by cells come first, then outer nodes.
 static void improve_node_ordering(MeshNodes *nodes, MeshCells *cells)
 {
@@ -235,13 +161,6 @@ static void improve_node_ordering(MeshNodes *nodes, MeshCells *cells)
     assert(num == nodes->num);
 
     mesh_reorder_nodes(nodes, cells, map);
-
-    long off_inner = sync_exsum(nodes->num_inner);
-    for (long i = 0; i < nodes->num_inner; i++) {
-        nodes->global[i] = off_inner + i;
-    }
-
-    collect_global(nodes->global, map, nodes->num_inner, nodes->num);
 
     arena_load(save);
 }
