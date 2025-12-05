@@ -472,9 +472,9 @@ Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const boo
     MPI_Cart_coords(sync.comm, sync.rank, ndims, coords);
 
     int neighbor[6];
-    MPI_Cart_shift(sync.comm, 0, 1, &neighbor[0], &neighbor[1]);
-    MPI_Cart_shift(sync.comm, 1, 1, &neighbor[2], &neighbor[3]);
-    MPI_Cart_shift(sync.comm, 2, 1, &neighbor[4], &neighbor[5]);
+    for (long i = 0; i < ndims; i++) {
+        MPI_Cart_shift(sync.comm, i, 1, &neighbor[2 * i], &neighbor[(2 * i) + 1]);
+    }
 
     vector del_coord = vector_sub(max_coord, min_coord);
     split_bounds(&min_coord.x, &max_coord.x, &num_cells.x, 0, ndims, dims, coords);
