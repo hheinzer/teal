@@ -32,6 +32,14 @@ def parse_args():
     return parser.parse_args()
 
 
+def read_mesh(fname):
+    mesh = pv.read(fname)
+    if isinstance(mesh, pv.PartitionedDataSet):
+        blocks = pv.MultiBlock([part for part in mesh if part is not None])
+        mesh = blocks.combine()
+    return mesh
+
+
 def prepare_mesh(mesh, args):
     if args.field:
         mesh.set_active_scalars(args.field)
@@ -39,10 +47,6 @@ def prepare_mesh(mesh, args):
         mesh = mesh.cell_data_to_point_data()
     if args.explode:
         mesh = mesh.explode()
-    else:
-        vol_types = np.array([10, 12, 13, 14], dtype=np.uint8)
-        keep = np.where(np.isin(mesh.celltypes, vol_types))[0]
-        mesh = mesh.extract_cells(keep).clean()
     return mesh
 
 
@@ -221,7 +225,7 @@ def plot_frames(args):
     size = comm.Get_size()
 
     for fname in args.fnames[rank::size]:
-        mesh = pv.read(fname)
+        mesh = read_mesh(fname)
         mesh = prepare_mesh(mesh, args)
         if args.line and args.field:
             plot_line(mesh, args, fname)
@@ -242,14 +246,14 @@ def main():
     fnames = args.fnames
 
     if args.list:
-        mesh = pv.read(fnames[0])
+        mesh = read_mesh(fnames[0])
         print("\n".join(mesh.array_names))
         return
 
     save = fnames[0] if args.save else None
 
     if len(fnames) == 1:
-        mesh = pv.read(fnames[0])
+        mesh = read_mesh(fnames[0])
         mesh = prepare_mesh(mesh, args)
         if args.line and args.field:
             plot_line(mesh, args, save)

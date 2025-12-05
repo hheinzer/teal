@@ -8,7 +8,7 @@
 // - Entities: inner entities (subsets of the interior mesh), then ghost entities, then periodic
 //   entities
 // - Neighbors: periodic neighbors first, then MPI neighbors
-// This ordering guarantees deterministic global indices and enables slicing by category.
+// This ordering guarantees deterministic ordering and enables slicing by category.
 //
 // Connectivity is stored in compressed sparse row (CSR) form:
 // - For a graph with N rows, off has length N+1, idx has length off[N]

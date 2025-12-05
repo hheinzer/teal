@@ -5,9 +5,17 @@ import pyvista as pv
 import matplotlib.pyplot as plt
 
 
+def read_mesh(fname):
+    mesh = pv.read(fname)
+    if isinstance(mesh, pv.PartitionedDataSet):
+        blocks = pv.MultiBlock([part for part in mesh if part is not None])
+        mesh = blocks.combine()
+    return mesh
+
+
 def sample(fname, pointa, pointb):
     name = " ".join(Path(fname).stem.split("_")[:-1])
-    mesh = pv.read(fname)
+    mesh = read_mesh(fname)
     mesh = mesh.sample_over_line(pointa, pointb, resolution=1000)
     return name, mesh.point_data
 
