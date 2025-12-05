@@ -15,7 +15,7 @@ void equations_residual(const Equations *eqns, const void *derivative_, void *re
     scalar sum_volume = eqns->mesh->cells.sum_volume;
 
     long len = eqns->variables.len;
-    const scalar(*derivative)[len] = derivative_;
+    const scalar(*derivative)[len] = (void *)derivative_;
 
     scalar *residual = residual_;
     memset(residual, 0, len * sizeof(*residual));

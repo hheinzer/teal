@@ -269,7 +269,7 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
 
     long len = 3 + (block->parametric ? block->entity_dim : 0);
     block->coord = arena_malloc(num_nodes * len, sizeof(*block->coord));
-    long stride = (mode == ASCII) ? len : (len * sizeof(*block->coord));
+    long stride = (mode == ASCII) ? (size_t)len : (len * sizeof(*block->coord));
     parse_split(mode, F64, block->coord, num_nodes, len, stride, swap, file);
 
     return off + tot_nodes;
@@ -360,7 +360,7 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
             block->tag.u32 = arena_malloc(num_elements, sizeof(*block->tag.u32));
             block->node_tag.u32 = arena_malloc(num_elements * len, sizeof(*block->node_tag.u32));
             long stride = (mode == ASCII)
-                              ? (1 + len)
+                              ? (size_t)(1 + len)
                               : (sizeof(*block->tag.u32) + (len * sizeof(*block->node_tag.u32)));
             parse_split(mode, U32, block->tag.u32, num_elements, 1, stride, swap, file);
             offset =
@@ -372,7 +372,7 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
             block->tag.u64 = arena_malloc(num_elements, sizeof(*block->tag.u64));
             block->node_tag.u64 = arena_malloc(num_elements * len, sizeof(*block->node_tag.u64));
             long stride = (mode == ASCII)
-                              ? (1 + len)
+                              ? (size_t)(1 + len)
                               : (sizeof(*block->tag.u64) + (len * sizeof(*block->node_tag.u64)));
             parse_split(mode, U64, block->tag.u64, num_elements, 1, stride, swap, file);
             offset =

@@ -174,7 +174,7 @@ void equations_limiter(const Equations *eqns, const void *variable_, void *gradi
     scalar *parameter = eqns->limiter.parameter;
     Limiter *compute = eqns->limiter.compute;
 
-    const scalar(*variable)[stride] = variable_;
+    const scalar(*variable)[stride] = (void *)variable_;
     vector(*gradient)[stride] = gradient_;
 
     for (long i = 0; i < num_inner; i++) {

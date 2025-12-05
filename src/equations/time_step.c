@@ -17,7 +17,7 @@ scalar equations_time_step(const Equations *eqns, const void *variable_)
     scalar *property = eqns->properties.data;
     TimeStep *time_step = eqns->time_step;
 
-    const scalar(*variable)[stride] = variable_;
+    const scalar(*variable)[stride] = (void *)variable_;
 
     scalar min = SCALAR_MAX;
     for (long i = 0; i < num_inner; i++) {

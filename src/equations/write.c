@@ -31,7 +31,7 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
 static void write_variables(const long *dim, const Name *name, const void *variable_, long num,
                             long stride, long num_cells, hid_t loc)
 {
-    const scalar(*variable)[stride] = variable_;
+    const scalar(*variable)[stride] = (void *)variable_;
     for (long j = 0, i = 0; i < num; j += dim[i++]) {
         Arena save = arena_save();
 
@@ -78,7 +78,7 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
         }
     }
 
-    write_variables(dim, name, user, num, stride_u, num_cells, loc);
+    write_variables(dim, (void *)name, user, num, stride_u, num_cells, loc);
 
     arena_load(save);
 }
@@ -99,7 +99,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     scalar(*variable)[stride] = eqns->variables.data;
 
     equations_boundary(eqns, variable, time);
-    write_variables(dim, name, variable, num, stride, num_cells, group);
+    write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);

@@ -19,9 +19,9 @@ static void matvec(const Equations *eqns, const void *variable_, const void *der
     scalar *property = eqns->properties.data;
     Update *primitive = eqns->variables.primitive;
 
-    const scalar(*variable)[stride] = variable_;
-    const scalar(*derivative)[len] = derivative_;
-    const scalar(*basis)[len] = basis_;
+    const scalar(*variable)[stride] = (void *)variable_;
+    const scalar(*derivative)[len] = (void *)derivative_;
+    const scalar(*basis)[len] = (void *)basis_;
     scalar(*result)[len] = result_;
 
     scalar eps = fd_scale / sync_norm(*basis, num_inner * len);
@@ -58,9 +58,9 @@ void gmres(const Equations *eqns, const void *variable_, const void *derivative_
     long len = eqns->variables.len;
     long stride = eqns->variables.stride;
 
-    const scalar(*variable)[stride] = variable_;
-    const scalar(*derivative)[len] = derivative_;
-    const scalar(*residual)[len] = residual_;
+    const scalar(*variable)[stride] = (void *)variable_;
+    const scalar(*derivative)[len] = (void *)derivative_;
+    const scalar(*residual)[len] = (void *)residual_;
     scalar(*increment)[len] = increment_;
 
     memset(increment, 0, num_inner * sizeof(*increment));

@@ -146,7 +146,7 @@ MPI_Request *sync_isend(const long *rank, const long *off, const long *idx, cons
 {
     int size;
     MPI_Type_size(type, &size);
-    const char (*arr)[stride * size] = arr_;
+    const char (*arr)[stride * size] = (void *)arr_;
     char (*buf)[stride * size] = arena_malloc(off[num], sizeof(*buf));
     for (long i = 0; i < num; i++) {
         for (long j = off[i]; j < off[i + 1]; j++) {
