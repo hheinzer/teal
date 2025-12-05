@@ -8,6 +8,10 @@
 
 enum { ALIGN = 64 };
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 
 #include <sanitizer/asan_interface.h>
