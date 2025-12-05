@@ -32,12 +32,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def read_mesh(fname):
-    if fname.endswith("_mesh.h5"):
-        return pv.read(fname, force_ext=".vtkhdf")
-    return pv.read(fname)
-
-
 def prepare_mesh(mesh, args):
     if args.field:
         mesh.set_active_scalars(args.field)
@@ -227,7 +221,7 @@ def plot_frames(args):
     size = comm.Get_size()
 
     for fname in args.fnames[rank::size]:
-        mesh = read_mesh(fname)
+        mesh = pv.read(fname)
         mesh = prepare_mesh(mesh, args)
         if args.line and args.field:
             plot_line(mesh, args, fname)
@@ -248,14 +242,14 @@ def main():
     fnames = args.fnames
 
     if args.list:
-        mesh = read_mesh(fnames[0])
+        mesh = pv.read(fnames[0])
         print("\n".join(mesh.array_names))
         return
 
     save = fnames[0] if args.save else None
 
     if len(fnames) == 1:
-        mesh = read_mesh(fnames[0])
+        mesh = pv.read(fnames[0])
         mesh = prepare_mesh(mesh, args)
         if args.line and args.field:
             plot_line(mesh, args, save)
