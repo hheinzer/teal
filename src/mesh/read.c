@@ -528,7 +528,7 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
     if (option.num_refines > 0) {
         verbose("Partition refinement:");
         verbose("\t %4s %12s %10s %s", "iter", "edgecut", "delta", "note");
-        verbose("\t %4d %12td %10d %s", 0, edgecut, 0, "initial");
+        verbose("\t %4d %12ld %10d %s", 0, (long)edgecut, 0, "initial");
 
         idx_t last_edgecut = edgecut;
         idx_t best_edgecut = edgecut;
@@ -551,7 +551,8 @@ static void compute_partitioning(const MeshCells *cells, const Dual *dual, idx_t
                 note = "restored";
             }
 
-            verbose("\t %4ld %12td %+10td %s", i + 1, edgecut, edgecut - last_edgecut, note);
+            long delta = edgecut - last_edgecut;
+            verbose("\t %4ld %12ld %+10ld %s", i + 1, (long)edgecut, delta, note);
             last_edgecut = edgecut;
         }
     }
