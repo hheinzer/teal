@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
 
+import imageio.v2 as imageio
 import numpy as np
+from PyPDF2 import PdfMerger
 import pyvista as pv
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -184,22 +185,22 @@ def plot_field(mesh, args, fname=None):
 def make_video(args):
     prefix = "_".join(args.fnames[0].split("_")[:-1])
     fnames = [str(Path(fname).with_suffix(".png")) for fname in args.fnames]
-    command = [
-        "ffmpeg",
-        "-y",
-        "-framerate",
-        "20",
-        "-i",
-        f"{prefix}_%05d.png",
-        "-pix_fmt",
-        "yuv420p",
-        "-vf",
-        "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-        "-r",
-        "60",
-        f"{prefix}_{args.field}.mp4",
-    ]
-    subprocess.run(command)
+
+    frames = []
+    for fname in sorted(fnames):
+        frame = imageio.imread(fname)
+        h, w = frame.shape[:2]
+        pad_h = h % 2
+        pad_w = w % 2
+        if pad_h or pad_w:
+            pad = ((0, pad_h), (0, pad_w))
+            if frame.ndim == 3:
+                pad = pad + ((0, 0),)
+            frame = np.pad(frame, pad, mode="edge")
+        frames.append(frame)
+
+    imageio.mimsave(f"{prefix}_{args.field}.mp4", frames, fps=20, macro_block_size=1)
+
     for fname in fnames:
         os.remove(fname)
 
@@ -207,12 +208,15 @@ def make_video(args):
 def make_pdf(args):
     prefix = "_".join(args.fnames[0].split("_")[:-1])
     fnames = [str(Path(fname).with_suffix(".pdf")) for fname in args.fnames]
-    command = [
-        "pdfunite",
-        *fnames,
-        f"{prefix}_{args.field}.pdf",
-    ]
-    subprocess.run(command)
+
+    merger = PdfMerger()
+    for fname in sorted(fnames):
+        merger.append(fname)
+
+    with open(f"{prefix}_{args.field}.pdf", "wb") as fh:
+        merger.write(fh)
+    merger.close()
+
     for fname in fnames:
         os.remove(fname)
 
