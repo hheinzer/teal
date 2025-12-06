@@ -40,12 +40,12 @@ static long component_index(char chr)
     }
 }
 
-void simulation_set_termination(Simulation *sim, const char *condition, scalar residual)
+void simulation_set_termination(Simulation *sim, const char *condition, scalar threshold)
 {
-    assert(sim && condition && residual > 0);
+    assert(sim && condition && threshold > 0);
 
     sim->termination.condition = condition;
-    sim->termination.residual = residual;
+    sim->termination.threshold = threshold;
     if (!strcmp(condition, "maximum")) {
         sim->termination.variable = -1;
         return;
@@ -56,10 +56,6 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar r
     if (condition[len - 1] == '-') {
         idx = component_index(condition[len]);
         len -= 2;
-    }
-    else if (condition[len - 2] == '-') {
-        idx = (component_index(condition[len - 1]) * 3) + component_index(condition[len]);
-        len -= 3;
     }
 
     long num = sim->eqns->variables.num;
@@ -123,7 +119,7 @@ void simulation_set_advance(Simulation *sim, const char *name, scalar courant, c
                 error("invalid time order (%ld)", ctx->time_order);
             }
             if (!(1 <= ctx->num_stages && ctx->num_stages <= 6)) {
-                error("invalid long of stages (%ld)", ctx->num_stages);
+                error("invalid number of stages (%ld)", ctx->num_stages);
             }
         }
         else {

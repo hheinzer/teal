@@ -28,7 +28,7 @@ void simulation_summary(const Simulation *sim)
 
     if (sim->termination.condition) {
         println("\t termination       : %s < %g", sim->termination.condition,
-                sim->termination.residual);
+                sim->termination.threshold);
     }
 
     println("\t advance method    : %s", sim->advance.name);

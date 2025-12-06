@@ -35,8 +35,8 @@ scalar simulation_run(Simulation *sim)
     long out_iter = sim->iter.out;
 
     const char *term_condition = sim->termination.condition;
-    long term_variable = sim->termination.variable;
-    scalar term_residual = sim->termination.residual;
+    long variable = sim->termination.variable;
+    scalar threshold = sim->termination.threshold;
 
     const void *ctx = sim->advance.ctx;
     Advance *advance = sim->advance.method;
@@ -75,10 +75,10 @@ scalar simulation_run(Simulation *sim)
 
         scalar max_residual = array_fmax(residual, len);
         if (term_condition) {
-            if (term_variable >= 0) {
-                max_residual = residual[term_variable];
+            if (variable >= 0) {
+                max_residual = residual[variable];
             }
-            has_converged = (max_residual < term_residual);
+            has_converged = (max_residual < threshold);
         }
 
         if (time >= fmin(max_time, out_time) || iter >= lmin(max_iter, out_iter) || has_converged ||
