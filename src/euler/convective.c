@@ -48,7 +48,7 @@ static void godunov(void *flux_, const void *left_, const void *right_, const sc
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
     Euler right = global_to_local(right_, property, basis);
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     Euler face = euler_riemann(&left, &right, gamma, 0);
     euler_conserved(&face, property);
@@ -114,7 +114,7 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
     Euler right = global_to_local(right_, property, basis);
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
     scalar gamma_m1 = gamma - 1;
 
     scalar enthalpy_l = (left.energy + left.pressure) / left.density;
@@ -250,7 +250,7 @@ static void hll(void *flux_, const void *left_, const void *right_, const scalar
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
     Euler right = global_to_local(right_, property, basis);
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar enthalpy_l = (left.energy + left.pressure) / left.density;
     scalar enthalpy_r = (right.energy + right.pressure) / right.density;
@@ -310,7 +310,7 @@ static void hllc(void *flux_, const void *left_, const void *right_, const scala
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
     Euler right = global_to_local(right_, property, basis);
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar enthalpy_l = (left.energy + left.pressure) / left.density;
     scalar enthalpy_r = (right.energy + right.pressure) / right.density;
@@ -359,7 +359,7 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
     Euler right = global_to_local(right_, property, basis);
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar sqrt_density_l = sqrt(left.density);
     scalar sqrt_density_r = sqrt(right.density);
@@ -403,7 +403,7 @@ static void lxf(void *flux_, const void *left_, const void *right_, const scalar
     Conserved *flux = flux_;
     Euler left = global_to_local(left_, property, basis);
     Euler right = global_to_local(right_, property, basis);
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
     scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);

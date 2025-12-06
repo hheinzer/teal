@@ -6,7 +6,7 @@ scalar euler_time_step(const void *variable_, const scalar *property, scalar vol
                        vector projection)
 {
     const Euler *variable = variable_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar speed_of_sound = sqrt(gamma * variable->pressure / variable->density);
     scalar lambda_c_x = (fabs(variable->velocity.x) + speed_of_sound) * projection.x;

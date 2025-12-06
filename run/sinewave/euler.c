@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 void exact(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
     Euler *variable = variable_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
     scalar phase = (b * (center.x + center.y + center.z)) - (c * time);
     variable->density = 2 + (a * sin(phase));
     variable->velocity.x = 1;
@@ -57,7 +57,7 @@ void source(void *source_, const void *variable_, const scalar *property, vector
             scalar time)
 {
     scalar *force = source_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
     scalar phase = (b * (center.x + center.y + center.z)) - (c * time);
     scalar sin_phase = sin(phase);
     scalar cos_phase = cos(phase);

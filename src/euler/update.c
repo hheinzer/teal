@@ -6,7 +6,7 @@
 void euler_conserved(void *variable_, const scalar *property)
 {
     Euler *variable = variable_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     variable->momentum.x = variable->density * variable->velocity.x;
     variable->momentum.y = variable->density * variable->velocity.y;
@@ -18,7 +18,7 @@ void euler_conserved(void *variable_, const scalar *property)
 void euler_primitive(void *variable_, const scalar *property)
 {
     Euler *variable = variable_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     static const scalar min_density = 1e-8;
     variable->density = fmax(min_density, variable->density);

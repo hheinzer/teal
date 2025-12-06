@@ -58,7 +58,7 @@ static void subsonic_inflow(void *ghost_, const void *inner_, const void *refere
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
     const Euler *reference = reference_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar density = inner->density;
     scalar speed_of_sound2 = gamma * inner->pressure / inner->density;
@@ -82,7 +82,7 @@ static void subsonic_outflow(void *ghost_, const void *inner_, const void *refer
     Euler *ghost = ghost_;
     const Euler *inner = inner_;
     const Euler *reference = reference_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar density = inner->density;
     scalar speed_of_sound2 = gamma * inner->pressure / inner->density;
@@ -121,7 +121,7 @@ static void farfield(void *ghost_, const void *inner_, const void *reference_,
                      const scalar *property, const Basis *basis)
 {
     Euler *ghost = ghost_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
     scalar gamma_m1 = gamma - 1;
 
     Euler inner = global_to_local(inner_, property, basis);

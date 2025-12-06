@@ -11,6 +11,10 @@ typedef struct {
     scalar pressure;
 } Euler;
 
+typedef enum {
+    EULER_HEAT_CAPACITY_RATIO,
+} EulerProperties;
+
 // Convert primitive and conserved variables.
 Update euler_conserved, euler_primitive;
 

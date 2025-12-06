@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 void exact(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
     Euler *variable = variable_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
     scalar location = (center.x - x0) / time;
     *variable = euler_riemann(&left, &right, gamma, location);
 }

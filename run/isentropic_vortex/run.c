@@ -45,7 +45,7 @@ static scalar wrap(scalar x, scalar xmin, scalar xmax)
 void exact(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
     Euler *variable = variable_;
-    scalar gamma = property[0];
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
 
     scalar dx = wrap(center.x - (velocity.x * time), 0, 10) - position.x;
     scalar dy = wrap(center.y - (velocity.y * time), 0, 10) - position.y;
