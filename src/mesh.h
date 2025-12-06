@@ -79,6 +79,11 @@ typedef struct {
 } Offset;
 
 typedef struct {
+    vector unit;
+    scalar norm;
+} Correction;
+
+typedef struct {
     long num;
     long num_inner;
     long off_ghost;  // num_inner + num_ghost
@@ -86,9 +91,10 @@ typedef struct {
     Adjacent *cell;  // face-to-cell connectivity
     scalar *area;
     vector *center;
-    Basis *basis;    // local orthonormal basis
-    Weight *weight;  // least-squares weights for gradient reconstruction
-    Offset *offset;  // cell-to-face offset
+    Basis *basis;            // local orthonormal basis
+    Weight *weight;          // least-squares weights for gradient reconstruction
+    Offset *offset;          // cell-to-face offset
+    Correction *correction;  // correction vector for gradient averaging
 } MeshFaces;
 
 typedef char Name[128];

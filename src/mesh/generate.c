@@ -768,7 +768,8 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
     faces->weight = arena_smuggle(weight, faces->num, sizeof(*weight));
 }
 
-void compute_face_offsets(const MeshCells *cells, MeshFaces *faces)
+// Compute face-to-cell offset vectors from face center to each adjacent cell center.
+static void compute_face_offsets(const MeshCells *cells, MeshFaces *faces)
 {
     Offset *offset = arena_malloc(faces->num, sizeof(*offset));
     for (long i = 0; i < faces->num; i++) {
@@ -778,6 +779,22 @@ void compute_face_offsets(const MeshCells *cells, MeshFaces *faces)
         offset[i].right = vector_sub(faces->center[i], cells->center[right]);
     }
     faces->offset = offset;
+}
+
+// Compute face correction vectors (unit direction and length between adjacent cell centers).
+static void compute_face_correction(const MeshCells *cells, MeshFaces *faces)
+{
+    Correction *correction = arena_malloc(faces->num, sizeof(*correction));
+    for (long i = 0; i < faces->num; i++) {
+        long left = faces->cell[i].left;
+        long right = faces->cell[i].right;
+        vector delta = vector_sub(cells->center[right], cells->center[left]);
+        scalar norm = vector_norm(delta);
+        assert(norm > 0);
+        correction[i].unit = vector_div(delta, norm);
+        correction[i].norm = norm;
+    }
+    faces->correction = correction;
 }
 
 void mesh_generate(Mesh *mesh)
@@ -803,4 +820,5 @@ void mesh_generate(Mesh *mesh)
     compute_cell_offsets(&mesh->nodes, &mesh->cells);
     compute_face_weights(&mesh->cells, &mesh->faces);
     compute_face_offsets(&mesh->cells, &mesh->faces);
+    compute_face_correction(&mesh->cells, &mesh->faces);
 }
