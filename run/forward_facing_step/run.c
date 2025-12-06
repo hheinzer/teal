@@ -4,7 +4,7 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    Mesh *mesh = mesh_read("run/ffs/mesh.msh");
+    Mesh *mesh = mesh_read("run/forward_facing_step/mesh.msh");
     mesh_generate(mesh);
     mesh_summary(mesh);
 

@@ -34,7 +34,9 @@ ParseFile parse_open(const char *fname)
     ParseFile file = {0};
     if (sync.rank == 0) {
         file.stream = fopen(fname, "rb");
-        assert(file.stream);
+        if (!file.stream) {
+            error("could not open file (%s)", fname);
+        }
     }
     MPI_File_open(sync.comm, fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &file.handle);
     return file;

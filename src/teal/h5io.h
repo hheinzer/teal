@@ -6,8 +6,8 @@
 #define H5IO_SCALAR (sizeof(scalar) == sizeof(float) ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE)
 #define H5IO_STRING H5T_C_S1
 
-hid_t h5io_file_open(const char *name);
-hid_t h5io_file_create(const char *name);
+hid_t h5io_file_open(const char *fname);
+hid_t h5io_file_create(const char *fname);
 void h5io_file_close(hid_t file);
 
 hid_t h5io_group_open(const char *name, hid_t loc);

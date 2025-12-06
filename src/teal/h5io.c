@@ -4,26 +4,29 @@
 #include <string.h>
 
 #include "sync.h"
+#include "teal/utils.h"
 
-hid_t h5io_file_open(const char *name)
+hid_t h5io_file_open(const char *fname)
 {
-    assert(name);
+    assert(fname);
 
     hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
     assert(plist != H5I_INVALID_HID);
     H5Pset_fapl_mpio(plist, sync.comm, MPI_INFO_NULL);
     H5Pset_all_coll_metadata_ops(plist, true);
 
-    hid_t file = H5Fopen(name, H5F_ACC_RDONLY, plist);
-    assert(file != H5I_INVALID_HID);
+    hid_t file = H5Fopen(fname, H5F_ACC_RDONLY, plist);
+    if (file == H5I_INVALID_HID) {
+        error("could not open file (%s)", fname);
+    }
 
     H5Pclose(plist);
     return file;
 }
 
-hid_t h5io_file_create(const char *name)
+hid_t h5io_file_create(const char *fname)
 {
-    assert(name);
+    assert(fname);
 
     hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
     assert(plist != H5I_INVALID_HID);
@@ -31,8 +34,10 @@ hid_t h5io_file_create(const char *name)
     H5Pset_all_coll_metadata_ops(plist, true);
     H5Pset_coll_metadata_write(plist, true);
 
-    hid_t file = H5Fcreate(name, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
-    assert(file != H5I_INVALID_HID);
+    hid_t file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
+    if (file == H5I_INVALID_HID) {
+        error("could not create file (%s)", fname);
+    }
 
     H5Pclose(plist);
     return file;
