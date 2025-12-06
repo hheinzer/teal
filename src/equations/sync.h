@@ -12,7 +12,7 @@ typedef struct {
 // Start nonblocking halo exchange for cell-centered variables.
 Request sync_variables(const Equations *eqns, void *variable, long stride);
 
-// Start nonblocking halo exchange for cell-centered gradients (3 components each).
+// Start nonblocking halo exchange for cell-centered gradients.
 Request sync_gradients(const Equations *eqns, void *gradient, long stride);
 
 // Wait for a previously initiated exchange.

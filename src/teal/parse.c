@@ -69,7 +69,7 @@ void parse_set_offset(ParseFile file, long offset)
     }
 }
 
-// Read next ASCII token from stream; unquote string it the `type == STR` and quotes are used.
+// Read next ASCII token from stream; unquote string if `type == STR` and quotes are used.
 static long next(ParseType type, char *token, long size, FILE *stream)
 {
     long chr;

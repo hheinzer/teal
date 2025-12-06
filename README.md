@@ -1,17 +1,17 @@
-![](img/teal.svg)
+![](.teal.svg)
 
 Teal is a general-purpose computational fluid dynamics library for solving hyperbolic-parabolic
-conservation laws on 3D unstructured meshes using the finite-volume method. It includes a simple
-mesh generator and integrates with Gmsh for complex geometries. Built-in solvers cover the
-compressible Euler and Navier-Stokes equations, with support for user-defined source terms. The teal
-API is designed for flexibility, making it straightforward to extend to other systems of equations.
+conservation laws on 3D unstructured meshes using the finite-volume method. It ships with a simple
+mesh generator, integrates with Gmsh for complex geometries, and includes solvers for compressible
+Euler and Navier-Stokes equations with support for user-defined source terms. The teal API is
+designed for flexibility, making it straightforward to extend to other systems of equations.
 
-## Features
+## Highlights
 
 - **Meshes**
     - 3D unstructured mixed meshes
     - Built-in Cartesian mesh generator
-    - Readers for Gmsh and internal formats
+    - Parallel reader for Gmsh
     - Extensible to additional formats
 - **Accuracy**
     - 2nd-order spatial accuracy
@@ -22,6 +22,14 @@ API is designed for flexibility, making it straightforward to extend to other sy
 - **Equations**
     - Compressible Euler and Navier-Stokes
     - Modular design for adding other conservation laws
+
+## Requirements
+
+- C tool chain and build tools: `make` plus either Clang or GCC (set `CC` in `Makefile`)
+- MPI implementation with `mpicc` (Open MPI or MPICH) on your `PATH`
+- HDF5 **built with MPI support** (headers + libs)
+- METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
+- Gmsh (to generate meshes from `.geo` in `run/`)
 
 ## Getting started
 
@@ -42,22 +50,16 @@ shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube):
 mpirun -n 2 bin/riemann/sod
 ```
 
-Results can be inspected directly in ParaView or with the included plot script:
-
-```bash
-mpirun -n 2 tools/plot bin/riemann/sod_00001.vtkhdf --field density --line
-```
+Visualize the resulting VTKHDF files directly in ParaView.
 
 The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
 you can follow the program flow directly in the source.
-
-Check the [installation](INSTALL.md) instructions if you run into compilation issues.
 
 ## Documentation
 
 For now, there is no dedicated documentation. In my opinion, function and variable names together
 with inline comments should be enough to understand what's going on. If there is enough interest in
-the project, I'll invest time in proper documentation.
+the project, I'll invest time into proper documentation.
 
 If you want to explore the code, the [src](src/) directory contains the main modules of teal. Each
 module's header file provides a brief overview and lists public functions. The folder named after
@@ -74,9 +76,6 @@ If you find a bug or have a feature request, please open an issue. To contribute
 2. Create a new branch for your feature or bug fix
 3. Commit your changes and push to your fork
 4. Open a pull request to the main branch
-
-See [contributing](CONTRIB.md) instructions for guidelines on environment, workflow, and coding
-style.
 
 ## Acknowledgments
 

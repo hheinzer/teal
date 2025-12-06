@@ -31,8 +31,8 @@ void parse(ParseMode mode, ParseType type, void *data, long num, bool swap, Pars
 
 // Parse `num` groups of `len` ASCII tokens with a stride of `stride` tokens into data. Set file
 // position to `beg + len` if `stride > len`, else to end of the full block excluding the last
-// `stride - len` tokens. Return that end offset. Data is read on rank `0` and then sent to the
-// destination rank.
+// `stride - len` tokens. Return that end offset. Data is read on rank `0`, split, and each rank
+// receives its own block.
 long parse_split_ascii(ParseType type, void *data, long num, long len, long stride, ParseFile file);
 
 // Parse `num` groups of `len` binary items with a stride of `stride` bytes into data; optionally

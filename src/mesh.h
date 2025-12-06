@@ -29,7 +29,7 @@
 // - 2D: triangle (3 nodes), quadrangle (4 nodes)
 // - 3D: tetrahedron (4 nodes), pyramid (5 nodes), wedge (6 nodes), hexahedron (8 nodes)
 //
-// Periodic boundaries must be representable through translation; rotations is not supported.
+// Periodic boundaries must be representable through translation; rotations are not supported.
 #pragma once
 
 #include "teal.h"
@@ -130,7 +130,7 @@ void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal);
 // Build connectivity, faces, neighbor graphs, geometry, and reconstruction weights.
 void mesh_generate(Mesh *mesh);
 
-// Check the mesh integrety and report violations.
+// Check the mesh integrity and report violations.
 void mesh_check(const Mesh *mesh);
 
 // Print a global mesh summary.

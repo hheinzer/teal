@@ -132,7 +132,8 @@ typedef struct {
 // Create an empty equation system based on a mesh.
 Equations *equations_create(const Mesh *mesh, const char *name);
 
-// Create the primary variables for all mesh cells, initialized to zero.
+// Create the primary variables for all mesh cells, initialized to zero. The first `num_conserved`
+// entries are treated as conserved and determine `len`; the remaining entries are primitive-only.
 void equations_create_variables(Equations *eqns, const long *dim, const char **name,
                                 Update *conserved, Update *primitive, long num_conserved, long num);
 
