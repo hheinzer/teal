@@ -106,6 +106,53 @@ static void create_nodes(MeshNodes *nodes, vector min_coord, vector max_coord, t
     nodes->coord = coord;
 }
 
+// Fill local inner nodes lexicographically, then exchange boundary indices with neighbor ranks.
+static void compute_globals(MeshNodes *nodes, tuple num_nodes, const int *dims, const int *coords,
+                            const int *neighbor)
+{
+    long *global = arena_malloc(nodes->num, sizeof(*global));
+    long off_inner = sync_exsum(nodes->num_inner);
+    long tag_x = sync_tag();
+    long tag_y = sync_tag();
+    long tag_z = sync_tag();
+    long num = 0;
+    long num_inner = 0;
+    for (long k = 0; k < num_nodes.z; k++) {
+        for (long j = 0; j < num_nodes.y; j++) {
+            for (long i = 0; i < num_nodes.x; i++) {
+                if (!(i == 0 && coords[0]) && !(j == 0 && coords[1]) && !(k == 0 && coords[2])) {
+                    global[num] = off_inner + num_inner++;
+                }
+                if (i == 0 && coords[0]) {
+                    MPI_Recv(&global[num], 1, MPI_LONG, neighbor[0], tag_x, sync.comm,
+                             MPI_STATUS_IGNORE);
+                }
+                if (j == 0 && coords[1]) {
+                    MPI_Recv(&global[num], 1, MPI_LONG, neighbor[2], tag_y, sync.comm,
+                             MPI_STATUS_IGNORE);
+                }
+                if (k == 0 && coords[2]) {
+                    MPI_Recv(&global[num], 1, MPI_LONG, neighbor[4], tag_z, sync.comm,
+                             MPI_STATUS_IGNORE);
+                }
+                if (i == num_nodes.x - 1 && coords[0] < dims[0] - 1) {
+                    MPI_Send(&global[num], 1, MPI_LONG, neighbor[1], tag_x, sync.comm);
+                }
+                if (j == num_nodes.y - 1 && coords[1] < dims[1] - 1) {
+                    MPI_Send(&global[num], 1, MPI_LONG, neighbor[3], tag_y, sync.comm);
+                }
+                if (k == num_nodes.z - 1 && coords[2] < dims[2] - 1) {
+                    MPI_Send(&global[num], 1, MPI_LONG, neighbor[5], tag_z, sync.comm);
+                }
+                num += 1;
+            }
+        }
+    }
+    assert(num == nodes->num);
+    assert(num_inner == nodes->num_inner);
+    nodes->global = global;
+}
+
 // Number of cells on a given side of the Cartesian block.
 static long num_cells_side(tuple num_cells, long idx)
 {
@@ -441,6 +488,7 @@ Mesh *mesh_create(vector min_coord, vector max_coord, tuple num_cells, const boo
 
     tuple num_nodes = {num_cells.x + 1, num_cells.y + 1, num_cells.z + 1};
     create_nodes(&mesh->nodes, min_coord, max_coord, num_cells, num_nodes, coords);
+    compute_globals(&mesh->nodes, num_nodes, dims, coords, neighbor);
 
     create_cells(&mesh->cells, num_cells, num_nodes, ndims, dims, coords, neighbor);
     reorder(&mesh->nodes, &mesh->cells, num_cells, num_nodes, ndims, dims, coords, neighbor);

@@ -1190,6 +1190,8 @@ static void partition_nodes(MeshNodes *nodes, MeshCells *cells)
     }
 
     arena_load(save);
+
+    nodes->global = arena_smuggle(global, nodes->num, sizeof(*global));
 }
 
 // Translation between periodic pair = mean(center_rhs) - mean(center_lhs).

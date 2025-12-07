@@ -32,13 +32,19 @@ void mesh_reorder_nodes(MeshNodes *nodes, MeshCells *cells, const long *map)
     assert(is_valid(map, nodes->num));
     Arena save = arena_save();
 
-    vector *coord = arena_malloc(nodes->num, sizeof(*coord));
+    struct {
+        long global;
+        vector coord;
+    } *node = arena_malloc(nodes->num, sizeof(*node));
+
     for (long i = 0; i < nodes->num; i++) {
-        coord[map[i]] = nodes->coord[i];
+        node[map[i]].global = nodes->global[i];
+        node[map[i]].coord = nodes->coord[i];
     }
 
     for (long i = 0; i < nodes->num; i++) {
-        nodes->coord[i] = coord[i];
+        nodes->global[i] = node[i].global;
+        nodes->coord[i] = node[i].coord;
     }
 
     if (cells) {

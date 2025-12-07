@@ -41,6 +41,7 @@ enum { MAX_FACE_NODES = 4 };
 typedef struct {
     long num;
     long num_inner;
+    long *global;
     vector *coord;
 } MeshNodes;
 
