@@ -1,7 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "euler.h"
-#include "teal/arena.h"
 
 scalar alpha;
 Euler inner = {.density = 1, .pressure = 1};
@@ -12,37 +12,30 @@ Source source;
 int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
+    alpha = (argc > 1) ? strtod(argv[1], 0) : 0;
 
-    for (int i = 0; i < 3; i++) {
-        Arena save = arena_save();
+    vector min_coord = {.x = 0};
+    vector max_coord = {.x = 1};
+    tuple num_cells = {.x = 1000};
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
+    mesh_generate(mesh);
+    mesh_summary(mesh);
 
-        alpha = i;
+    Equations *eqns = euler_create(mesh);
+    equations_set_user_source(eqns, source);
+    equations_set_boundary_condition(eqns, "left", "symmetry", 0, 0);
+    equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
+    equations_set_initial_condition(eqns, "domain", initial, 0);
+    equations_summary(eqns);
 
-        vector min_coord = {.x = 0};
-        vector max_coord = {.x = 1};
-        tuple num_cells = {.x = 1000};
-        Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
-        mesh_generate(mesh);
-        mesh_summary(mesh);
+    char prefix[128];
+    sprintf(prefix, "%s_alpha_%g", argv[0], alpha);
 
-        Equations *eqns = euler_create(mesh);
-        equations_set_user_source(eqns, source);
-        equations_set_boundary_condition(eqns, "left", "symmetry", 0, 0);
-        equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
-        equations_set_initial_condition(eqns, "domain", initial, 0);
-        equations_summary(eqns);
+    Simulation *sim = simulation_create(eqns, prefix);
+    simulation_set_max_time(sim, 0.25);
+    simulation_summary(sim);
 
-        char prefix[128];
-        sprintf(prefix, "%s_alpha_%g", argv[0], alpha);
-
-        Simulation *sim = simulation_create(eqns, prefix);
-        simulation_set_max_time(sim, 0.25);
-        simulation_summary(sim);
-
-        simulation_run(sim);
-
-        arena_load(save);
-    }
+    simulation_run(sim);
 
     teal_finalize();
 }
