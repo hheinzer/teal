@@ -1,5 +1,5 @@
 SetFactory("OpenCASCADE");
-lc = 0.01;
+lc = 0.02;
 
 Point(1) = {0, 0, 0, lc};
 Point(2) = {8, 0, 0, lc};
