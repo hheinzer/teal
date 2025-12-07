@@ -116,7 +116,7 @@ void *arena_resize(const void *ptr, long num, long size)
     return 0;
 }
 
-static void *(*const volatile force_memmove)(void *, const void *, size_t) = memmove;
+static void *(*volatile force_memmove)(void *, const void *, size_t) = memmove;
 
 void *arena_smuggle(const void *ptr, long num, long size)
 {

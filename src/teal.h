@@ -22,5 +22,5 @@ void teal_initialize(int *argc, char ***argv);
 // Call exactly once at program end, after teal usage.
 void teal_finalize(void);
 
-// Safely exit teal with a status code.
+// Exit teal with a status code.
 void teal_exit(int status) __attribute((noreturn));
