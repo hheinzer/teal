@@ -5,7 +5,7 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    Mesh *mesh = mesh_read("run/inlet/mesh.msh");
+    Mesh *mesh = mesh_read("run/scramjet_inlet/mesh.msh");
     mesh_generate(mesh);
     mesh_summary(mesh);
 

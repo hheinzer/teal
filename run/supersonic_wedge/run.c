@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
     teal_initialize(&argc, &argv);
 
-    Mesh *mesh = mesh_read("run/wedge/mesh.msh");
+    Mesh *mesh = mesh_read("run/supersonic_wedge/mesh.msh");
     mesh_generate(mesh);
     mesh_summary(mesh);
 
