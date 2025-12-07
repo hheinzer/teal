@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "equations.h"
-#include "sync.h"
 #include "teal/arena.h"
 #include "teal/h5io.h"
 #include "teal/sync.h"
@@ -91,7 +90,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 
     hid_t group = h5io_group_create("CellData", loc);
 
-    long num_cells = eqns->mesh->cells.num;
+    long num_cells = eqns->mesh->cells.num_inner;
 
     long num = eqns->variables.num;
     long stride = eqns->variables.stride;
@@ -99,15 +98,7 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     Name *name = eqns->variables.name;
     scalar(*variable)[stride] = eqns->variables.data;
 
-    Request req = sync_variables(eqns, variable, stride);
-
-    equations_boundary(eqns, variable, time);
-
-    sync_wait(eqns, req.recv);
-
     write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
-
-    sync_wait(eqns, req.send);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);
@@ -143,6 +134,11 @@ void equations_write(const Equations *eqns, const char *prefix, scalar time, lon
     h5io_link_create(lname, "/VTKHDF/Offsets", "Offsets", vtkhdf);
     h5io_link_create(lname, "/VTKHDF/Connectivity", "Connectivity", vtkhdf);
     h5io_link_create(lname, "/VTKHDF/Types", "Types", vtkhdf);
+
+    hid_t point_data = h5io_group_create("PointData", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/PointData/GlobalNodeId", "GlobalNodeId", point_data);
+    h5io_link_create(lname, "/VTKHDF/PointData/vtkGhostType", "vtkGhostType", point_data);
+    h5io_group_close(point_data);
 
     write_field_data(eqns, time, vtkhdf);
     write_cell_data(eqns, time, vtkhdf);
