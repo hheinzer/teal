@@ -15,7 +15,7 @@ CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings
 #CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 
 # release flags
-CFLAGS += -O3 -ffast-math -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
+CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
 
 # gprof flags
 #CFLAGS += -pg -fno-inline-functions
