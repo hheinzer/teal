@@ -53,8 +53,8 @@ void simulation_set_termination(Simulation *sim, const char *condition, scalar t
 
     long idx = 0;
     int len = strlen(condition);
-    if (condition[len - 1] == '-') {
-        idx = component_index(condition[len]);
+    if (len > 2 && condition[len - 2] == '-') {
+        idx = component_index(condition[len - 1]);
         len -= 2;
     }
 
