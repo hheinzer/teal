@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_iter(sim, 1000);
     simulation_set_out_iter(sim, 50);
-    simulation_set_termination(sim, "velocity-x", 1e-5);
+    simulation_set_termination(sim, "momentum-x", 1e-5);
     simulation_set_advance(sim, "implicit euler", 100, 0);
     simulation_summary(sim);
 

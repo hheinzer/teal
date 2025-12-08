@@ -1,6 +1,6 @@
+#define _GNU_SOURCE
 #include "euler.h"
 
-#define _GNU_SOURCE
 #include <math.h>
 
 #include "teal/utils.h"
