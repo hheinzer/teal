@@ -4,6 +4,15 @@
 #include "equations.h"
 #include "teal/utils.h"
 
+static long max_length(const Name *name, long beg, long end)
+{
+    long max = 0;
+    for (long i = beg; i < end; i++) {
+        max = lmax(max, strlen(name[i]));
+    }
+    return max;
+}
+
 void equations_summary(const Equations *eqns)
 {
     assert(eqns);
@@ -13,13 +22,11 @@ void equations_summary(const Equations *eqns)
     long off_ghost = eqns->mesh->entities.off_ghost;
     Name *entity = eqns->mesh->entities.name;
 
-    long num = eqns->boundary.num;
+    long num_properties = eqns->properties.num;
+    long num_boundaries = eqns->boundary.num;
+    Name *property = eqns->properties.name;
+    scalar *value = eqns->properties.data;
     Name *name = eqns->boundary.name;
-
-    int width = 0;
-    for (long i = num_inner; i < num_entities; i++) {
-        width = lmax(width, strlen(entity[i]));
-    }
 
     println("Equations summary");
     println("\t name            : %s", eqns->name);
@@ -28,8 +35,15 @@ void equations_summary(const Equations *eqns)
     println("\t viscous flux    : %s", eqns->viscous.name);
     println("\t limiter         : %s", eqns->limiter.name);
 
+    println("\t Material properties");
+    int width = max_length(property, 0, num_properties);
+    for (long i = 0; i < num_properties; i++) {
+        println("\t\t %-*s : %g", width, property[i], value[i]);
+    }
+
     println("\t Boundary conditions");
-    for (long i = 0; i < num; i++) {
+    width = max_length(entity, num_inner, num_entities);
+    for (long i = 0; i < num_boundaries; i++) {
         println("\t\t %-*s : %s", width, entity[num_inner + i], name[i]);
     }
     for (long i = off_ghost; i < num_entities; i++) {
