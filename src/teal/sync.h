@@ -13,6 +13,7 @@ typedef struct {
     MPI_Comm comm;
     long rank;
     long size;
+    double wait;
 } Sync;
 
 extern Sync sync;

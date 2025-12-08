@@ -7,6 +7,7 @@
 #include "simulation.h"
 #include "teal/arena.h"
 #include "teal/array.h"
+#include "teal/sync.h"
 #include "teal/utils.h"
 
 static volatile sig_atomic_t sig_terminate = 0;
@@ -59,8 +60,9 @@ scalar simulation_run(Simulation *sim)
     signal(SIGINT, handler);
     signal(SIGTERM, handler);
 
-    scalar wtime_beg = MPI_Wtime();
-    scalar wtime_last = wtime_beg;
+    sync.wait = 0;
+    double wtime_beg = MPI_Wtime();
+    double wtime_last = wtime_beg;
 
     for (long iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
         scalar max_step = fmin(max_time, out_time) - time;
@@ -83,8 +85,8 @@ scalar simulation_run(Simulation *sim)
 
         if (time >= fmin(max_time, out_time) || iter >= lmin(max_iter, out_iter) || has_converged ||
             sig_terminate) {
-            scalar wtime_now = MPI_Wtime();
-            scalar wtime = wtime_now - wtime_last;
+            double wtime_now = MPI_Wtime();
+            double wtime = wtime_now - wtime_last;
             if (prefix) {
                 equations_write(eqns, prefix, time, index++);
             }
@@ -99,14 +101,20 @@ scalar simulation_run(Simulation *sim)
         }
     }
 
-    scalar wtime_end = MPI_Wtime();
+    double wtime_end = MPI_Wtime();
 
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
 
     char wtime[128];
     seconds_to_str(wtime, wtime_end - wtime_beg);
-    println("\t computation time : %s", wtime);
+    println("\t computation time  : %s", wtime);
+
+    char avg_wait[128];
+    char max_wait[128];
+    seconds_to_str(avg_wait, sync_fsum(sync.wait) / sync.size);
+    seconds_to_str(max_wait, sync_fmax(sync.wait));
+    println("\t avg/max wait time : %s / %s", avg_wait, max_wait);
 
     arena_load(save);
     return time;

@@ -44,5 +44,8 @@ void sync_wait(const Equations *eqns, MPI_Request *req)
 {
     assert(eqns && req);
     long num = eqns->mesh->neighbors.num;
+    double wtime_beg = MPI_Wtime();
     MPI_Waitall(num, req, MPI_STATUSES_IGNORE);
+    double wtime_end = MPI_Wtime();
+    sync.wait += wtime_end - wtime_beg;
 }
