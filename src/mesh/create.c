@@ -63,7 +63,9 @@ static void split_bounds(scalar *min_coord, scalar *max_coord, long *num_cells, 
                          long ndims, const int *dims, const int *coords)
 {
     if (ndims > dim) {
-        assert(!is_close(*min_coord, *max_coord));
+        if (is_close(*min_coord, *max_coord)) {
+            error("invalid bounds (%g, %g) for axis (%ld)", *min_coord, *max_coord, dim);
+        }
         scalar width = (*max_coord - *min_coord) / *num_cells;
         long base = *num_cells / dims[dim];
         long extra = *num_cells % dims[dim];
