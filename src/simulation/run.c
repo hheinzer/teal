@@ -64,16 +64,16 @@ scalar simulation_run(Simulation *sim)
     double wtime_beg = MPI_Wtime();
     double wtime_last = wtime_beg;
 
-    for (long iter = 0; iter < max_iter && time < max_time && !has_converged && !sig_terminate;) {
+    long iter = 0;
+    while (iter < max_iter && is_less(time, max_time) && !has_converged && !sig_terminate) {
         scalar max_step = fmin(max_time, out_time) - time;
         scalar step0 = advance(eqns, &time, residual, max_step, courant, ctx);
+        iter += 1;
 
         assert(isfinite(step0));
         for (long i = 0; i < len; i++) {
             assert(isfinite(residual[i]));
         }
-
-        iter += 1;
 
         scalar max_residual = array_fmax(residual, len);
         if (term_condition) {
@@ -83,8 +83,9 @@ scalar simulation_run(Simulation *sim)
             has_converged = (max_residual < threshold);
         }
 
-        if (time >= fmin(max_time, out_time) || iter >= lmin(max_iter, out_iter) || has_converged ||
-            sig_terminate) {
+        bool has_reached_time = is_close_or_greater(time, fmin(max_time, out_time));
+        bool has_reached_iter = iter >= lmin(max_iter, out_iter);
+        if (has_reached_time || has_reached_iter || has_converged || sig_terminate) {
             double wtime_now = MPI_Wtime();
             double wtime = wtime_now - wtime_last;
             if (prefix) {

@@ -48,6 +48,16 @@ bool is_greater(scalar lhs, scalar rhs)
     return !is_close(lhs, rhs) && lhs > rhs;
 }
 
+bool is_close_or_less(scalar lhs, scalar rhs)
+{
+    return is_close(lhs, rhs) || lhs < rhs;
+}
+
+bool is_close_or_greater(scalar lhs, scalar rhs)
+{
+    return is_close(lhs, rhs) || lhs > rhs;
+}
+
 void println(const char *fmt, ...)
 {
     assert(fmt);

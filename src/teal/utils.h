@@ -19,6 +19,8 @@ long lmax(long lhs, long rhs);
 bool is_close(scalar lhs, scalar rhs);
 bool is_less(scalar lhs, scalar rhs);
 bool is_greater(scalar lhs, scalar rhs);
+bool is_close_or_less(scalar lhs, scalar rhs);
+bool is_close_or_greater(scalar lhs, scalar rhs);
 
 void println(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void verbose(const char *fmt, ...) __attribute((format(printf, 1, 2)));
