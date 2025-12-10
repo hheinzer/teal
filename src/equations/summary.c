@@ -36,13 +36,13 @@ void equations_summary(const Equations *eqns)
     println("\t limiter         : %s", eqns->limiter.name);
 
     println("\t Material properties");
-    int width = max_length(property, 0, num_properties);
+    int width = max_length((void *)property, 0, num_properties);
     for (long i = 0; i < num_properties; i++) {
         println("\t\t %-*s : %g", width, property[i], value[i]);
     }
 
     println("\t Boundary conditions");
-    width = max_length(entity, num_inner, num_entities);
+    width = max_length((void *)entity, num_inner, num_entities);
     for (long i = 0; i < num_boundaries; i++) {
         println("\t\t %-*s : %s", width, entity[num_inner + i], name[i]);
     }
