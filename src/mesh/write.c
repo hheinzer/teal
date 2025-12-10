@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <string.h>
 
 #include "mesh.h"
@@ -7,6 +8,26 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+static bool is_flat(const MeshNodes *nodes, const MeshCells *cells, long idx)
+{
+    long num_nodes = cells->node.off[idx + 1] - cells->node.off[idx];
+    if (num_nodes == 3) {
+        return true;
+    }
+    if (num_nodes == 4) {
+        vector coord[4];
+        for (long k = 0, j = cells->node.off[idx]; j < cells->node.off[idx + 1]; j++, k++) {
+            coord[k] = nodes->coord[cells->node.idx[j]];
+        }
+        vector a2b = vector_sub(coord[1], coord[0]);
+        vector a2c = vector_sub(coord[2], coord[0]);
+        vector a2d = vector_sub(coord[3], coord[0]);
+        scalar volume = fabs(vector_dot(a2b, vector_cross(a2c, a2d))) / 6;
+        return is_close(volume, 0);
+    }
+    return false;
+}
+
 static void write_point_data(const MeshNodes *nodes, const MeshCells *cells, const MeshFaces *faces,
                              hid_t loc)
 {
@@ -14,7 +35,7 @@ static void write_point_data(const MeshNodes *nodes, const MeshCells *cells, con
 
     long num_points = nodes->num;
     for (long i = cells->num_inner; i < cells->num; i++) {
-        if (is_close(cells->volume[i], 0)) {
+        if (is_flat(nodes, cells, i)) {
             long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
             num_points += num_nodes;
         }
@@ -25,7 +46,7 @@ static void write_point_data(const MeshNodes *nodes, const MeshCells *cells, con
     long num = nodes->num;
     for (long i = faces->num_inner; i < faces->num; i++) {
         long right = faces->cell[i].right;
-        if (is_close(cells->volume[right], 0)) {
+        if (is_flat(nodes, cells, right)) {
             vector offset = vector_sub(cells->center[right], faces->center[i]);
             for (long j = cells->node.off[right]; j < cells->node.off[right + 1]; j++) {
                 vector coord = nodes->coord[cells->node.idx[j]];
@@ -49,7 +70,7 @@ static void write_cell_data(const MeshNodes *nodes, const MeshCells *cells, hid_
     long num_off = num_cells + 1;
     long num_idx = cells->node.off[num_cells];
     for (long i = cells->num_inner; i < cells->num; i++) {
-        if (is_close(cells->volume[i], 0)) {
+        if (is_flat(nodes, cells, i)) {
             long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
             num_idx += num_nodes;
         }
@@ -66,7 +87,7 @@ static void write_cell_data(const MeshNodes *nodes, const MeshCells *cells, hid_
         for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
             idx[off[i + 1]++] = cells->node.idx[j];
         }
-        if (is_close(cells->volume[i], 0)) {
+        if (is_flat(nodes, cells, i)) {
             for (long j = cells->node.off[i]; j < cells->node.off[i + 1]; j++) {
                 idx[off[i + 1]++] = num++;
             }
