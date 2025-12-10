@@ -26,10 +26,10 @@ designed for flexibility, making it straightforward to extend to other systems o
 ## Requirements
 
 - C tool chain and build tools: `make` plus either Clang or GCC (set `CC` in `Makefile`)
-- MPI implementation with `mpicc` (Open MPI or MPICH) on your `PATH`
+- MPI implementation with `mpicc` (Open MPI or MPICH) in your `PATH`
 - HDF5 **built with MPI support** (headers + libs)
 - METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
-- Gmsh (to generate meshes from `.geo` in `run/`)
+- Gmsh (to generate meshes from `.geo` files)
 
 ## Getting started
 
@@ -43,11 +43,10 @@ make
 
 Executables are placed in the `bin` directory.
 
-The best way to get started with teal is by running test cases in [run](run/). For example, the [Sod
-shock tube](https://en.wikipedia.org/wiki/Sod_shock_tube):
+The best way to get started with teal is by running test cases in [run](run/). For example:
 
 ```bash
-mpirun -n 2 bin/riemann/sod
+mpirun -n 4 bin/supersonic_wedge/run
 ```
 
 Visualize the resulting VTKHDF files directly in ParaView.
