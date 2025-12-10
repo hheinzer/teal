@@ -2,8 +2,9 @@
 #include <math.h>
 
 #include "navier_stokes.h"
+#include "teal/utils.h"
 
-scalar x = 2, mach = 0.1, reynolds = 1000;
+scalar mach = 0.1, reynolds = 1000, x = 2;
 
 int main(int argc, char **argv)
 {
@@ -27,7 +28,7 @@ int main(int argc, char **argv)
     mesh_generate(mesh);
     mesh_summary(mesh);
 
-    NavierStokes farfield = {.density = 1.4, .velocity = {.x = mach}, .pressure = 1};
+    NavierStokes farfield = {.density = 1, .velocity = {.x = 1}, .pressure = 1 / (1.4 * sq(mach))};
 
     Equations *eqns = navier_stokes_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
@@ -37,7 +38,7 @@ int main(int argc, char **argv)
     equations_set_boundary_condition(eqns, "bottom-b", "adiabatic wall", 0, 0);
     equations_set_boundary_condition(eqns, "top", "farfield", &farfield, 0);
     equations_set_initial_state(eqns, "domain", &farfield);
-    equations_set_property(eqns, "dynamic viscosity", 1.4 * mach * x / reynolds);
+    equations_set_property(eqns, "dynamic viscosity", x / reynolds);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);

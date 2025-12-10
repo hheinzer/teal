@@ -1,10 +1,9 @@
 #define _GNU_SOURCE
 #include <math.h>
 
-#include "navier_stokes.h"
+#include "euler.h"
 #include "teal/utils.h"
 
-scalar viscosity = 0;
 Compute initial;
 
 int main(int argc, char **argv)
@@ -19,10 +18,9 @@ int main(int argc, char **argv)
     mesh_generate(mesh);
     mesh_summary(mesh);
 
-    Equations *eqns = navier_stokes_create(mesh);
+    Equations *eqns = euler_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
     equations_set_initial_condition(eqns, "domain", initial, 0);
-    equations_set_property(eqns, "dynamic viscosity", viscosity);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
@@ -37,7 +35,8 @@ int main(int argc, char **argv)
 
 void initial(void *variable_, const scalar *property, vector center, scalar time, const void *ctx_)
 {
-    NavierStokes *variable = variable_;
+    Euler *variable = variable_;
+    scalar w0 = 0.1, sigma2 = sq(0.05 / 2);
     if (0.25 < center.y && center.y < 0.75) {
         variable->density = 2;
         variable->velocity.x = 0.5;
@@ -46,7 +45,6 @@ void initial(void *variable_, const scalar *property, vector center, scalar time
         variable->density = 1;
         variable->velocity.x = -0.5;
     }
-    scalar w0 = 0.1, sigma2 = sq(0.05 / 2);
     variable->velocity.y =
         w0 * sin(4 * M_PI * center.x) *
         (exp(-sq(center.y - 0.25) / (2 * sigma2)) + exp(-sq(center.y - 0.75) / (2 * sigma2)));

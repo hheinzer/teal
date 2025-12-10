@@ -1,4 +1,5 @@
 #include "navier_stokes.h"
+#include "teal/utils.h"
 
 scalar mach = 0.1, reynolds = 1000;
 Compute moving_wall;
@@ -14,7 +15,7 @@ int main(int argc, char **argv)
     mesh_generate(mesh);
     mesh_summary(mesh);
 
-    NavierStokes state = {.density = 1.4, .pressure = 1};
+    NavierStokes state = {.density = 1, .pressure = 1 / (1.4 * sq(mach))};
 
     Equations *eqns = navier_stokes_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
@@ -23,7 +24,7 @@ int main(int argc, char **argv)
     equations_set_boundary_condition(eqns, "bottom", "wall", 0, 0);
     equations_set_boundary_condition(eqns, "top", "custom", 0, moving_wall);
     equations_set_initial_state(eqns, "domain", &state);
-    equations_set_property(eqns, "dynamic viscosity", 1.4 * mach / reynolds);
+    equations_set_property(eqns, "dynamic viscosity", 1 / reynolds);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
@@ -44,7 +45,7 @@ void moving_wall(void *variable_, const scalar *property, vector center, scalar 
     NavierStokes *ghost = variable_;
     const NavierStokes *inner = ctx_;
     ghost->density = inner->density;
-    ghost->velocity.x = (2 * mach) - inner->velocity.x;
+    ghost->velocity.x = 2 - inner->velocity.x;
     ghost->velocity.y = -inner->velocity.y;
     ghost->velocity.z = -inner->velocity.z;
     ghost->pressure = inner->pressure;
