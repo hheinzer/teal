@@ -92,10 +92,10 @@ scalar simulation_run(Simulation *sim)
                 equations_write(eqns, prefix, time, index++);
             }
             if (is_less(sim->time.out, SCALAR_MAX)) {
-                out_time = time + sim->time.out;
+                out_time += sim->time.out;
             }
             if (sim->iter.out < LONG_MAX) {
-                out_iter = iter + sim->iter.out;
+                out_iter += sim->iter.out;
             }
             println("\t %13ld %13g %13g %13g %13g", iter, time, step0, max_residual, wtime);
             wtime_last = wtime_now;
