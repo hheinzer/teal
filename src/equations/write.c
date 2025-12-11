@@ -15,15 +15,14 @@ static void write_field_data(const Equations *eqns, scalar time, hid_t loc)
 
     bool root = (sync.rank == 0);
 
+    h5io_dataset_write("time", &time, root, 1, H5IO_SCALAR, group);
+
     long num = eqns->properties.num;
     Name *name = eqns->properties.name;
     scalar *property = eqns->properties.data;
-
     for (long i = 0; i < num; i++) {
         h5io_dataset_write(name[i], &property[i], root, 1, H5IO_SCALAR, group);
     }
-
-    h5io_dataset_write("time", &time, root, 1, H5IO_SCALAR, group);
 
     h5io_group_close(group);
 }
@@ -40,7 +39,6 @@ static void write_variables(const long *dim, const Name *name, const void *varia
         for (long k = 0; k < num_cells; k++) {
             memcpy(buf[k], &variable[k][j], sizeof(*buf));
         }
-
         h5io_dataset_write(name[i], buf, num_cells, dim[i], H5IO_SCALAR, loc);
 
         arena_load(save);
@@ -78,14 +76,39 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
             compute(user[i], property, center[i], time, variable[i]);
         }
     }
-
     write_variables(dim, (void *)name, user, num, stride_u, num_cells, loc);
 
     arena_load(save);
 }
 
-// Write primary variables, time step, and optional user fields.
-static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
+// Write primary variables, time step, and optional user fields. (only inner cells)
+static void write_cell_data1(const Equations *eqns, scalar time, hid_t loc)
+{
+    Arena save = arena_save();
+
+    hid_t group = h5io_group_create("CellData", loc);
+
+    long num_cells = eqns->mesh->cells.num_inner;
+
+    long num = eqns->variables.num;
+    long stride = eqns->variables.stride;
+    long *dim = eqns->variables.dim;
+    Name *name = eqns->variables.name;
+    scalar(*variable)[stride] = eqns->variables.data;
+
+    write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
+
+    if (eqns->user.num > 0) {
+        write_user_variables(eqns, time, num_cells, group);
+    }
+
+    h5io_group_close(group);
+
+    arena_load(save);
+}
+
+// Write primary variables, time step, and optional user fields. (all cells)
+static void write_cell_data2(const Equations *eqns, scalar time, hid_t loc)
 {
     Arena save = arena_save();
 
@@ -141,11 +164,16 @@ void equations_write(const Equations *eqns, const char *prefix, scalar time, lon
     h5io_link_create(lname, "/VTKHDF/Types", "Types", vtkhdf);
 
     write_field_data(eqns, time, vtkhdf);
-    write_cell_data(eqns, time, vtkhdf);
+    if (mesh_write == mesh_write1) {  // NOLINT(misc-redundant-expression)
+        write_cell_data1(eqns, time, vtkhdf);
+    }
+    else {
+        write_cell_data2(eqns, time, vtkhdf);
 
-    hid_t cell_data = h5io_group_open("CellData", vtkhdf);
-    h5io_link_create(lname, "/VTKHDF/CellData/vtkGhostType", "vtkGhostType", cell_data);
-    h5io_group_close(cell_data);
+        hid_t cell_data = h5io_group_open("CellData", vtkhdf);
+        h5io_link_create(lname, "/VTKHDF/CellData/vtkGhostType", "vtkGhostType", cell_data);
+        h5io_group_close(cell_data);
+    }
 
     h5io_group_close(vtkhdf);
     h5io_file_close(file);
