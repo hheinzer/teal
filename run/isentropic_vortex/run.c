@@ -46,16 +46,13 @@ void exact(void *variable_, const scalar *property, vector center, scalar time, 
 {
     Euler *variable = variable_;
     scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
-
     scalar dx = wrap(center.x - (velocity.x * time), 0, 10) - position.x;
     scalar dy = wrap(center.y - (velocity.y * time), 0, 10) - position.y;
     scalar r2 = (dx * dx) + (dy * dy);
-
     variable->density =
         pow(1 - ((gamma - 1) * sq(vortex_strength) / (8 * gamma * sq(M_PI)) * exp(1 - r2)),
             1 / (gamma - 1));
     variable->velocity.x = velocity.x - (vortex_strength / (2 * M_PI) * exp((1 - r2) / 2) * dy);
     variable->velocity.y = velocity.y + (vortex_strength / (2 * M_PI) * exp((1 - r2) / 2) * dx);
-    variable->velocity.z = 0;
     variable->pressure = pow(variable->density, gamma);
 }

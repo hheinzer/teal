@@ -57,17 +57,17 @@ void exact(void *variable_, const scalar *property, vector center, scalar time, 
 void source(void *source_, const void *variable_, const scalar *property, vector center,
             scalar time)
 {
-    scalar *source = source_;
+    NavierStokes *source = source_;
     scalar gamma = property[NAVIER_STOKES_HEAT_CAPACITY_RATIO];
     scalar viscosity = property[NAVIER_STOKES_DYNAMIC_VISCOSITY];
     scalar prandtl = property[NAVIER_STOKES_PRANDTL];
     scalar phase = (b * (center.x + center.y + center.z)) - (c * time);
     scalar sin_phase = sin(phase);
     scalar cos_phase = cos(phase);
-    source[0] = a * ((3 * b) - c) * cos_phase;
-    source[1] = source[2] = source[3] =
+    source->density = a * ((3 * b) - c) * cos_phase;
+    source->momentum.x = source->momentum.y = source->momentum.z =
         a * (b * ((gamma - 1) * ((4 * a * sin_phase) + 5)) + (6 * b) - (2 * c)) * cos_phase / 2;
-    source[4] =
+    source->energy =
         0.5 * a *
         ((2 * a * prandtl * ((3 * b * gamma) - c) * sin(2 * phase)) +
          (6 * b * b * gamma * viscosity * sin_phase) +

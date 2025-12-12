@@ -39,7 +39,7 @@ static void integrate_convective_flux_O1(const Equations *eqns, void *variable_,
 
     scalar(*variable)[stride] = variable_;
     scalar(*derivative)[len] = derivative_;
-    scalar *flux = arena_malloc(len, sizeof(*flux));
+    scalar *flux = arena_calloc(len, sizeof(*flux));
 
     Request req = sync_variables(eqns, variable, stride);
 
@@ -132,9 +132,9 @@ static void integrate_viscous_flux_O2(const Equations *eqns, void *variable_, vo
     scalar(*variable)[stride] = variable_;
     scalar(*derivative)[len] = derivative_;
     vector(*gradient)[stride] = gradient_;
-    scalar *variable_m = arena_malloc(stride, sizeof(*variable_m));
-    vector *gradient_m = arena_malloc(stride, sizeof(*gradient_m));
-    scalar *flux = arena_malloc(len, sizeof(*flux));
+    scalar *variable_m = arena_calloc(stride, sizeof(*variable_m));
+    vector *gradient_m = arena_calloc(stride, sizeof(*gradient_m));
+    scalar *flux = arena_calloc(len, sizeof(*flux));
 
     Request req = sync_gradients(eqns, gradient, stride);
 
@@ -212,9 +212,9 @@ static void integrate_convective_flux_O2(const Equations *eqns, void *variable_,
     scalar(*variable)[stride] = variable_;
     scalar(*derivative)[len] = derivative_;
     vector(*gradient)[stride] = gradient_;
-    scalar *variable_l = arena_malloc(stride, sizeof(*variable_l));
-    scalar *variable_r = arena_malloc(stride, sizeof(*variable_r));
-    scalar *flux = arena_malloc(len, sizeof(*flux));
+    scalar *variable_l = arena_calloc(stride, sizeof(*variable_l));
+    scalar *variable_r = arena_calloc(stride, sizeof(*variable_r));
+    scalar *flux = arena_calloc(len, sizeof(*flux));
 
     Request req = sync_gradients(eqns, gradient, stride);
 
@@ -258,7 +258,7 @@ static void integrate_convective_flux_O2(const Equations *eqns, void *variable_,
 }
 
 // Divide flux sums by cell volume and add optional source terms.
-static void finalize_derivative(const Equations *eqns, void *variable_, void *derivative_,
+static void finalize_derivative(const Equations *eqns, const void *variable_, void *derivative_,
                                 scalar time)
 {
     Arena save = arena_save();
@@ -276,8 +276,8 @@ static void finalize_derivative(const Equations *eqns, void *variable_, void *de
         scalar *property = eqns->properties.data;
         Source *compute = eqns->source;
 
-        scalar(*variable)[stride] = variable_;
-        scalar *source = arena_malloc(len, sizeof(*source));
+        const scalar(*variable)[stride] = variable_;
+        scalar *source = arena_calloc(len, sizeof(*source));
 
         for (long i = 0; i < num_inner; i++) {
             compute(source, variable[i], property, center[i], time);

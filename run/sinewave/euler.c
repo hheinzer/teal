@@ -56,16 +56,16 @@ void exact(void *variable_, const scalar *property, vector center, scalar time, 
 void source(void *source_, const void *variable_, const scalar *property, vector center,
             scalar time)
 {
-    scalar *source = source_;
+    Euler *source = source_;
     scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
     scalar phase = (b * (center.x + center.y + center.z)) - (c * time);
     scalar sin_phase = sin(phase);
     scalar cos_phase = cos(phase);
-    source[0] = a * ((3 * b) - c) * cos_phase;
-    source[1] = source[2] = source[3] =
+    source->density = a * ((3 * b) - c) * cos_phase;
+    source->momentum.x = source->momentum.y = source->momentum.z =
         a * (b * ((gamma - 1) * ((4 * a * sin_phase) + 5)) + (6 * b) - (2 * c)) * cos_phase / 2;
-    source[4] = a *
-                (((12 * a * b * gamma * sin_phase) - (4 * a * c * sin_phase)) + (15 * b * gamma) +
-                 (9 * b) - (8 * c)) *
-                cos_phase / 2;
+    source->energy = a *
+                     (((12 * a * b * gamma * sin_phase) - (4 * a * c * sin_phase)) +
+                      (15 * b * gamma) + (9 * b) - (8 * c)) *
+                     cos_phase / 2;
 }
