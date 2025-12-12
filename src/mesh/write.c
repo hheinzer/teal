@@ -94,7 +94,7 @@ static bool is_flat(const MeshNodes *nodes, const MeshCells *cells, long idx)
         return true;
     }
     if (num_nodes == 4) {
-        vector coord[4];
+        vector coord[4] = {0};
         for (long k = 0, j = cells->node.off[idx]; j < cells->node.off[idx + 1]; j++, k++) {
             coord[k] = nodes->coord[cells->node.idx[j]];
         }
