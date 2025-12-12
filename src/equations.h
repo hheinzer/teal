@@ -63,6 +63,7 @@ typedef void Limiter(vector *gradient, scalar variable, scalar minimum, scalar m
 typedef void Source(void *source_, const void *variable_, const scalar *property, vector center,
                     scalar time);
 
+// Optional pre-pass invoked once per derivative evaluation before calling the Source on each cell.
 typedef void Prepare(const Equations *eqns, const void *variable_);
 
 typedef struct {
@@ -222,7 +223,7 @@ void equations_limiter(const Equations *eqns, const void *variable_, void *gradi
 // Compute the residual from the time derivative.
 void equations_residual(const Equations *eqns, const void *derivative_, void *residual_);
 
-// Compute the average over a mesh entity.
+// Average the variables over a mesh entity.
 void equations_average(const Equations *eqns, const char *entity, const void *variable_,
                        void *average_);
 
