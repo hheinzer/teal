@@ -269,16 +269,20 @@ static void finalize_derivative(const Equations *eqns, const void *variable_, vo
     long len = eqns->variables.len;
     scalar(*derivative)[len] = derivative_;
 
-    if (eqns->source) {
+    if (eqns->source.compute) {
         vector *center = eqns->mesh->cells.center;
 
         long stride = eqns->variables.stride;
         scalar *property = eqns->properties.data;
-        Source *compute = eqns->source;
+        Source *compute = eqns->source.compute;
+        Prepare *prepare = eqns->source.prepare;
 
         const scalar(*variable)[stride] = variable_;
         scalar *source = arena_calloc(len, sizeof(*source));
 
+        if (prepare) {
+            prepare(eqns, variable);
+        }
         for (long i = 0; i < num_inner; i++) {
             compute(source, variable[i], property, center[i], time);
             for (long j = 0; j < len; j++) {

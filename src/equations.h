@@ -17,6 +17,8 @@
 
 #include "mesh.h"
 
+typedef struct Equations Equations;
+
 // Update the variables of a single cell in-place; may switch between conserved/primitive forms or
 // enforce algebraic constraints.
 typedef void Update(void *variable_, const scalar *property);
@@ -60,6 +62,8 @@ typedef void Limiter(vector *gradient, scalar variable, scalar minimum, scalar m
 // Compute the source term in a single cell at (center, time) and optionally the cell state.
 typedef void Source(void *source_, const void *variable_, const scalar *property, vector center,
                     scalar time);
+
+typedef void Prepare(const Equations *eqns, const void *variable_);
 
 typedef struct {
     long num;
@@ -115,6 +119,11 @@ typedef struct {
 } EquationsUserVariables;
 
 typedef struct {
+    Source *compute;
+    Prepare *prepare;
+} EquationsSource;
+
+struct Equations {
     const Mesh *mesh;
     Name name;
     long space_order;
@@ -126,8 +135,8 @@ typedef struct {
     EquationsViscous viscous;
     EquationsLimiter limiter;
     EquationsUserVariables user;
-    Source *source;
-} Equations;
+    EquationsSource source;
+};
 
 // Create an empty equation system based on a mesh.
 Equations *equations_create(const Mesh *mesh, const char *name);
@@ -186,8 +195,8 @@ void equations_set_initial_state(Equations *eqns, const char *entity, const void
 // Set the value of a material property.
 void equations_set_property(Equations *eqns, const char *name, scalar property);
 
-// Set a user-defined source term callback.
-void equations_set_user_source(Equations *eqns, Source *source);
+// Set a user-defined source term callback and optionally a prepare function.
+void equations_set_user_source(Equations *eqns, Source *source, Prepare *prepare);
 
 // Print a summary of the equation system.
 void equations_summary(const Equations *eqns);
@@ -213,8 +222,9 @@ void equations_limiter(const Equations *eqns, const void *variable_, void *gradi
 // Compute the residual from the time derivative.
 void equations_residual(const Equations *eqns, const void *derivative_, void *residual_);
 
-// Compute the average of the solution over a mesh entity.
-void equations_average(const Equations *eqns, const char *entity, void *average_);
+// Compute the average over a mesh entity.
+void equations_average(const Equations *eqns, const char *entity, const void *variable_,
+                       void *average_);
 
 // Compute the norm of the solution at the specified time.
 void equations_norm(const Equations *eqns, scalar time, void *norm_);

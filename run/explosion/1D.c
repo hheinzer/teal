@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     mesh_summary(mesh);
 
     Equations *eqns = euler_create(mesh);
-    equations_set_user_source(eqns, source);
+    equations_set_user_source(eqns, source, 0);
     equations_set_boundary_condition(eqns, "left", "symmetry", 0, 0);
     equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
     equations_set_initial_condition(eqns, "domain", initial, 0);

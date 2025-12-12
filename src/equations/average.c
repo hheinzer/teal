@@ -5,7 +5,8 @@
 #include "teal/sync.h"
 #include "teal/utils.h"
 
-void equations_average(const Equations *eqns, const char *entity, void *average_)
+void equations_average(const Equations *eqns, const char *entity, const void *variable_,
+                       void *average_)
 {
     assert(eqns && entity);
 
@@ -17,7 +18,7 @@ void equations_average(const Equations *eqns, const char *entity, void *average_
     long *cell_off = eqns->mesh->entities.cell_off;
 
     long stride = eqns->variables.stride;
-    const scalar(*variable)[stride] = eqns->variables.data;
+    const scalar(*variable)[stride] = variable_;
 
     scalar *average = average_;
     memset(average, 0, stride * sizeof(*average));

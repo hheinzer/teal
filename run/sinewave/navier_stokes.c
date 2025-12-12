@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     equations_create_exact_solution(eqns, exact);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
     equations_set_initial_condition(eqns, "domain", exact, 0);
-    equations_set_user_source(eqns, source);
+    equations_set_user_source(eqns, source, 0);
     equations_set_property(eqns, "dynamic viscosity", 0.1);
     equations_summary(eqns);
 

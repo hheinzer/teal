@@ -199,8 +199,9 @@ void equations_set_property(Equations *eqns, const char *name, scalar property)
     error("invalid property (%s)", name);
 }
 
-void equations_set_user_source(Equations *eqns, Source *source)
+void equations_set_user_source(Equations *eqns, Source *source, Prepare *prepare)
 {
     assert(eqns && source);
-    eqns->source = source;
+    eqns->source.compute = source;
+    eqns->source.prepare = prepare;
 }
