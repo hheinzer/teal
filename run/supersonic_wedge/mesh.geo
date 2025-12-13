@@ -22,12 +22,11 @@ Curve Loop(2) = {5, 6, 7};
 Plane Surface(1) = {1, 2};
 Extrude {0, 0, 1} { Surface{1}; Layers {1}; Recombine; }
 
-Physical Surface("inlet", 22) = {5, 2};
-Physical Surface("outlet", 23) = {3, 4};
-Physical Surface("airfoil", 24) = {6, 7, 8};
-Physical Volume("domain", 25) = {1};
-
 Transfinite Curve {1, 2, 3, 4} = (n * 11 + 1) Using Progression 1;
 Transfinite Curve {5} = (n * 12 + 1) Using Progression 1;
 Transfinite Curve {6, 7} = (n * 7 + 1) Using Progression 1;
 
+Physical Surface("inlet", 22) = {5, 2};
+Physical Surface("outlet", 23) = {3, 4};
+Physical Surface("airfoil", 24) = {6, 7, 8};
+Physical Volume("domain", 25) = {1};

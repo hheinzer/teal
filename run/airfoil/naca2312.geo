@@ -214,10 +214,10 @@ Curve Loop(2) = {1, 2};
 Plane Surface(1) = {1, 2};
 Extrude {0, 0, 1} { Surface{1}; Layers {1}; Recombine; }
 
-Physical Surface("airfoil", 10) = {3, 4};
-Physical Surface("farfield", 11) = {2};
-Physical Volume("domain", 12) = {1};
-
 Transfinite Curve {1} = (n_upper + 1) Using Progression 1;
 Transfinite Curve {2} = (n_lower + 1) Using Progression 1;
 Transfinite Curve {3} = (n_outer + 1) Using Progression 1;
+
+Physical Surface("airfoil", 10) = {3, 4};
+Physical Surface("farfield", 11) = {2};
+Physical Volume("domain", 12) = {1};
