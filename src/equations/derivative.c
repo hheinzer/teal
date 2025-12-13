@@ -277,7 +277,7 @@ static void finalize_derivative(const Equations *eqns, const void *variable_, vo
         Source *compute = eqns->source.compute;
         Prepare *prepare = eqns->source.prepare;
 
-        const scalar(*variable)[stride] = variable_;
+        const scalar(*variable)[stride] = (void *)variable_;
         scalar *source = arena_calloc(len, sizeof(*source));
 
         if (prepare) {

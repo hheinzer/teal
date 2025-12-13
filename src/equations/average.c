@@ -18,7 +18,7 @@ void equations_average(const Equations *eqns, const char *entity, const void *va
     long *cell_off = eqns->mesh->entities.cell_off;
 
     long stride = eqns->variables.stride;
-    const scalar(*variable)[stride] = variable_;
+    const scalar(*variable)[stride] = (void *)variable_;
 
     scalar *average = average_;
     memset(average, 0, stride * sizeof(*average));
