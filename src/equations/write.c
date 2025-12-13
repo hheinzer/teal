@@ -88,7 +88,7 @@ static void write_cell_data1(const Equations *eqns, scalar time, hid_t loc)
 
     hid_t group = h5io_group_create("CellData", loc);
 
-    long num_cells = eqns->mesh->cells.num_inner;
+    long num_cells = eqns->mesh->cells.off_periodic;
 
     long num = eqns->variables.num;
     long stride = eqns->variables.stride;
@@ -96,6 +96,7 @@ static void write_cell_data1(const Equations *eqns, scalar time, hid_t loc)
     Name *name = eqns->variables.name;
     scalar(*variable)[stride] = eqns->variables.data;
 
+    equations_boundary(eqns, variable, time);
     write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
 
     if (eqns->user.num > 0) {
@@ -166,6 +167,10 @@ void equations_write(const Equations *eqns, const char *prefix, scalar time, lon
     write_field_data(eqns, time, vtkhdf);
     if (mesh_write == mesh_write1) {  // NOLINT(misc-redundant-expression)
         write_cell_data1(eqns, time, vtkhdf);
+
+        hid_t cell_data = h5io_group_open("CellData", vtkhdf);
+        h5io_link_create(lname, "/VTKHDF/CellData/BoundaryId", "BoundaryId", cell_data);
+        h5io_group_close(cell_data);
     }
     else {
         write_cell_data2(eqns, time, vtkhdf);

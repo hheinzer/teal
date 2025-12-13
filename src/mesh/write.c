@@ -9,7 +9,14 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-enum { VTK_TETRA = 10, VTK_PYRAMID = 14, VTK_WEDGE = 13, VTK_HEXAHEDRON = 12 };
+enum {
+    VTK_TRIANGLE = 5,
+    VTK_QUAD = 9,
+    VTK_TETRA = 10,
+    VTK_PYRAMID = 14,
+    VTK_WEDGE = 13,
+    VTK_HEXAHEDRON = 12
+};
 enum { DUPLICATECELL = 1, EXTERIORCELL = 16, HIDDENCELL = 32 };
 
 static void write_point_data1(const MeshNodes *nodes, hid_t loc)
@@ -23,13 +30,14 @@ static void write_point_data1(const MeshNodes *nodes, hid_t loc)
     h5io_dataset_write("Points", nodes->coord, num_nodes, 3, H5IO_SCALAR, loc);
 }
 
-static void write_cell_data1(const MeshNodes *nodes, const MeshCells *cells, hid_t loc)
+static void write_cell_data1(const MeshNodes *nodes, const MeshCells *cells,
+                             const MeshEntities *entities, hid_t loc)
 {
     Arena save = arena_save();
 
     bool root = (sync.rank == 0);
 
-    long num_cells = cells->num_inner;
+    long num_cells = cells->off_periodic;
     long tot_cells = sync_lsum(num_cells);
     h5io_dataset_write("NumberOfCells", &tot_cells, root, 1, H5IO_LONG, loc);
 
@@ -54,15 +62,35 @@ static void write_cell_data1(const MeshNodes *nodes, const MeshCells *cells, hid
     unsigned char *type = arena_malloc(num_cells, sizeof(*type));
     for (long i = 0; i < num_cells; i++) {
         long num_nodes = cells->node.off[i + 1] - cells->node.off[i];
-        switch (num_nodes) {
-            case 4: type[i] = VTK_TETRA; break;
-            case 5: type[i] = VTK_PYRAMID; break;
-            case 6: type[i] = VTK_WEDGE; break;
-            case 8: type[i] = VTK_HEXAHEDRON; break;
-            default: error("invalid number of nodes (%ld)", num_nodes);
+        if (i < cells->num_inner) {
+            switch (num_nodes) {
+                case 4: type[i] = VTK_TETRA; break;
+                case 5: type[i] = VTK_PYRAMID; break;
+                case 6: type[i] = VTK_WEDGE; break;
+                case 8: type[i] = VTK_HEXAHEDRON; break;
+                default: error("invalid number of nodes (%ld)", num_nodes);
+            }
+        }
+        else {
+            switch (num_nodes) {
+                case 3: type[i] = VTK_TRIANGLE; break;
+                case 4: type[i] = VTK_QUAD; break;
+                default: error("invalid number of nodes (%ld)", num_nodes);
+            }
         }
     }
     h5io_dataset_write("Types", type, num_cells, 1, H5T_NATIVE_UCHAR, loc);
+
+    long *boundary_id = arena_malloc(num_cells, sizeof(*boundary_id));
+    for (long i = 0; i < entities->num; i++) {
+        for (long j = entities->cell_off[i]; j < entities->cell_off[i + 1]; j++) {
+            boundary_id[j] = i;
+        }
+    }
+
+    hid_t cell_data = h5io_group_create("CellData", loc);
+    h5io_dataset_write("BoundaryId", boundary_id, num_cells, 1, H5IO_LONG, cell_data);
+    h5io_group_close(cell_data);
 
     arena_load(save);
 }
@@ -81,7 +109,7 @@ void mesh_write1(const Mesh *mesh, const char *prefix)
     h5io_attribute_write("Type", "UnstructuredGrid", 1, H5IO_STRING, vtkhdf);
 
     write_point_data1(&mesh->nodes, vtkhdf);
-    write_cell_data1(&mesh->nodes, &mesh->cells, vtkhdf);
+    write_cell_data1(&mesh->nodes, &mesh->cells, &mesh->entities, vtkhdf);
 
     h5io_group_close(vtkhdf);
     h5io_file_close(file);
