@@ -144,6 +144,4 @@ void mesh_check(const Mesh *mesh);
 void mesh_summary(const Mesh *mesh);
 
 // Write mesh to a VTKHDF file.
-void mesh_write1(const Mesh *mesh, const char *prefix);
-void mesh_write2(const Mesh *mesh, const char *prefix);
-#define mesh_write mesh_write1
+void mesh_write(const Mesh *mesh, const char *prefix);

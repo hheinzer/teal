@@ -81,8 +81,8 @@ static void write_user_variables(const Equations *eqns, scalar time, long num_ce
     arena_load(save);
 }
 
-// Write primary variables, time step, and optional user fields. (only inner cells)
-static void write_cell_data1(const Equations *eqns, scalar time, hid_t loc)
+// Write primary variables, time step, and optional user fields.
+static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
 {
     Arena save = arena_save();
 
@@ -98,36 +98,6 @@ static void write_cell_data1(const Equations *eqns, scalar time, hid_t loc)
 
     equations_boundary(eqns, variable, time);
     write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
-
-    if (eqns->user.num > 0) {
-        write_user_variables(eqns, time, num_cells, group);
-    }
-
-    h5io_group_close(group);
-
-    arena_load(save);
-}
-
-// Write primary variables, time step, and optional user fields. (all cells)
-static void write_cell_data2(const Equations *eqns, scalar time, hid_t loc)
-{
-    Arena save = arena_save();
-
-    hid_t group = h5io_group_create("CellData", loc);
-
-    long num_cells = eqns->mesh->cells.num;
-
-    long num = eqns->variables.num;
-    long stride = eqns->variables.stride;
-    long *dim = eqns->variables.dim;
-    Name *name = eqns->variables.name;
-    scalar(*variable)[stride] = eqns->variables.data;
-
-    Request req = sync_variables(eqns, variable, stride);
-    equations_boundary(eqns, variable, time);
-    sync_wait(eqns, req.recv);
-    write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
-    sync_wait(eqns, req.send);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);
@@ -165,20 +135,11 @@ void equations_write(const Equations *eqns, const char *prefix, scalar time, lon
     h5io_link_create(lname, "/VTKHDF/Types", "Types", vtkhdf);
 
     write_field_data(eqns, time, vtkhdf);
-    if (mesh_write == mesh_write1) {  // NOLINT(misc-redundant-expression)
-        write_cell_data1(eqns, time, vtkhdf);
+    write_cell_data(eqns, time, vtkhdf);
 
-        hid_t cell_data = h5io_group_open("CellData", vtkhdf);
-        h5io_link_create(lname, "/VTKHDF/CellData/BoundaryId", "BoundaryId", cell_data);
-        h5io_group_close(cell_data);
-    }
-    else {
-        write_cell_data2(eqns, time, vtkhdf);
-
-        hid_t cell_data = h5io_group_open("CellData", vtkhdf);
-        h5io_link_create(lname, "/VTKHDF/CellData/vtkGhostType", "vtkGhostType", cell_data);
-        h5io_group_close(cell_data);
-    }
+    hid_t cell_data = h5io_group_open("CellData", vtkhdf);
+    h5io_link_create(lname, "/VTKHDF/CellData/entity", "entity", cell_data);
+    h5io_group_close(cell_data);
 
     h5io_group_close(vtkhdf);
     h5io_file_close(file);
