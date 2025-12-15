@@ -14,6 +14,7 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
+void mesh_read_vtkhdf(Mesh *mesh, const char *fname);
 void mesh_read_gmsh(Mesh *mesh, const char *fname);
 
 // Dispatch to reader based on file extension.
@@ -22,6 +23,10 @@ static void read_file(Mesh *mesh, const char *fname)
     char *ext = strrchr(fname, '.');
     if (!ext) {
         error("invalid file name (%s)", fname);
+    }
+    if (!strcmp(ext, ".vtkhdf")) {
+        mesh_read_vtkhdf(mesh, fname);
+        return;
     }
     if (!strcmp(ext, ".msh")) {
         mesh_read_gmsh(mesh, fname);

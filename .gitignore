@@ -1,4 +1,4 @@
 obj
 bin
-*.h5
+*.vtkhdf
 *.msh

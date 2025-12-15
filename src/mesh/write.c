@@ -91,6 +91,22 @@ static void write_cell_data(const MeshNodes *nodes, const MeshCells *cells,
     arena_load(save);
 }
 
+static void write_entities(const MeshEntities *entities, hid_t loc)
+{
+    hid_t group = h5io_group_create("entities", loc);
+
+    bool root = (sync.rank == 0);
+
+    h5io_dataset_write("num", &entities->num, root, 1, H5IO_LONG, group);
+    h5io_dataset_write("num_inner", &entities->num_inner, root, 1, H5IO_LONG, group);
+    h5io_dataset_write("off_ghost", &entities->off_ghost, root, 1, H5IO_LONG, group);
+
+    long num = root ? entities->num : 0;
+    h5io_dataset_write("name", entities->name, num, sizeof(*entities->name), H5IO_STRING, group);
+
+    h5io_group_close(group);
+}
+
 void mesh_write(const Mesh *mesh, const char *prefix)
 {
     assert(mesh && prefix);
@@ -99,6 +115,7 @@ void mesh_write(const Mesh *mesh, const char *prefix)
     sprintf(fname, "%s_mesh.vtkhdf", prefix);
 
     hid_t file = h5io_file_create(fname);
+
     hid_t vtkhdf = h5io_group_create("VTKHDF", file);
 
     h5io_attribute_write("Version", (long[]){1, 0}, 2, H5IO_LONG, vtkhdf);
@@ -108,5 +125,8 @@ void mesh_write(const Mesh *mesh, const char *prefix)
     write_cell_data(&mesh->nodes, &mesh->cells, &mesh->entities, vtkhdf);
 
     h5io_group_close(vtkhdf);
+
+    write_entities(&mesh->entities, file);
+
     h5io_file_close(file);
 }
