@@ -49,6 +49,7 @@ efficiency are computed relative to the 128-rank run.
 - HDF5 **built with MPI support** (headers + libs)
 - METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
 - Gmsh (to generate meshes from `.geo` files)
+- ParaView (to visualize the results)
 
 ## Getting started
 
