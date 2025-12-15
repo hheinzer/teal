@@ -96,8 +96,11 @@ static void write_cell_data(const Equations *eqns, scalar time, hid_t loc)
     Name *name = eqns->variables.name;
     scalar(*variable)[stride] = eqns->variables.data;
 
+    Request req = sync_variables(eqns, variable, stride);
     equations_boundary(eqns, variable, time);
+    sync_wait(eqns, req.send);
     write_variables(dim, (void *)name, variable, num, stride, num_cells, group);
+    sync_wait(eqns, req.recv);
 
     if (eqns->user.num > 0) {
         write_user_variables(eqns, time, num_cells, group);
