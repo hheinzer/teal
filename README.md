@@ -23,6 +23,25 @@ designed for flexibility, making it straightforward to extend to other systems o
     - Compressible Euler and Navier-Stokes
     - Modular design for adding other conservation laws
 
+## Performance
+
+Teal is a toy code that I write for *fun*. Nevertheless, this question is bound to come up
+eventually. To test the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, I run the
+[Taylor-Green vortex](run/taylor_green_vortex/) test case with different resolutions and vary the
+number of MPI ranks, keeping the problem size fixed in each case. For each resolution, speedup and
+efficiency are computed relative to the 128-rank run.
+
+| cells | ranks | time      | speedup | efficiency [%] |
+|-------|-------|-----------|---------|----------------|
+| 128^3 | 128   | 1m 18.0s  | 1.00    | 100.0          |
+| 128^3 | 256   | 39.8s     | 1.96    | 98.0           |
+| 128^3 | 512   | 23.9s     | 3.26    | 81.4           |
+| 128^3 | 1024  | 26.7s     | 2.92    | 36.6           |
+| 256^3 | 128   | 20m 19.4s | 1.00    | 100.0          |
+| 256^3 | 256   | 10m 44.2s | 1.89    | 94.7           |
+| 256^3 | 512   | 5m 33.7s  | 3.65    | 91.3           |
+| 256^3 | 1024  | 3m 5.7s   | 6.57    | 82.1           |
+
 ## Requirements
 
 - C tool chain and build tools: `make` plus either Clang or GCC (set `CC` in `Makefile`)
