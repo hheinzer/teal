@@ -23,13 +23,15 @@ CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-paramete
 # sources, objects, and programs
 SRC := $(shell find src -type f -name '*.c')
 RUN := $(shell find run -type f -name '*.c')
+TLS := $(shell find tools -type f -name '*.c')
 OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
 BIN := $(patsubst run/%.c, bin/%, $(RUN))
+TOL := $(patsubst tools/%.c, bin/tools/%, $(TLS))
 
 # make functions
 .PHONY: all clean check tidy format
 
-all: $(BIN)
+all: $(BIN) $(TOL)
 
 clean:
 	@rm -rf obj bin
@@ -47,7 +49,7 @@ format:
 
 # dependencies
 CFLAGS += -MMD -MP
-DEP = $(OBJ:.o=.d) $(BIN:=.d)
+DEP = $(OBJ:.o=.d) $(BIN:=.d) $(TOL:=.d)
 -include $(DEP)
 
 # suffix rules
@@ -59,3 +61,7 @@ obj/%.o: src/%.c Makefile
 bin/%: run/%.c $(OBJ)
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) -Wno-unused-parameter $< $(OBJ) $(LDLIBS) -o $@
+
+bin/tools/%: tools/%.c $(OBJ)
+	@mkdir -p $(@D)
+	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
