@@ -23,6 +23,7 @@ typedef struct {
     scalar energy;
 } Conserved;
 
+// Compute the convective flux in the local face-aligned frame.
 static Conserved compute_flux(const Euler *local)
 {
     Conserved flux;
@@ -34,6 +35,7 @@ static Conserved compute_flux(const Euler *local)
     return flux;
 }
 
+// Rotate momentum back to the global basis.
 static void local_to_global(Conserved *flux, const Basis *basis)
 {
     vector momentum;
@@ -57,6 +59,7 @@ static void godunov(void *flux_, const void *left_, const void *right_, const sc
     local_to_global(flux, basis);
 }
 
+// Apply entropy fix to Roe eigenvalues.
 static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *right, scalar gamma)
 {
     scalar speed_of_sound_l = sqrt(gamma * left->pressure / left->density);
@@ -86,6 +89,7 @@ static void entropy_fix(scalar eigenvalue[3], const Euler *left, const Euler *ri
     }
 }
 
+// Difference of conserved variables across a face.
 static Conserved compute_jump(const Euler *left, const Euler *right)
 {
     Conserved jump;
@@ -97,6 +101,7 @@ static Conserved compute_jump(const Euler *left, const Euler *right)
     return jump;
 }
 
+// Roe-averaged velocity using density-weighted blending.
 static vector roe_velocity(scalar weight, scalar sqrt_density_l, scalar sqrt_density_r,
                            const Euler *left, const Euler *right)
 {
@@ -396,6 +401,7 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
     local_to_global(flux, basis);
 }
 
+// AUSMD flux splitting.
 static void ausmd(void *flux_, const void *left_, const void *right_, const scalar *property,
                   const Basis *basis)
 {
@@ -468,6 +474,7 @@ static void ausmd(void *flux_, const void *left_, const void *right_, const scal
     local_to_global(flux, basis);
 }
 
+// AUSMDV flux splitting with AUSMD/AUSMV blending.
 static void ausmdv(void *flux_, const void *left_, const void *right_, const scalar *property,
                    const Basis *basis)
 {
