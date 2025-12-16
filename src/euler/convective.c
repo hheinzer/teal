@@ -396,6 +396,164 @@ static void hlle(void *flux_, const void *left_, const void *right_, const scala
     local_to_global(flux, basis);
 }
 
+static void ausmd(void *flux_, const void *left_, const void *right_, const scalar *property,
+                  const Basis *basis)
+{
+    Conserved *flux = flux_;
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
+
+    scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
+    scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);
+    scalar speed_of_sound = fmax(speed_of_sound_l, speed_of_sound_r);
+
+    scalar pressure_over_density_l = left.pressure / left.density;
+    scalar pressure_over_density_r = right.pressure / right.density;
+    scalar pressure_over_density_sum = pressure_over_density_l + pressure_over_density_r;
+
+    scalar mach_l = left.velocity.x / speed_of_sound;
+    scalar mach_r = right.velocity.x / speed_of_sound;
+
+    scalar velocity_plus_l;
+    scalar pressure_plus_l;
+    if (fabs(left.velocity.x) <= speed_of_sound) {
+        scalar alpha_l = 2 * pressure_over_density_l / pressure_over_density_sum;
+        scalar factor = left.velocity.x + speed_of_sound;
+        velocity_plus_l = (alpha_l * sq(factor) / (4 * speed_of_sound)) +
+                          ((1 - alpha_l) * (left.velocity.x + fabs(left.velocity.x)) / 2);
+        pressure_plus_l = (left.pressure * sq(factor) / (4 * sq(speed_of_sound))) * (2 - mach_l);
+    }
+    else {
+        velocity_plus_l = (left.velocity.x + fabs(left.velocity.x)) / 2;
+        pressure_plus_l =
+            (left.pressure * (left.velocity.x + fabs(left.velocity.x)) / 2) / left.velocity.x;
+    }
+
+    scalar velocity_minus_r;
+    scalar pressure_minus_r;
+    if (fabs(right.velocity.x) <= speed_of_sound) {
+        scalar alpha_r = 2 * pressure_over_density_r / pressure_over_density_sum;
+        scalar factor = right.velocity.x - speed_of_sound;
+        velocity_minus_r = (-alpha_r * sq(factor) / (4 * speed_of_sound)) +
+                           ((1 - alpha_r) * (right.velocity.x - fabs(right.velocity.x)) / 2);
+        pressure_minus_r = (right.pressure * sq(factor) / (4 * sq(speed_of_sound))) * (2 + mach_r);
+    }
+    else {
+        velocity_minus_r = (right.velocity.x - fabs(right.velocity.x)) / 2;
+        pressure_minus_r =
+            (right.pressure * (right.velocity.x - fabs(right.velocity.x)) / 2) / right.velocity.x;
+    }
+
+    scalar mass_flux = (velocity_plus_l * left.density) + (velocity_minus_r * right.density);
+    scalar abs_mass_flux = fabs(mass_flux);
+    scalar pressure_flux = pressure_plus_l + pressure_minus_r;
+
+    scalar enthalpy_l = (left.energy + left.pressure) / left.density;
+    scalar enthalpy_r = (right.energy + right.pressure) / right.density;
+
+    flux->density = mass_flux;
+    flux->momentum.x = ((mass_flux * (left.velocity.x + right.velocity.x) -
+                         abs_mass_flux * (right.velocity.x - left.velocity.x)) /
+                        2) +
+                       pressure_flux;
+    flux->momentum.y = (mass_flux * (left.velocity.y + right.velocity.y) -
+                        abs_mass_flux * (right.velocity.y - left.velocity.y)) /
+                       2;
+    flux->momentum.z = (mass_flux * (left.velocity.z + right.velocity.z) -
+                        abs_mass_flux * (right.velocity.z - left.velocity.z)) /
+                       2;
+    flux->energy =
+        (mass_flux * (enthalpy_l + enthalpy_r) - abs_mass_flux * (enthalpy_r - enthalpy_l)) / 2;
+    local_to_global(flux, basis);
+}
+
+static void ausmdv(void *flux_, const void *left_, const void *right_, const scalar *property,
+                   const Basis *basis)
+{
+    Conserved *flux = flux_;
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
+
+    scalar speed_of_sound_l = sqrt(gamma * left.pressure / left.density);
+    scalar speed_of_sound_r = sqrt(gamma * right.pressure / right.density);
+    scalar speed_of_sound = fmax(speed_of_sound_l, speed_of_sound_r);
+
+    scalar pressure_over_density_l = left.pressure / left.density;
+    scalar pressure_over_density_r = right.pressure / right.density;
+    scalar pressure_over_density_sum = pressure_over_density_l + pressure_over_density_r;
+
+    scalar mach_l = left.velocity.x / speed_of_sound;
+    scalar mach_r = right.velocity.x / speed_of_sound;
+
+    scalar velocity_plus_l;
+    scalar pressure_plus_l;
+    if (fabs(left.velocity.x) <= speed_of_sound) {
+        scalar alpha_l = 2 * pressure_over_density_l / pressure_over_density_sum;
+        scalar factor = left.velocity.x + speed_of_sound;
+        velocity_plus_l = (alpha_l * sq(factor) / (4 * speed_of_sound)) +
+                          ((1 - alpha_l) * (left.velocity.x + fabs(left.velocity.x)) / 2);
+        pressure_plus_l = (left.pressure * sq(factor) / (4 * sq(speed_of_sound))) * (2 - mach_l);
+    }
+    else {
+        velocity_plus_l = (left.velocity.x + fabs(left.velocity.x)) / 2;
+        pressure_plus_l =
+            left.pressure * (left.velocity.x + fabs(left.velocity.x)) / (2 * left.velocity.x);
+    }
+
+    scalar velocity_minus_r;
+    scalar pressure_minus_r;
+    if (fabs(right.velocity.x) <= speed_of_sound) {
+        scalar alpha_r = 2 * pressure_over_density_r / pressure_over_density_sum;
+        scalar factor = right.velocity.x - speed_of_sound;
+        velocity_minus_r = (-alpha_r * sq(factor) / (4 * speed_of_sound)) +
+                           ((1 - alpha_r) * (right.velocity.x - fabs(right.velocity.x)) / 2);
+        pressure_minus_r = (right.pressure * sq(factor) / (4 * sq(speed_of_sound))) * (2 + mach_r);
+    }
+    else {
+        velocity_minus_r = (right.velocity.x - fabs(right.velocity.x)) / 2;
+        pressure_minus_r =
+            right.pressure * (right.velocity.x - fabs(right.velocity.x)) / (2 * right.velocity.x);
+    }
+
+    scalar mass_flux = (velocity_plus_l * left.density) + (velocity_minus_r * right.density);
+    scalar abs_mass_flux = fabs(mass_flux);
+    scalar pressure_flux = pressure_plus_l + pressure_minus_r;
+
+    scalar normal_momentum_flux_ausmd = (mass_flux * (left.velocity.x + right.velocity.x) -
+                                         abs_mass_flux * (right.velocity.x - left.velocity.x)) /
+                                        2;
+
+    scalar normal_momentum_flux_ausmv =
+        (velocity_plus_l * left.momentum.x) + (velocity_minus_r * right.momentum.x);
+
+    static const scalar switch_parameter = 10;
+    scalar pressure_min = fmin(left.pressure, right.pressure);
+
+    scalar switching = fmin(
+        1.0 / 2, fmin(1, (switch_parameter * fabs(right.pressure - left.pressure)) / pressure_min));
+
+    scalar normal_momentum_flux = ((1 + switching) * normal_momentum_flux_ausmv +
+                                   (1 - switching) * normal_momentum_flux_ausmd) /
+                                  2;
+
+    scalar enthalpy_l = (left.energy + left.pressure) / left.density;
+    scalar enthalpy_r = (right.energy + right.pressure) / right.density;
+
+    flux->density = mass_flux;
+    flux->momentum.x = normal_momentum_flux + pressure_flux;
+    flux->momentum.y = (mass_flux * (left.velocity.y + right.velocity.y) -
+                        abs_mass_flux * (right.velocity.y - left.velocity.y)) /
+                       2;
+    flux->momentum.z = (mass_flux * (left.velocity.z + right.velocity.z) -
+                        abs_mass_flux * (right.velocity.z - left.velocity.z)) /
+                       2;
+    flux->energy =
+        (mass_flux * (enthalpy_l + enthalpy_r) - abs_mass_flux * (enthalpy_r - enthalpy_l)) / 2;
+    local_to_global(flux, basis);
+}
+
 // Lax-Friedrichs/Rusanov with max signal speed estimate.
 static void lxf(void *flux_, const void *left_, const void *right_, const scalar *property,
                 const Basis *basis)
@@ -444,6 +602,12 @@ Convective *euler_convective(const char *name)
     }
     if (!strcmp(name, "hlle")) {
         return hlle;
+    }
+    if (!strcmp(name, "ausmd")) {
+        return ausmd;
+    }
+    if (!strcmp(name, "ausmdv")) {
+        return ausmdv;
     }
     if (!strcmp(name, "lxf")) {
         return lxf;

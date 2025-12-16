@@ -7,7 +7,7 @@ import pyvista as pv
 
 CASES = ["sod", "toro1", "toro2", "toro3", "toro4", "toro5"]
 ORDERS = ["1", "2"]
-FLUXES = ["godunov", "roe", "hll", "hllc", "hlle", "lxf"]
+FLUXES = ["godunov", "roe", "hll", "hllc", "hlle", "ausmd", "ausmdv", "lxf"]
 FIELDS = ["density", "velocity", "pressure", "energy"]
 
 
@@ -58,8 +58,8 @@ def plot_order(bin, order):
             ax.set_xlabel("x-axis")
             ax.set_ylabel(field)
 
-    handles, labels = axs.flat[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=len(labels), fontsize="x-small")
+    axs[0, 1].legend(fontsize="small", loc="upper left", bbox_to_anchor=(1, 1))
+
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(f"{bin}_{order}.pdf")
 
