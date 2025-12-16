@@ -1,7 +1,9 @@
+#include <stdio.h>
 #include <string.h>
 
 #include "mesh.h"
 #include "teal/option.h"
+#include "teal/sync.h"
 #include "teal/utils.h"
 
 int main(int argc, char **argv)
@@ -10,25 +12,36 @@ int main(int argc, char **argv)
     teal_initialize(&argc, &argv);
 
     if (argc < 2) {
-        error("usage: %s <input> [prefix]", argv[0]);
+        error("usage: %s <input> [output]", argv[0]);
     }
 
     const char *input = argv[1];
+    Mesh *mesh = mesh_read(input);
+    mesh_write(mesh, input);
 
-    char prefix[128];
+    char output[128];
     if (argc > 2) {
-        strcpy(prefix, argv[2]);
+        strcpy(output, argv[2]);
     }
     else {
-        strcpy(prefix, input);
-        char *dot = strrchr(prefix, '.');
+        strcpy(output, input);
+        char *dot = strrchr(output, '.');
         if (dot) {
-            *dot = 0;
+            strcpy(dot, ".vtkhdf");
+        }
+        else {
+            strcat(output, ".vtkhdf");
         }
     }
 
-    Mesh *mesh = mesh_read(input);
-    mesh_write(mesh, prefix);
+    if (sync.rank == 0) {
+        char fname[128];
+        sprintf(fname, "%s_mesh.vtkhdf", input);
+        if (rename(fname, output) != 0) {
+            error("could not rename (%s) to (%s)", fname, output);
+        }
+        printf("%s -> %s\n", input, output);
+    }
 
     teal_finalize();
 }
