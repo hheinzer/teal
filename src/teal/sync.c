@@ -4,8 +4,8 @@
 #include <math.h>
 #include <string.h>
 
-#include "teal/arena.h"
-#include "teal/array.h"
+#include "arena.h"
+#include "array.h"
 
 Sync sync = {0};
 

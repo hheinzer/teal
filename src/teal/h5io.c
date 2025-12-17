@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "sync.h"
-#include "teal/utils.h"
+#include "utils.h"
 
 hid_t h5io_file_open(const char *fname)
 {
