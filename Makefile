@@ -18,7 +18,10 @@ CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings
 CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
 
 # gprof flags
-#CFLAGS += -pg -fno-inline-functions
+#CFLAGS += -pg -fno-omit-frame-pointer -fno-inline-functions
+
+# perf flags
+#CFLAGS += -fno-omit-frame-pointer -fno-inline-functions
 
 # sources, objects, and programs
 SRC := $(shell find src -type f -name '*.c')
