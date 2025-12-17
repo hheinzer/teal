@@ -3,4 +3,4 @@
 input=$1 # input file
 output=$2 # output file
 
-h5copy -f ext -i $input -o $output -s VTKHDF -d VTKHDF
+exec h5copy -f ext -i $input -o $output -s VTKHDF -d VTKHDF

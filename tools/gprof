@@ -1,9 +1,9 @@
 #!/bin/bash
 
-num_cores=1
+ntasks=1
 while getopts "n:" opt; do
     case $opt in
-        n) num_cores=$OPTARG ;;
+        n) ntasks=$OPTARG ;;
         *) exit 1 ;;
     esac
 done
@@ -15,7 +15,11 @@ args=${@:2}
 out=${prog}_gprof.out
 pdf=${prog}_gprof.pdf
 
-GMON_OUT_PREFIX=gmon.out- mpirun -x GMON_OUT_PREFIX -n $num_cores $prog $args
+export GMON_OUT_PREFIX=gmon.out-
+
+mpirun -n $ntasks $prog $args
+
 gprof -s $prog gmon.out-*
 gprof $prog gmon.sum | tee $out | gprof2dot | dot -Tpdf -o $pdf
+
 rm gmon.out-* gmon.sum

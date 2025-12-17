@@ -1,9 +1,9 @@
 #!/bin/bash
 
-num_cores=1
+ntasks=1
 while getopts "n:" opt; do
     case $opt in
-        n) num_cores=$OPTARG ;;
+        n) ntasks=$OPTARG ;;
         *) exit 1 ;;
     esac
 done
@@ -12,7 +12,7 @@ shift $((OPTIND - 1))
 prog=$1
 args=${@:2}
 
-exec mpirun -n $num_cores valgrind -q --tool=memcheck --gen-suppressions=no \
+exec mpirun -n $ntasks valgrind -q --tool=memcheck --gen-suppressions=no \
     --suppressions=tools/openmpi.supp --suppressions=tools/thread.supp \
     --leak-check=full --track-origins=yes \
     $prog $args
