@@ -1,7 +1,9 @@
+#include <math.h>
+
 #include "navier_stokes.h"
 #include "teal/utils.h"
 
-scalar mach = 0.1, reynolds = 1000;
+scalar mach = 0.1, reynolds = 100;
 Compute moving_wall;
 
 int main(int argc, char **argv)
@@ -12,6 +14,14 @@ int main(int argc, char **argv)
     vector max_coord = {.x = 1, .y = 1};
     tuple num_cells = {.x = 100, .y = 100};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
+
+    for (long i = 0; i < mesh->nodes.num; i++) {
+        vector *coord = &mesh->nodes.coord[i];
+        scalar beta = 2;
+        coord->x = (1 + (tanh(beta * (2 * coord->x - 1)) / tanh(beta))) / 2;
+        coord->y = (1 + (tanh(beta * (2 * coord->y - 1)) / tanh(beta))) / 2;
+    }
+
     mesh_generate(mesh);
     mesh_summary(mesh);
 
@@ -29,8 +39,7 @@ int main(int argc, char **argv)
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_iter(sim, 10000);
-    simulation_set_out_iter(sim, 100);
-    simulation_set_termination(sim, "momentum-x", 1e-5);
+    simulation_set_out_iter(sim, 1000);
     simulation_set_advance(sim, "implicit euler", 100, 0);
     simulation_summary(sim);
 

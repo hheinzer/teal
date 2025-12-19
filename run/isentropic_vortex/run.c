@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 
     vector min_coord = {.x = 0, .y = 0};
     vector max_coord = {.x = 10, .y = 10};
-    tuple num_cells = {.x = 100, .y = 100};
+    tuple num_cells = {.x = 256, .y = 256};
     bool periodic[] = {true, true};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
     mesh_generate(mesh);
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
     Simulation *sim = simulation_create(eqns, argv[0]);
     simulation_set_max_time(sim, 10);
-    simulation_set_out_time(sim, 1);
+    simulation_set_out_time(sim, 0.1);
     simulation_summary(sim);
 
     scalar time = simulation_run(sim);

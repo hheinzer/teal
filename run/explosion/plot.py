@@ -33,17 +33,6 @@ CASES = [
 ]
 
 
-def flatten_dataset(mesh):
-    if isinstance(mesh, pv.PartitionedDataSet):
-        parts = [
-            pv.wrap(mesh.GetPartition(i))
-            for i in range(mesh.GetNumberOfPartitions())
-            if mesh.GetPartition(i) is not None
-        ]
-        return pv.merge(parts) if parts else mesh
-    return mesh
-
-
 def ensure_solution(case):
     if not os.path.isfile(case["file"]):
         subprocess.run(["mpirun", "-n", "6", case["exe"], "-q", *case["args"]], check=True)
@@ -52,7 +41,7 @@ def ensure_solution(case):
 
 def sample_solution(case):
     fname = ensure_solution(case)
-    mesh = flatten_dataset(pv.read(fname))
+    mesh = pv.read(fname)
     mesh = mesh.sample_over_line(*case["line"], resolution=1000)
     idx = mesh["Distance"].argsort()
     mask = (0 <= mesh["Distance"]) & (mesh["Distance"] <= 1)
@@ -83,9 +72,10 @@ def plot(series):
         ax.set_ylabel(field)
 
     handles, labels = axs.flat[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=len(labels), fontsize="x-small")
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
-    plt.savefig("bin/explosion/explosion.pdf")
+    fig.legend(handles, labels, loc="upper center", ncol=len(labels))
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig("bin/explosion/explosion.pdf", bbox_inches="tight")
+    plt.show()
 
 
 def main():

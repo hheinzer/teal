@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 
     vector min_coord = {.x = 0, .y = 0};
     vector max_coord = {.x = 3.25, .y = 1};
-    tuple num_cells = {.x = 520, .y = 160};
+    tuple num_cells = {.x = 1040, .y = 320};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, 0);
 
     vector root = {.x = shift};

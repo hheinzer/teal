@@ -11,17 +11,6 @@ FLUXES = ["godunov", "roe", "hll", "hllc", "hlle", "ausmd", "ausmdv", "lxf"]
 FIELDS = ["density", "velocity", "pressure", "energy"]
 
 
-def flatten_dataset(mesh):
-    if isinstance(mesh, pv.PartitionedDataSet):
-        parts = [
-            pv.wrap(mesh.GetPartition(i))
-            for i in range(mesh.GetNumberOfPartitions())
-            if mesh.GetPartition(i) is not None
-        ]
-        return pv.merge(parts) if parts else mesh
-    return mesh
-
-
 def ensure_solution(bin, flux, order):
     fname = f"{bin}_{flux}_{order}_00001.vtkhdf"
     if not os.path.isfile(fname):
@@ -30,7 +19,7 @@ def ensure_solution(bin, flux, order):
 
 
 def read_solution(fname):
-    mesh = flatten_dataset(pv.read(fname))
+    mesh = pv.read(fname)
     mesh = mesh.sample_over_line((0, 0.5, 0.5), (1, 0.5, 0.5), resolution=1000)
     idx = mesh["Distance"].argsort()
 
@@ -54,13 +43,14 @@ def plot_order(bin, order):
             if i == 0:
                 ax.plot(distance, data[f"exact {field}"], "k", label="exact")
 
-            ax.plot(distance, data[field], label=f"{flux} O{order}")
+            ax.plot(distance, data[field], label=f"{flux}")
             ax.set_xlabel("x-axis")
             ax.set_ylabel(field)
 
     axs[0, 1].legend(fontsize="small", loc="upper left", bbox_to_anchor=(1, 1))
 
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.suptitle(f"{bin.split("/")[-1]} O{order}")
+    fig.tight_layout()
     plt.savefig(f"{bin}_{order}.pdf")
 
 
