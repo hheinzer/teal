@@ -216,6 +216,7 @@ static void roe(void *flux_, const void *left_, const void *right_, const scalar
     local_to_global(flux, basis);
 }
 
+// Weighted average of left/right fluxes with jump correction between wave speeds.
 static void average_flux(Conserved *flux, const Euler *left, const Euler *right,
                          scalar signal_speed_l, scalar signal_speed_r)
 {
@@ -287,6 +288,7 @@ static void hll(void *flux_, const void *left_, const void *right_, const scalar
     local_to_global(flux, basis);
 }
 
+// Compute contact/tangential state contribution for HLLC flux.
 static void contact_flux(Conserved *flux, const Euler *state_k, scalar signal_speed_k,
                          scalar factor_k, scalar signal_speed)
 {
@@ -593,6 +595,25 @@ static void lxf(void *flux_, const void *left_, const void *right_, const scalar
     local_to_global(flux, basis);
 }
 
+// Central flux: simple average of left/right states without dissipation.
+static void central(void *flux_, const void *left_, const void *right_, const scalar *property,
+                    const Basis *basis)
+{
+    Conserved *flux = flux_;
+    Euler left = global_to_local(left_, property, basis);
+    Euler right = global_to_local(right_, property, basis);
+
+    Conserved flux_l = compute_flux(&left);
+    Conserved flux_r = compute_flux(&right);
+
+    flux->density = (flux_l.density + flux_r.density) / 2;
+    flux->momentum.x = (flux_l.momentum.x + flux_r.momentum.x) / 2;
+    flux->momentum.y = (flux_l.momentum.y + flux_r.momentum.y) / 2;
+    flux->momentum.z = (flux_l.momentum.z + flux_r.momentum.z) / 2;
+    flux->energy = (flux_l.energy + flux_r.energy) / 2;
+    local_to_global(flux, basis);
+}
+
 Convective *euler_convective(const char *name)
 {
     if (!strcmp(name, "godunov")) {
@@ -618,6 +639,9 @@ Convective *euler_convective(const char *name)
     }
     if (!strcmp(name, "lxf")) {
         return lxf;
+    }
+    if (!strcmp(name, "central")) {
+        return central;
     }
     error("invalid convective flux (%s)", name);
 }
