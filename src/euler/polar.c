@@ -69,14 +69,22 @@ void euler_polar(const Simulation *sim, const char *entity, const Euler *referen
     println("\t drag coefficient : %g", drag_c);
 
     if (sim->prefix) {
+        const scalar rad2deg = 180 / acos(-1);
+        scalar alpha_deg = alpha * rad2deg;
+
         char fname[128];
-        sprintf(fname, "%s_polar.h5", sim->prefix);
+        sprintf(fname, "%s_polar_%g.h5", sim->prefix, alpha_deg);
+
         hid_t file = h5io_file_create(fname);
+
         bool root = (sync.rank == 0);
+
+        h5io_dataset_write("alpha", &alpha_deg, root, 1, H5IO_SCALAR, file);
         h5io_dataset_write("center", center, num, 3, H5IO_SCALAR, file);
         h5io_dataset_write("pressure_c", pressure_c, num, 1, H5IO_SCALAR, file);
         h5io_dataset_write("lift_c", &lift_c, root, 1, H5IO_SCALAR, file);
         h5io_dataset_write("drag_c", &drag_c, root, 1, H5IO_SCALAR, file);
+
         h5io_file_close(file);
     }
 
