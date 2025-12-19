@@ -6,7 +6,6 @@
 #include "teal/utils.h"
 #include "teal/vector.h"
 
-// Reflect normal velocity component; keep tangential momentum and pressure unchanged.
 static void symmetry(void *ghost_, const void *inner_, const void *reference_,
                      const scalar *property, const Basis *basis)
 {
@@ -95,6 +94,23 @@ static void subsonic_outflow(void *ghost_, const void *inner_, const void *refer
     ghost->velocity.x = inner->velocity.x - (factor * basis->normal.x);
     ghost->velocity.y = inner->velocity.y - (factor * basis->normal.y);
     ghost->velocity.z = inner->velocity.z - (factor * basis->normal.z);
+}
+
+static void pressure_outflow(void *ghost_, const void *inner_, const void *reference_,
+                             const scalar *property, const Basis *basis)
+{
+    Euler *ghost = ghost_;
+    const Euler *inner = inner_;
+    const Euler *reference = reference_;
+    scalar gamma = property[EULER_HEAT_CAPACITY_RATIO];
+
+    scalar speed_of_sound = sqrt(gamma * inner->pressure / inner->density);
+    scalar velocity = vector_dot(inner->velocity, basis->normal);
+    scalar pressure = (velocity / speed_of_sound < 1) ? reference->pressure : inner->pressure;
+
+    ghost->density = inner->density * pressure / inner->pressure;
+    ghost->velocity = inner->velocity;
+    ghost->pressure = pressure;
 }
 
 // Rotate global states into a face-aligned basis for characteristic BC handling.
@@ -276,6 +292,9 @@ Boundary *euler_boundary(const char *name)
     }
     if (!strcmp(name, "subsonic outflow")) {
         return subsonic_outflow;
+    }
+    if (!strcmp(name, "pressure outflow")) {
+        return pressure_outflow;
     }
     if (!strcmp(name, "farfield")) {
         return farfield;
