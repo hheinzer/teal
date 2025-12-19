@@ -312,6 +312,7 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
             break;
         }
         case 2: {
+            Arena save = arena_save();
             void *gradient_ = equations_gradient(eqns, variable_);
             if (eqns->viscous.flux) {
                 integrate_viscous_flux_O2(eqns, variable_, derivative_, gradient_);
@@ -322,6 +323,7 @@ void *equations_derivative(const Equations *eqns, void *variable_, void *derivat
             if (eqns->convective.flux) {
                 integrate_convective_flux_O2(eqns, variable_, derivative_, gradient_);
             }
+            arena_load(save);
             break;
         }
         default: error("invalid space order (%ld)", eqns->space_order);
