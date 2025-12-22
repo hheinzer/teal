@@ -1030,9 +1030,7 @@ static void partition_cells(MeshNodes *nodes, MeshCells *cells, MeshEntities *en
     free(dual.xadj);
     free(dual.adjncy);
 
-    if (dst != sync.rank) {
-        resolve_comm_reorder(nodes, neighbor, &num_neighbors, dst);
-    }
+    resolve_comm_reorder(nodes, neighbor, &num_neighbors, dst);
 
     redistribute_cells(cells, entities, part);
     append_neighbor_cells(cells, neighbor, num_neighbors);
