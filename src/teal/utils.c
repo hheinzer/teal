@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "option.h"
 #include "sync.h"
@@ -87,15 +88,16 @@ void verbose(const char *fmt, ...)
 void error(const char *fmt, ...)
 {
     assert(fmt);
-    if (sync.rank == 0) {
-        fputs("ERROR: ", stderr);
-        va_list args;
-        va_start(args, fmt);
-        vfprintf(stderr, fmt, args);
-        va_end(args);
-        fputc('\n', stderr);
-        fflush(stderr);
-    }
+    char msg[128];
+    long len = sprintf(msg, "[%ld] ERROR: ", sync.rank);
+    va_list args;
+    va_start(args, fmt);
+    len += vsprintf(&msg[len], fmt, args);
+    va_end(args);
+    strcat(&msg[len], "\n");
+    fputs(msg, stderr);
+    fflush(stderr);
+    sleep(1);
     MPI_Abort(sync.comm, EXIT_FAILURE);
     abort();
 }
