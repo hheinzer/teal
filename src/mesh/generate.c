@@ -448,7 +448,9 @@ static void compute_send_graph(const MeshNodes *nodes, const MeshCells *cells,
     long *idx = arena_malloc(tot_send, sizeof(*idx));
     for (long i = 0; i < tot_send; i++) {
         long *local = kdtree_lookup(center2local, send[i]);
-        assert(local);
+        if (!local) {
+            error("center (%g, %g, %g) not found", send[i].x, send[i].y, send[i].z);
+        }
         idx[i] = *local;
     }
 
