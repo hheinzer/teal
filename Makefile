@@ -1,24 +1,19 @@
 # compiler
-CC = clang
-MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
+CC = gcc
+MPICC = OMPI_CC=$(CC) mpicc
 
 # libraries
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 
 # default flags
-CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings
+CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wvla \
+		 -Wno-unused-parameter -Wno-unused-function
 
 # debug flags
-#CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
-
-# valgrind flags
-#CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
+CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined -fanalyzer
 
 # release flags
-CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
-
-# gprof flags
-#CFLAGS += -pg -fno-omit-frame-pointer -fno-inline-functions
+#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
 
 # perf flags
 #CFLAGS += -fno-omit-frame-pointer -fno-inline-functions
@@ -39,8 +34,7 @@ clean:
 
 check:
 	@cppcheck --project=compile_commands.json --check-level=exhaustive --enable=all \
-		--suppress=checkersReport --suppress=missingIncludeSystem \
-		--suppress=unusedFunction --suppress=constVariablePointer --suppress=constVariable
+		--suppress=checkersReport --suppress=missingIncludeSystem --suppress=unusedFunction
 
 tidy: $(OBJ)
 	@clang-tidy $(shell find . -type f -name '*.[ch]')
@@ -61,4 +55,4 @@ obj/%.o: src/%.c Makefile
 
 bin/%: run/%.c $(OBJ)
 	@mkdir -p $(@D)
-	@$(MPICC) $(CFLAGS) -Wno-unused-parameter $< $(OBJ) $(LDLIBS) -o $@
+	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
