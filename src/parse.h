@@ -26,11 +26,13 @@ int parse_string(Parse *file, char *str, long size);
 // Read ASCII tokens into typed elements.
 int parse_ascii(Parse *file, void *buf, long num, MPI_Datatype datatype);
 
+// Read ASCII tokens into typed elements with a split count per rank.
 int parse_ascii_split(Parse *file, void *buf, long num, MPI_Datatype datatype);
 
 // Read binary data into typed elements.
 int parse_binary(Parse *file, void *buf, long num, MPI_Datatype datatype, int swap);
 
+// Read binary data into typed elements with a split count per rank.
 int parse_binary_split(Parse *file, void *buf, long num, MPI_Datatype datatype, int swap);
 
 // Dispatch parsing based on the provided mode.
