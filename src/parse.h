@@ -6,6 +6,7 @@ typedef enum {
     ASCII = 1 << 0,
     BINARY = 1 << 1,
     SPLIT = 1 << 2,
+    SWAP = 1 << 3,
 } Mode;
 
 typedef struct Parse {
@@ -28,9 +29,9 @@ int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype);
 int parse_ascii_split(Parse *file, void *buf, int num, MPI_Datatype datatype);
 
 // Read binary data into typed elements.
-int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype);
+int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype, int swap);
 
-int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype);
+int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, int swap);
 
 // Dispatch parsing based on the provided mode.
 int parse(Parse *file, void *buf, int num, MPI_Datatype datatype, int mode);

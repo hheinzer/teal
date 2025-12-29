@@ -9,6 +9,7 @@
 #include "space.h"
 #include "sync.h"
 #include "teal.h"
+#include "utils.h"
 
 enum { SIZE = 4096 };
 
@@ -150,6 +151,21 @@ static void convert(const char *token, void *buf, int index, MPI_Datatype dataty
     }
 }
 
+// Parse up to num tokens into buf and return the count.
+static int read_tokens(Buffer *buffer, Parse *file, void *buf, int num, MPI_Datatype datatype)
+{
+    int count = 0;
+    for (int i = 0; i < num; i++) {
+        const char *tok = next(buffer, file);
+        if (!tok) {
+            break;
+        }
+        convert(tok, buf, i, datatype);
+        count += 1;
+    }
+    return count;
+}
+
 int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
 {
     assert(file && (buf || num == 0) && num >= 0);
@@ -163,14 +179,7 @@ int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
             .end = buffer.data,
             .offset = file->offset,
         };
-        for (int i = 0; i < num; i++) {
-            const char *tok = next(&buffer, file);
-            if (!tok) {
-                break;
-            }
-            convert(tok, buf, i, datatype);
-            count += 1;
-        }
+        count = read_tokens(&buffer, file, buf, num, datatype);
         file->offset = buffer.offset + buffer.beg - buffer.data;
     }
     MPI_Bcast(&count, 1, MPI_INT, 0, sync.comm);
@@ -181,4 +190,56 @@ int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
 
 int parse_ascii_split(Parse *file, void *buf, int num, MPI_Datatype datatype)
 {
+    assert(file && (buf || num == 0) && num >= 0);
+
+    int *num_rank = 0;
+    if (sync.rank == 0) {
+        num_rank = teal_alloc(sync.size, sizeof(*num_rank));
+    }
+    MPI_Gather(&num, 1, MPI_INT, num_rank, 1, MPI_INT, 0, sync.comm);
+
+    int count = 0;
+    if (sync.rank == 0) {
+        assert(num_rank);
+
+        Buffer buffer = {
+            .beg = buffer.data,
+            .end = buffer.data,
+            .offset = file->offset,
+        };
+
+        int cap = 0;
+        for (int i = 0; i < sync.size; i++) {
+            cap = max(cap, num_rank[i]);
+        }
+
+        int size = 0;
+        MPI_Type_size(datatype, &size);
+        if (size <= 0) {
+            teal_error("invalid type size (%d)", size);
+        }
+
+        void *buf_rank = teal_alloc(cap, size);
+        for (int rank = 0; rank < sync.size; rank++) {
+            void *dst = (rank == 0) ? buf : buf_rank;
+            int count_rank = read_tokens(&buffer, file, dst, num_rank[rank], datatype);
+            if (rank == 0) {
+                count = count_rank;
+            }
+            else {
+                MPI_Send(&count_rank, 1, MPI_INT, rank, 0, sync.comm);
+                MPI_Send(dst, count_rank, datatype, rank, 1, sync.comm);
+            }
+        }
+        teal_free(buf_rank);
+        teal_free(num_rank);
+
+        file->offset = buffer.offset + buffer.beg - buffer.data;
+    }
+    else {
+        MPI_Recv(&count, 1, MPI_INT, 0, 0, sync.comm, MPI_STATUS_IGNORE);
+        MPI_Recv(buf, count, datatype, 0, 1, sync.comm, MPI_STATUS_IGNORE);
+    }
+    MPI_Bcast(&file->offset, 1, MPI_OFFSET, 0, sync.comm);
+    return count;
 }
