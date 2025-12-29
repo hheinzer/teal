@@ -27,3 +27,9 @@ double sync_fsum(double val);
 
 // Return the exclusive prefix sum of a long value.
 long sync_exsum(long val);
+
+// Return the global dot product of two arrays.
+double sync_dot(const double *lhs, const double *rhs, long num);
+
+// Return the global Euclidean norm of an array.
+double sync_norm(const double *arr, long num);
