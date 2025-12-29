@@ -30,7 +30,10 @@ static char *find_quote(char *beg, const char *end)
 
 int parse_string(Parse *file, char *str, int size)
 {
-    assert(file && str && size > 0);
+    assert(file && (str || size == 0) && size >= 0);
+    if (size == 0) {
+        return 0;
+    }
     int len = 0;
     if (sync.rank == 0) {
         // read a fixed chunk for one token

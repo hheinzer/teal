@@ -7,7 +7,10 @@
 
 int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype)
 {
-    assert(file && buf && num > 0);
+    assert(file && (buf || num == 0) && num >= 0);
+    if (num == 0) {
+        return 0;
+    }
     int count = 0;
     if (sync.rank == 0) {
         MPI_Status status;
