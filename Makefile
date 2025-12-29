@@ -6,8 +6,8 @@ MPICC = OMPI_CC=$(CC) mpicc
 LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 
 # default flags
-CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wvla \
-		 -Wno-unused-parameter -Wno-unused-function
+CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
+		 -Wno-unused-parameter -Wno-unused-function -Wno-sign-conversion
 
 # debug flags
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined -fanalyzer

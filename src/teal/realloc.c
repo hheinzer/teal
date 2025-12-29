@@ -20,7 +20,7 @@ void *teal_realloc(void *ptr, long num, long size)
         teal_error("allocation size overflow");
     }
 
-    void *new = realloc(ptr, (size_t)(num * size));
+    void *new = realloc(ptr, num * size);
     if (!new) {
         teal_error("out of memory");
     }

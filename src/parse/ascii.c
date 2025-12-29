@@ -31,7 +31,7 @@ static int refill(Buffer *buffer, Parse *file)
         // slide unread data to the front of the buffer
         long consumed = buffer->beg - buffer->data;
         long remaining = buffer->end - buffer->beg;
-        memmove(buffer->data, buffer->beg, (size_t)remaining);
+        memmove(buffer->data, buffer->beg, remaining);
         buffer->offset += consumed;
         buffer->beg = buffer->data;
         buffer->end = buffer->data + remaining;

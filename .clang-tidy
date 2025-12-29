@@ -14,4 +14,6 @@ Checks:
   - -misc-include-cleaner
   - -portability-avoid-pragma-once
   - -readability-magic-numbers
+CheckOptions:
+  bugprone-narrowing-conversions.WarnOnEquivalentBitWidth: 'false'
 ...

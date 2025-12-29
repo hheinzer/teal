@@ -77,8 +77,8 @@ int parse_string(Parse *file, char *str, int size)
 
         // pack the token into the destination buffer
         len = (int)(end - beg);
-        memmove(str, beg, (size_t)len);
-        memset(str + len, 0, (size_t)(size - len));
+        memmove(str, beg, len);
+        memset(str + len, 0, size - len);
     }
     MPI_Bcast(&len, 1, MPI_INT, 0, sync.comm);
     MPI_Bcast(str, size, MPI_CHAR, 0, sync.comm);

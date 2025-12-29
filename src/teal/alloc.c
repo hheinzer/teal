@@ -16,7 +16,7 @@ void *teal_alloc(long num, long size)
         teal_error("allocation size overflow");
     }
 
-    void *ptr = calloc((size_t)num, (size_t)size);
+    void *ptr = calloc(num, size);
     if (!ptr) {
         teal_error("out of memory");
     }
