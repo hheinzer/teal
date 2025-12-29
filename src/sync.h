@@ -17,12 +17,13 @@ void sync_deinit(void);
 // Replace the cached communicator and refresh rank and size.
 void sync_reinit(MPI_Comm comm);
 
-long sync_all_lmin(long val);
-long sync_all_lmax(long val);
-long sync_all_lsum(long val);
+long sync_lmin(long val);
+long sync_lmax(long val);
+long sync_lsum(long val);
 
-double sync_all_fmin(double val);
-double sync_all_fmax(double val);
-double sync_all_fsum(double val);
+double sync_fmin(double val);
+double sync_fmax(double val);
+double sync_fsum(double val);
 
+// Return the exclusive prefix sum of a long value.
 long sync_exsum(long val);

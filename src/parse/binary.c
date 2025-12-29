@@ -92,7 +92,7 @@ int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, i
         }
     }
 
-    long total = sync_all_lsum(count);
+    long total = sync_lsum(count);
     file->offset += total * size;
     return count;
 }
