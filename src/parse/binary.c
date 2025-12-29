@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <byteswap.h>
+#include <limits.h>
 #include <mpi.h>
 #include <stdint.h>
 
@@ -37,16 +38,16 @@ static void swap_bytes(void *buf, long num, long size)
     }
 }
 
-int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype, int swap)
+int parse_binary(Parse *file, void *buf, long num, MPI_Datatype datatype, int swap)
 {
-    assert(file && (buf || num == 0) && num >= 0);
+    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
     if (num == 0) {
         return 0;
     }
     int count = 0;
     if (sync.rank == 0) {
         MPI_Status status;
-        MPI_File_read_at(file->handle, file->offset, buf, num, datatype, &status);
+        MPI_File_read_at(file->handle, file->offset, buf, (int)num, datatype, &status);
         MPI_Get_count(&status, datatype, &count);
         if (count <= 0) {
             teal_error("invalid read (probably end-of-file)");
@@ -67,9 +68,9 @@ int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype, int swa
     return count;
 }
 
-int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, int swap)
+int parse_binary_split(Parse *file, void *buf, long num, MPI_Datatype datatype, int swap)
 {
-    assert(file && (buf || num == 0) && num >= 0);
+    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
     int size = 0;
     MPI_Type_size(datatype, &size);
     if (size <= 0) {
@@ -82,7 +83,7 @@ int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, i
     int count = 0;
     if (num > 0) {
         MPI_Status status;
-        MPI_File_read_at(file->handle, offset, buf, num, datatype, &status);
+        MPI_File_read_at(file->handle, offset, buf, (int)num, datatype, &status);
         MPI_Get_count(&status, datatype, &count);
         if (count <= 0) {
             teal_error("invalid read (probably end-of-file)");

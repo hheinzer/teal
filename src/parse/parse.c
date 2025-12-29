@@ -4,7 +4,7 @@
 
 #include "teal.h"
 
-int parse(Parse *file, void *buf, int num, MPI_Datatype datatype, int mode)
+int parse(Parse *file, void *buf, long num, MPI_Datatype datatype, int mode)
 {
     int split = mode & SPLIT;
     int swap = mode & SWAP;

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <mpi.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -166,9 +167,9 @@ static int read_tokens(Buffer *buffer, Parse *file, void *buf, int num, MPI_Data
     return count;
 }
 
-int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
+int parse_ascii(Parse *file, void *buf, long num, MPI_Datatype datatype)
 {
-    assert(file && (buf || num == 0) && num >= 0);
+    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
     if (num == 0) {
         return 0;
     }
@@ -179,7 +180,7 @@ int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
             .end = buffer.data,
             .offset = file->offset,
         };
-        count = read_tokens(&buffer, file, buf, num, datatype);
+        count = read_tokens(&buffer, file, buf, (int)num, datatype);
         file->offset = buffer.offset + buffer.beg - buffer.data;
     }
     MPI_Bcast(&count, 1, MPI_INT, 0, sync.comm);
@@ -188,15 +189,15 @@ int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
     return count;
 }
 
-int parse_ascii_split(Parse *file, void *buf, int num, MPI_Datatype datatype)
+int parse_ascii_split(Parse *file, void *buf, long num, MPI_Datatype datatype)
 {
-    assert(file && (buf || num == 0) && num >= 0);
+    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
 
     int *num_rank = 0;
     if (sync.rank == 0) {
         num_rank = teal_alloc(sync.size, sizeof(*num_rank));
     }
-    MPI_Gather(&num, 1, MPI_INT, num_rank, 1, MPI_INT, 0, sync.comm);
+    MPI_Gather(&(int){(int)num}, 1, MPI_INT, num_rank, 1, MPI_INT, 0, sync.comm);
 
     int count = 0;
     if (sync.rank == 0) {
