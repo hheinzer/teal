@@ -25,8 +25,12 @@ int parse_string(Parse *file, char *str, int size);
 // Read ASCII tokens into typed elements.
 int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype);
 
+int parse_ascii_split(Parse *file, void *buf, int num, MPI_Datatype datatype);
+
 // Read binary data into typed elements.
 int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype);
+
+int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype);
 
 // Dispatch parsing based on the provided mode.
 int parse(Parse *file, void *buf, int num, MPI_Datatype datatype, int mode);

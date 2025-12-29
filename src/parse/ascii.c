@@ -178,3 +178,7 @@ int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
     MPI_Bcast(&file->offset, 1, MPI_OFFSET, 0, sync.comm);
     return count;
 }
+
+int parse_ascii_split(Parse *file, void *buf, int num, MPI_Datatype datatype)
+{
+}
