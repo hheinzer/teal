@@ -24,3 +24,5 @@ long sync_all_lsum(long val);
 double sync_all_fmin(double val);
 double sync_all_fmax(double val);
 double sync_all_fsum(double val);
+
+long sync_exsum(long val);
