@@ -79,7 +79,7 @@ int parse_string(Parse *file, char *str, int size)
 
         // pack the token into the destination buffer
         ptrdiff_t diff = end - beg;
-        assert(diff >= 0 && diff <= size);
+        assert(0 <= diff && diff <= size);
         len = (int)diff;
         memmove(str, beg, (size_t)len);
         memset(str + len, 0, (size_t)(size - len));
