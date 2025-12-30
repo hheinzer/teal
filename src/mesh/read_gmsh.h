@@ -521,6 +521,31 @@ static Gmsh *gmsh_init(const char *fname)
 
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
+    int num_nodes = 0;
+    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
+        assert(gmsh->nodes.block[i].num_nodes <= INT_MAX);
+        assert(num_nodes <= INT_MAX - (int)gmsh->nodes.block[i].num_nodes);
+        num_nodes += (int)gmsh->nodes.block[i].num_nodes;
+    }
+    assert(num_nodes > 0);
+    mesh->nodes.num = num_nodes;
+
+    vector *coord = teal_alloc(num_nodes, sizeof(*coord));
+    int num = 0;
+    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
+        NodeBlock *block = &gmsh->nodes.block[i];
+        int len = 3 + (block->parametric ? block->entity_dim : 0);
+        assert(len >= 0);
+        for (uint64_t j = 0; j < block->num_nodes; j++) {
+            uint64_t base = j * (uint64_t)len;
+            coord[num].x = block->coord[base + 0];
+            coord[num].y = block->coord[base + 1];
+            coord[num].z = block->coord[base + 2];
+            num += 1;
+        }
+    }
+    assert(num == num_nodes);
+    mesh->nodes.coord = coord;
 }
 
 static void create_cells(Mesh *mesh, const Gmsh *gmsh)
