@@ -1,15 +1,21 @@
 #pragma once
 
+// Return the minimum of an integer array, or INT_MAX if num is 0.
 int array_min(const int *arr, int num);
 
+// Return the maximum of an integer array, or INT_MIN if num is 0.
 int array_max(const int *arr, int num);
 
+// Return the sum of an integer array.
 int array_sum(const int *arr, int num);
 
+// Return the minimum of a double array, or DBL_MAX if num is 0.
 double array_fmin(const double *arr, int num);
 
+// Return the maximum of a double array, or -DBL_MAX if num is 0.
 double array_fmax(const double *arr, int num);
 
+// Return the sum of a double array.
 double array_fsum(const double *arr, int num);
 
 // Sort the array and remove duplicates in place.
