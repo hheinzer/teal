@@ -52,16 +52,6 @@ void teal_init(int *argc, char ***argv)
 
     sync_init(argc, argv);
 
-    if (sizeof(int) != 4) {
-        teal_error("unexpected sizeof(int) (%zu)", sizeof(int));
-    }
-    if (sizeof(long) != 8) {
-        teal_error("unexpected sizeof(long) (%zu)", sizeof(long));
-    }
-    if (sizeof(size_t) != sizeof(long)) {
-        teal_error("unexpected sizeof(size_t) (%zu)", sizeof(size_t));
-    }
-
     parse_options(*argc, *argv);
     remove_parsed_options(argc, argv);
 

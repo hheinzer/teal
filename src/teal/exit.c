@@ -10,6 +10,5 @@ void teal_exit(int status)
     if (flag) {
         MPI_Finalize();
     }
-
     exit(status);
 }

@@ -1,13 +1,12 @@
 #include <assert.h>
-#include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "teal.h"
 
-void *teal_realloc(void *ptr, long num, long size)
+void *teal_realloc(void *ptr, int num, size_t size)
 {
-    assert(num >= 0 && size > 0);
-
+    assert(num >= 0);
     if (!ptr) {
         return teal_alloc(num, size);
     }
@@ -15,15 +14,12 @@ void *teal_realloc(void *ptr, long num, long size)
         teal_free(ptr);
         return 0;
     }
-
-    if (num > LONG_MAX / size) {
-        teal_error("allocation size overflow");
+    if ((size_t)num > SIZE_MAX / size) {
+        teal_error("size overflow");
     }
-
-    void *new = realloc(ptr, num * size);
+    void *new = realloc(ptr, (size_t)num * size);
     if (!new) {
         teal_error("out of memory");
     }
-
     return new;
 }

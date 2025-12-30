@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+
 extern struct Teal {
     int quiet;
 } teal;
@@ -20,10 +22,10 @@ void teal_print(const char *fmt, ...) __attribute((format(printf, 1, 2)));
 void teal_error(const char *fmt, ...) __attribute((format(printf, 1, 2), noreturn));
 
 // Allocate zeroed memory.
-void *teal_alloc(long num, long size) __attribute((malloc));
+void *teal_alloc(int num, size_t size) __attribute((malloc));
 
 // Reallocate or free an allocation.
-void *teal_realloc(void *ptr, long num, long size);
+void *teal_realloc(void *ptr, int num, size_t size);
 
 // Free an allocation.
 void teal_free(void *ptr);
