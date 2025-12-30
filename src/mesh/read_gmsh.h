@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -12,18 +13,18 @@ typedef struct {
     double version;
     int32_t file_type;
     int32_t data_size;
-} Format;
+} MeshFormat;
 
 typedef struct {
     int32_t dim;
     int32_t tag;
     char name[128];
-} Name;
+} PhysicalName;
 
 typedef struct {
     int32_t num;
-    Name *name;
-} Physicals;
+    PhysicalName *name;
+} PhysicalNames;
 
 typedef struct {
     int32_t tag;
@@ -113,20 +114,20 @@ typedef struct {
     uint64_t num_nodes;
     uint64_t *node_tag;
     uint64_t *node_tag_master;
-} Link;
+} PeriodicLink;
 
 typedef struct {
-    uint64_t num;
-    Link *link;
-} Periodics;
+    uint64_t num_links;
+    PeriodicLink *link;
+} Periodic;
 
 typedef struct {
-    Format format;
-    Physicals physicals;
+    MeshFormat format;
+    PhysicalNames names;
     Entities entities;
     Nodes nodes;
     Elements elements;
-    Periodics periodics;
+    Periodic periodic;
 } Gmsh;
 
 static int read_format(Gmsh *gmsh, Parse *file)
@@ -155,28 +156,32 @@ static int read_format(Gmsh *gmsh, Parse *file)
     return mode;
 }
 
-static void read_physicals(Gmsh *gmsh, Parse *file)
+static void read_names(Gmsh *gmsh, Parse *file)
 {
-    parse_ascii(file, &gmsh->physicals.num, 1, MPI_INT32_T);
-    Name *name = teal_alloc(gmsh->physicals.num, sizeof(*name));
-    for (int i = 0; i < gmsh->physicals.num; i++) {
+    parse_ascii(file, &gmsh->names.num, 1, MPI_INT32_T);
+
+    PhysicalName *name = teal_alloc(gmsh->names.num, sizeof(*name));
+    for (int i = 0; i < gmsh->names.num; i++) {
         parse_ascii(file, &name[i].dim, 1, MPI_INT32_T);
         parse_ascii(file, &name[i].tag, 1, MPI_INT32_T);
         parse_string(file, name[i].name, sizeof(name->name));
     }
-    gmsh->physicals.name = name;
+    gmsh->names.name = name;
 }
 
-static Point *read_points(long num, Parse *file, int mode)
+static Point *read_points(int num, Parse *file, int mode)
 {
     Point *point = teal_alloc(num, sizeof(*point));
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         parse(file, &point[i].tag, 1, MPI_INT32_T, mode);
         parse(file, &point[i].x, 1, MPI_DOUBLE, mode);
         parse(file, &point[i].y, 1, MPI_DOUBLE, mode);
         parse(file, &point[i].z, 1, MPI_DOUBLE, mode);
+
         parse(file, &point[i].num_physical_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_physical_tags = point[i].num_physical_tags;
+        assert(point[i].num_physical_tags <= INT_MAX);
+        int num_physical_tags = (int)point[i].num_physical_tags;
+
         int32_t *physical_tag = teal_alloc(num_physical_tags, sizeof(*physical_tag));
         parse(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         point[i].physical_tag = physical_tag;
@@ -184,10 +189,10 @@ static Point *read_points(long num, Parse *file, int mode)
     return point;
 }
 
-static Curve *read_curves(long num, Parse *file, int mode)
+static Curve *read_curves(int num, Parse *file, int mode)
 {
     Curve *curve = teal_alloc(num, sizeof(*curve));
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         parse(file, &curve[i].tag, 1, MPI_INT32_T, mode);
         parse(file, &curve[i].min_x, 1, MPI_DOUBLE, mode);
         parse(file, &curve[i].min_y, 1, MPI_DOUBLE, mode);
@@ -195,13 +200,19 @@ static Curve *read_curves(long num, Parse *file, int mode)
         parse(file, &curve[i].max_x, 1, MPI_DOUBLE, mode);
         parse(file, &curve[i].max_y, 1, MPI_DOUBLE, mode);
         parse(file, &curve[i].max_z, 1, MPI_DOUBLE, mode);
+
         parse(file, &curve[i].num_physical_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_physical_tags = curve[i].num_physical_tags;
+        assert(curve[i].num_physical_tags <= INT_MAX);
+        int num_physical_tags = (int)curve[i].num_physical_tags;
+
         int32_t *physical_tag = teal_alloc(num_physical_tags, sizeof(*physical_tag));
         parse(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         curve[i].physical_tag = physical_tag;
+
         parse(file, &curve[i].num_point_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_point_tags = curve[i].num_point_tags;
+        assert(curve[i].num_point_tags <= INT_MAX);
+        int num_point_tags = (int)curve[i].num_point_tags;
+
         int32_t *point_tag = teal_alloc(num_point_tags, sizeof(*point_tag));
         parse(file, point_tag, num_point_tags, MPI_INT32_T, mode);
         curve[i].point_tag = point_tag;
@@ -209,10 +220,10 @@ static Curve *read_curves(long num, Parse *file, int mode)
     return curve;
 }
 
-static Surface *read_surfaces(long num, Parse *file, int mode)
+static Surface *read_surfaces(int num, Parse *file, int mode)
 {
     Surface *surface = teal_alloc(num, sizeof(*surface));
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         parse(file, &surface[i].tag, 1, MPI_INT32_T, mode);
         parse(file, &surface[i].min_x, 1, MPI_DOUBLE, mode);
         parse(file, &surface[i].min_y, 1, MPI_DOUBLE, mode);
@@ -220,13 +231,19 @@ static Surface *read_surfaces(long num, Parse *file, int mode)
         parse(file, &surface[i].max_x, 1, MPI_DOUBLE, mode);
         parse(file, &surface[i].max_y, 1, MPI_DOUBLE, mode);
         parse(file, &surface[i].max_z, 1, MPI_DOUBLE, mode);
+
         parse(file, &surface[i].num_physical_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_physical_tags = surface[i].num_physical_tags;
+        assert(surface[i].num_physical_tags <= INT_MAX);
+        int num_physical_tags = (int)surface[i].num_physical_tags;
+
         int32_t *physical_tag = teal_alloc(num_physical_tags, sizeof(*physical_tag));
         parse(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         surface[i].physical_tag = physical_tag;
+
         parse(file, &surface[i].num_curve_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_curve_tags = surface[i].num_curve_tags;
+        assert(surface[i].num_curve_tags <= INT_MAX);
+        int num_curve_tags = (int)surface[i].num_curve_tags;
+
         int32_t *curve_tag = teal_alloc(num_curve_tags, sizeof(*curve_tag));
         parse(file, curve_tag, num_curve_tags, MPI_INT32_T, mode);
         surface[i].curve_tag = curve_tag;
@@ -234,10 +251,10 @@ static Surface *read_surfaces(long num, Parse *file, int mode)
     return surface;
 }
 
-static Volume *read_volumes(long num, Parse *file, int mode)
+static Volume *read_volumes(int num, Parse *file, int mode)
 {
     Volume *volume = teal_alloc(num, sizeof(*volume));
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         parse(file, &volume[i].tag, 1, MPI_INT32_T, mode);
         parse(file, &volume[i].min_x, 1, MPI_DOUBLE, mode);
         parse(file, &volume[i].min_y, 1, MPI_DOUBLE, mode);
@@ -245,13 +262,19 @@ static Volume *read_volumes(long num, Parse *file, int mode)
         parse(file, &volume[i].max_x, 1, MPI_DOUBLE, mode);
         parse(file, &volume[i].max_y, 1, MPI_DOUBLE, mode);
         parse(file, &volume[i].max_z, 1, MPI_DOUBLE, mode);
+
         parse(file, &volume[i].num_physical_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_physical_tags = volume[i].num_physical_tags;
+        assert(volume[i].num_physical_tags <= INT_MAX);
+        int num_physical_tags = (int)volume[i].num_physical_tags;
+
         int32_t *physical_tag = teal_alloc(num_physical_tags, sizeof(*physical_tag));
         parse(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         volume[i].physical_tag = physical_tag;
+
         parse(file, &volume[i].num_surface_tags, 1, MPI_UINT64_T, mode);
-        uint64_t num_surface_tags = volume[i].num_surface_tags;
+        assert(volume[i].num_surface_tags <= INT_MAX);
+        int num_surface_tags = (int)volume[i].num_surface_tags;
+
         int32_t *surface_tag = teal_alloc(num_surface_tags, sizeof(*surface_tag));
         parse(file, surface_tag, num_surface_tags, MPI_INT32_T, mode);
         volume[i].surface_tag = surface_tag;
@@ -262,13 +285,25 @@ static Volume *read_volumes(long num, Parse *file, int mode)
 static void read_entities(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->entities.num_points, 1, MPI_UINT64_T, mode);
+    assert(gmsh->entities.num_points <= INT_MAX);
+    int num_points = (int)gmsh->entities.num_points;
+
     parse(file, &gmsh->entities.num_curves, 1, MPI_UINT64_T, mode);
+    assert(gmsh->entities.num_curves <= INT_MAX);
+    int num_curves = (int)gmsh->entities.num_curves;
+
     parse(file, &gmsh->entities.num_surfaces, 1, MPI_UINT64_T, mode);
+    assert(gmsh->entities.num_surfaces <= INT_MAX);
+    int num_surfaces = (int)gmsh->entities.num_surfaces;
+
     parse(file, &gmsh->entities.num_volumes, 1, MPI_UINT64_T, mode);
-    gmsh->entities.point = read_points(gmsh->entities.num_points, file, mode);
-    gmsh->entities.curve = read_curves(gmsh->entities.num_curves, file, mode);
-    gmsh->entities.surface = read_surfaces(gmsh->entities.num_surfaces, file, mode);
-    gmsh->entities.volume = read_volumes(gmsh->entities.num_volumes, file, mode);
+    assert(gmsh->entities.num_volumes <= INT_MAX);
+    int num_volumes = (int)gmsh->entities.num_volumes;
+
+    gmsh->entities.point = read_points(num_points, file, mode);
+    gmsh->entities.curve = read_curves(num_curves, file, mode);
+    gmsh->entities.surface = read_surfaces(num_surfaces, file, mode);
+    gmsh->entities.volume = read_volumes(num_volumes, file, mode);
 }
 
 static long read_node_block(NodeBlock *block, long beg, long end, long off, Parse *file, int mode)
@@ -276,19 +311,25 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->parametric, 1, MPI_INT32_T, mode);
+
     parse(file, &block->num_nodes, 1, MPI_UINT64_T, mode);
+    assert(block->num_nodes <= LONG_MAX);
+    long tot_nodes = (long)block->num_nodes;
 
-    long tot_nodes = block->num_nodes;
-    long num_nodes = max(0, min(end, off + tot_nodes) - max(beg, off));
-    assert(tot_nodes == sync_lsum(num_nodes));
+    long beg_nodes = max(beg, off);
+    long end_nodes = min(end, off + tot_nodes);
+    long num_nodes = max(0, end_nodes - beg_nodes);
+    assert(num_nodes <= INT_MAX && tot_nodes == sync_lsum((int)num_nodes));
+    block->num_nodes = (uint64_t)num_nodes;
 
-    block->num_nodes = num_nodes;
-    block->tag = teal_alloc(num_nodes, sizeof(*block->tag));
-    parse(file, block->tag, num_nodes, MPI_UINT64_T, mode | SPLIT);
+    block->tag = teal_alloc((int)num_nodes, sizeof(*block->tag));
+    parse(file, block->tag, (int)num_nodes, MPI_UINT64_T, mode | SPLIT);
 
-    long len = 3 + (block->parametric ? block->entity_dim : 0);
-    block->coord = teal_alloc(num_nodes * len, sizeof(*block->coord));
-    parse(file, block->coord, num_nodes * len, MPI_DOUBLE, mode | SPLIT);
+    int len = 3 + (block->parametric ? block->entity_dim : 0);
+    assert(num_nodes < INT_MAX / len);
+    int tot_coords = (int)num_nodes * len;
+    block->coord = teal_alloc(tot_coords, sizeof(*block->coord));
+    parse(file, block->coord, tot_coords, MPI_DOUBLE, mode | SPLIT);
 
     return tot_nodes;
 }
@@ -296,24 +337,28 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
 static void read_nodes(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->nodes.num_blocks, 1, MPI_UINT64_T, mode);
+    assert(gmsh->nodes.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->nodes.num_blocks;
+
     parse(file, &gmsh->nodes.tot_nodes, 1, MPI_UINT64_T, mode);
+    assert(gmsh->nodes.tot_nodes <= LONG_MAX);
+    long tot_nodes = (long)gmsh->nodes.tot_nodes;
+
     parse(file, &gmsh->nodes.min_tag, 1, MPI_UINT64_T, mode);
     parse(file, &gmsh->nodes.max_tag, 1, MPI_UINT64_T, mode);
 
-    long num_blocks = gmsh->nodes.num_blocks;
-    gmsh->nodes.block = teal_alloc(num_blocks, sizeof(*gmsh->nodes.block));
-
-    long tot_nodes = gmsh->nodes.tot_nodes;
     long base = tot_nodes / sync.size;
     long extra = tot_nodes % sync.size;
     long beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
     long end = beg + base + (sync.rank < extra);
 
+    NodeBlock *block = teal_alloc(num_blocks, sizeof(*block));
     long off = 0;
-    for (long i = 0; i < num_blocks; i++) {
-        off += read_node_block(&gmsh->nodes.block[i], beg, end, off, file, mode);
+    for (int i = 0; i < num_blocks; i++) {
+        off += read_node_block(&block[i], beg, end, off, file, mode);
     }
     assert(off == tot_nodes);
+    gmsh->nodes.block = block;
 }
 
 static int32_t num_node_tags(int32_t element_type)
@@ -335,24 +380,31 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->element_type, 1, MPI_INT32_T, mode);
+
     parse(file, &block->num_elements, 1, MPI_UINT64_T, mode);
+    assert(block->num_elements <= LONG_MAX);
+    long tot_elements = (long)block->num_elements;
 
-    long tot_elements = block->num_elements;
-    long num_elements = max(0, min(end, off + tot_elements) - max(beg, off));
-    assert(tot_elements == sync_lsum(num_elements));
+    long beg_elements = max(beg, off);
+    long end_elements = min(end, off + tot_elements);
+    long num_elements = max(0, end_elements - beg_elements);
+    assert(num_elements <= INT_MAX && tot_elements == sync_lsum(num_elements));
+    block->num_elements = (uint64_t)num_elements;
 
-    block->num_elements = num_elements;
-    block->tag = teal_alloc(num_elements, sizeof(*block->tag));
+    block->tag = teal_alloc((int)num_elements, sizeof(*block->tag));
 
-    long len = num_node_tags(block->element_type);
-    block->node_tag = teal_alloc(num_elements * len, sizeof(*block->node_tag));
+    int len = num_node_tags(block->element_type);
+    assert(num_elements < INT_MAX / len);
+    int tot_node_tags = (int)num_elements * len;
+    block->node_tag = teal_alloc(tot_node_tags, sizeof(*block->node_tag));
 
-    long stride = 1 + len;
-    uint64_t (*tmp)[stride] = teal_alloc(num_elements, sizeof(*tmp));
-    parse(file, tmp, num_elements * stride, MPI_UINT64_T, mode | SPLIT);
-    for (long i = 0; i < num_elements; i++) {
+    int stride = 1 + len;
+    assert(num_elements <= INT_MAX / stride);
+    uint64_t (*tmp)[stride] = teal_alloc((int)num_elements, sizeof(*tmp));
+    parse(file, tmp, (int)num_elements * stride, MPI_UINT64_T, mode | SPLIT);
+    for (int i = 0; i < num_elements; i++) {
         block->tag[i] = tmp[i][0];
-        for (long j = 0; j < len; j++) {
+        for (int j = 0; j < len; j++) {
             block->node_tag[(i * len) + j] = tmp[i][1 + j];
         }
     }
@@ -364,45 +416,54 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
 static void read_elements(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->elements.num_blocks, 1, MPI_UINT64_T, mode);
+    assert(gmsh->elements.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->elements.num_blocks;
+
     parse(file, &gmsh->elements.tot_elements, 1, MPI_UINT64_T, mode);
+    assert(gmsh->elements.tot_elements <= LONG_MAX);
+    long tot_elements = (long)gmsh->elements.tot_elements;
+
     parse(file, &gmsh->elements.min_tag, 1, MPI_UINT64_T, mode);
     parse(file, &gmsh->elements.max_tag, 1, MPI_UINT64_T, mode);
 
-    long num_blocks = gmsh->elements.num_blocks;
-    gmsh->elements.block = teal_alloc(num_blocks, sizeof(*gmsh->elements.block));
-
-    long tot_elements = gmsh->elements.tot_elements;
     long base = tot_elements / sync.size;
     long extra = tot_elements % sync.size;
     long beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
     long end = beg + base + (sync.rank < extra);
 
+    ElementBlock *block = teal_alloc(num_blocks, sizeof(*block));
     long off = 0;
-    for (long i = 0; i < num_blocks; i++) {
-        off += read_element_block(&gmsh->elements.block[i], beg, end, off, file, mode);
+    for (int i = 0; i < num_blocks; i++) {
+        off += read_element_block(&block[i], beg, end, off, file, mode);
     }
     assert(off == tot_elements);
+    gmsh->elements.block = block;
 }
 
-static void read_link(Link *link, Parse *file, int mode)
+static void read_link(PeriodicLink *link, Parse *file, int mode)
 {
     parse(file, &link->entity_dim, 1, MPI_INT32_T, mode);
     parse(file, &link->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &link->entity_tag_master, 1, MPI_INT32_T, mode);
-    parse(file, &link->num_affine, 1, MPI_UINT64_T, mode);
 
-    long num_affine = link->num_affine;
+    parse(file, &link->num_affine, 1, MPI_UINT64_T, mode);
+    assert(link->num_affine <= INT_MAX);
+    int num_affine = (int)link->num_affine;
+
     link->affine = teal_alloc(num_affine, sizeof(*link->affine));
     parse(file, link->affine, num_affine, MPI_DOUBLE, mode);
 
     parse(file, &link->num_nodes, 1, MPI_UINT64_T, mode);
-    long num_nodes = link->num_nodes;
+    assert(link->num_nodes <= INT_MAX);
+    int num_nodes = (int)link->num_nodes;
+
     link->node_tag = teal_alloc(num_nodes, sizeof(*link->node_tag));
     link->node_tag_master = teal_alloc(num_nodes, sizeof(*link->node_tag_master));
 
+    assert(num_nodes <= INT_MAX / 2);
     uint64_t (*tmp)[2] = teal_alloc(num_nodes, sizeof(*tmp));
     parse(file, tmp, num_nodes * 2, MPI_UINT64_T, mode);
-    for (long i = 0; i < num_nodes; i++) {
+    for (int i = 0; i < num_nodes; i++) {
         link->node_tag[i] = tmp[i][0];
         link->node_tag_master[i] = tmp[i][1];
     }
@@ -411,13 +472,15 @@ static void read_link(Link *link, Parse *file, int mode)
 
 static void read_periodics(Gmsh *gmsh, Parse *file, int mode)
 {
-    parse(file, &gmsh->periodics.num, 1, MPI_UINT64_T, mode);
+    parse(file, &gmsh->periodic.num_links, 1, MPI_UINT64_T, mode);
+    assert(gmsh->periodic.num_links <= INT_MAX);
+    int num = (int)gmsh->periodic.num_links;
 
-    long num = gmsh->periodics.num;
-    gmsh->periodics.link = teal_alloc(num, sizeof(*gmsh->periodics.link));
-    for (long i = 0; i < num; i++) {
-        read_link(&gmsh->periodics.link[i], file, mode);
+    PeriodicLink *link = teal_alloc(num, sizeof(*link));
+    for (int i = 0; i < num; i++) {
+        read_link(&link[i], file, mode);
     }
+    gmsh->periodic.link = link;
 }
 
 static Gmsh *gmsh_init(const char *fname)
@@ -431,7 +494,7 @@ static Gmsh *gmsh_init(const char *fname)
             mode = read_format(gmsh, file);
         }
         else if (!strcmp(section, "$PhysicalNames")) {
-            read_physicals(gmsh, file);
+            read_names(gmsh, file);
         }
         else if (!strcmp(section, "$Entities")) {
             read_entities(gmsh, file, mode);
@@ -456,13 +519,33 @@ static Gmsh *gmsh_init(const char *fname)
     return gmsh;
 }
 
+static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
+{
+}
+
+static void create_cells(Mesh *mesh, const Gmsh *gmsh)
+{
+}
+
+static void create_entities(Mesh *mesh, const Gmsh *gmsh)
+{
+}
+
+static void create_periodics(Mesh *mesh, const Gmsh *gmsh)
+{
+}
+
+static void reorder_cells(Mesh *mesh, const Gmsh *gmsh)
+{
+}
+
 static void gmsh_deinit(Gmsh *gmsh)
 {
     if (!gmsh) {
         return;
     }
 
-    teal_free(gmsh->physicals.name);
+    teal_free(gmsh->names.name);
 
     if (gmsh->entities.point) {
         for (uint64_t i = 0; i < gmsh->entities.num_points; i++) {
@@ -508,13 +591,13 @@ static void gmsh_deinit(Gmsh *gmsh)
         teal_free(gmsh->elements.block);
     }
 
-    if (gmsh->periodics.link) {
-        for (uint64_t i = 0; i < gmsh->periodics.num; i++) {
-            teal_free(gmsh->periodics.link[i].affine);
-            teal_free(gmsh->periodics.link[i].node_tag);
-            teal_free(gmsh->periodics.link[i].node_tag_master);
+    if (gmsh->periodic.link) {
+        for (uint64_t i = 0; i < gmsh->periodic.num_links; i++) {
+            teal_free(gmsh->periodic.link[i].affine);
+            teal_free(gmsh->periodic.link[i].node_tag);
+            teal_free(gmsh->periodic.link[i].node_tag_master);
         }
-        teal_free(gmsh->periodics.link);
+        teal_free(gmsh->periodic.link);
     }
 
     teal_free(gmsh);
@@ -523,5 +606,13 @@ static void gmsh_deinit(Gmsh *gmsh)
 static void read_gmsh(Mesh *mesh, const char *fname)
 {
     Gmsh *gmsh = gmsh_init(fname);
+
+    create_nodes(mesh, gmsh);
+    create_cells(mesh, gmsh);
+    create_entities(mesh, gmsh);
+    create_periodics(mesh, gmsh);
+
+    reorder_cells(mesh, gmsh);
+
     gmsh_deinit(gmsh);
 }
