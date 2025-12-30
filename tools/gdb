@@ -1,6 +1,10 @@
 #!/bin/bash
 
 term=kgx
+if ! command -v $term >/dev/null 2>&1; then
+    term=xterm
+fi
+
 ntasks=1
 while getopts "t:n:" opt; do
     case $opt in
