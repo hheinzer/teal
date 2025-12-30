@@ -6,6 +6,8 @@
 #define min(lhs, rhs) (((lhs) < (rhs)) ? (lhs) : (rhs))
 #define max(lhs, rhs) (((lhs) > (rhs)) ? (lhs) : (rhs))
 
+#define in_range(min, val, max) (min <= val && val <= max)
+
 // Return nonzero if two doubles are close within tolerances.
 int isclose(double lhs, double rhs);
 

@@ -309,6 +309,8 @@ static void read_entities(Gmsh *gmsh, Parse *file, int mode)
 static long read_node_block(NodeBlock *block, long beg, long end, long off, Parse *file, int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
+    assert(in_range(0, block->entity_dim, 3));
+
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->parametric, 1, MPI_INT32_T, mode);
 
@@ -378,6 +380,8 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
                                int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
+    assert(in_range(0, block->entity_dim, 3));
+
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->element_type, 1, MPI_INT32_T, mode);
 
