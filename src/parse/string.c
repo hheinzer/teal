@@ -44,45 +44,46 @@ int parse_string(Parse *file, char *str, int size)
         int count = 0;
         MPI_Get_count(&status, MPI_CHAR, &count);
         if (count <= 0) {
-            teal_error("invalid read (probably end-of-file)");
-        }
-
-        // locate the token bounds in the chunk
-        const char *end = str + count;
-        char *beg = skip_space(str, end);
-        if (beg >= end) {
-            teal_error("invalid string (only spaces)");
-        }
-        if (isquote(*beg)) {
-            // quoted tokens stop at the matching quote
-            const char *quote = find_quote(beg, end);
-            if (quote >= end) {
-                teal_error("unterminated quoted string");
-            }
-            end = quote;
-            beg += 1;
+            memset(str, 0, (size_t)size);
         }
         else {
-            // unquoted tokens stop at the next delimiter
-            const char *space = find_space(beg, end);
-            if (space >= end && count == size) {
-                teal_error("missing delimiter (buffer too small)");
+            // locate the token bounds in the chunk
+            const char *end = str + count;
+            char *beg = skip_space(str, end);
+            if (beg >= end) {
+                teal_error("invalid string (only spaces)");
             }
-            end = space;
-        }
+            if (isquote(*beg)) {
+                // quoted tokens stop at the matching quote
+                const char *quote = find_quote(beg, end);
+                if (quote >= end) {
+                    teal_error("unterminated quoted string");
+                }
+                end = quote;
+                beg += 1;
+            }
+            else {
+                // unquoted tokens stop at the next delimiter
+                const char *space = find_space(beg, end);
+                if (space >= end && count == size) {
+                    teal_error("missing delimiter (buffer too small)");
+                }
+                end = space;
+            }
 
-        // advance past the token and past a delimiter if present
-        file->offset += end - str;
-        if (end < str + count) {
-            file->offset += 1;
-        }
+            // advance past the token and past a delimiter if present
+            file->offset += end - str;
+            if (end < str + count) {
+                file->offset += 1;
+            }
 
-        // pack the token into the destination buffer
-        ptrdiff_t diff = end - beg;
-        assert(0 <= diff && diff <= size);
-        len = (int)diff;
-        memmove(str, beg, (size_t)len);
-        memset(str + len, 0, (size_t)(size - len));
+            // pack the token into the destination buffer
+            ptrdiff_t diff = end - beg;
+            assert(0 <= diff && diff <= size);
+            len = (int)diff;
+            memmove(str, beg, (size_t)len);
+            memset(str + len, 0, (size_t)(size - len));
+        }
     }
     MPI_Bcast(&len, 1, MPI_INT, 0, sync.comm);
     MPI_Bcast(str, size, MPI_CHAR, 0, sync.comm);
