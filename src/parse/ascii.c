@@ -106,50 +106,50 @@ static char *next(Buffer *buffer, Parse *file)
     }
 }
 
+// Parse a signed token and assert it is within bounds.
+static long long str_to_signed(const char *token, char **end, long long min, long long max)
+{
+    long long val = strtoll(token, end, 10);
+    assert(min <= val && val <= max);
+    return val;
+}
+
+// Parse an unsigned token and assert it is within bounds.
+static unsigned long long str_to_unsigend(const char *token, char **end, unsigned long long max)
+{
+    unsigned long long val = strtoull(token, end, 10);
+    assert(val <= max);
+    return val;
+}
+
 // Convert one token into the requested MPI datatype.
 static void convert(const char *token, void *buf, int idx, MPI_Datatype datatype)
 {
     errno = 0;
     char *end = 0;
     if (datatype == MPI_INT8_T) {
-        long val = strtol(token, &end, 10);
-        assert(val >= INT8_MIN && val <= INT8_MAX);
-        ((int8_t *)buf)[idx] = (int8_t)val;
+        ((int8_t *)buf)[idx] = (int8_t)str_to_signed(token, &end, INT8_MIN, INT8_MAX);
     }
     else if (datatype == MPI_INT16_T) {
-        long val = strtol(token, &end, 10);
-        assert(val >= INT16_MIN && val <= INT16_MAX);
-        ((int16_t *)buf)[idx] = (int16_t)val;
+        ((int16_t *)buf)[idx] = (int16_t)str_to_signed(token, &end, INT16_MIN, INT16_MAX);
     }
     else if (datatype == MPI_INT32_T) {
-        long val = strtol(token, &end, 10);
-        assert(val >= INT32_MIN && val <= INT32_MAX);
-        ((int32_t *)buf)[idx] = (int32_t)val;
+        ((int32_t *)buf)[idx] = (int32_t)str_to_signed(token, &end, INT32_MIN, INT32_MAX);
     }
     else if (datatype == MPI_INT64_T) {
-        long long val = strtoll(token, &end, 10);
-        assert(val >= INT64_MIN && val <= INT64_MAX);
-        ((int64_t *)buf)[idx] = (int64_t)val;
+        ((int64_t *)buf)[idx] = (int64_t)str_to_signed(token, &end, INT64_MIN, INT64_MAX);
     }
     else if (datatype == MPI_UINT8_T) {
-        unsigned long val = strtoul(token, &end, 10);
-        assert(val <= UINT8_MAX);
-        ((uint8_t *)buf)[idx] = (uint8_t)val;
+        ((uint8_t *)buf)[idx] = (uint8_t)str_to_unsigend(token, &end, UINT8_MAX);
     }
     else if (datatype == MPI_UINT16_T) {
-        unsigned long val = strtoul(token, &end, 10);
-        assert(val <= UINT16_MAX);
-        ((uint16_t *)buf)[idx] = (uint16_t)val;
+        ((uint16_t *)buf)[idx] = (uint16_t)str_to_unsigend(token, &end, UINT16_MAX);
     }
     else if (datatype == MPI_UINT32_T) {
-        unsigned long val = strtoul(token, &end, 10);
-        assert(val <= UINT32_MAX);
-        ((uint32_t *)buf)[idx] = (uint32_t)val;
+        ((uint32_t *)buf)[idx] = (uint32_t)str_to_unsigend(token, &end, UINT32_MAX);
     }
     else if (datatype == MPI_UINT64_T) {
-        unsigned long long val = strtoull(token, &end, 10);
-        assert(val <= UINT64_MAX);
-        ((uint64_t *)buf)[idx] = (uint64_t)val;
+        ((uint64_t *)buf)[idx] = (uint64_t)str_to_unsigend(token, &end, UINT64_MAX);
     }
     else if (datatype == MPI_FLOAT) {
         ((float *)buf)[idx] = strtof(token, &end);
