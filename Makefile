@@ -21,16 +21,15 @@ CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined -fanalyzer
 # sources, objects, and programs
 SRC := $(shell find src -type f -name '*.c')
 RUN := $(shell find run -type f -name '*.c')
+TEST := $(shell find test -type f -name '*.c')
 OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
-BIN := $(patsubst run/%.c, bin/%, $(RUN))
+BIN := $(patsubst run/%.c, bin/%, $(RUN)) \
+       $(patsubst test/%.c, bin/test/%, $(TEST))
 
 # make functions
-.PHONY: all clean check tidy format
+.PHONY: all check tidy format test clean
 
 all: $(BIN)
-
-clean:
-	@rm -rf obj bin
 
 check:
 	@cppcheck --project=compile_commands.json --check-level=exhaustive --enable=all \
@@ -41,6 +40,12 @@ tidy: $(OBJ)
 
 format:
 	@clang-format -i $(shell find . -type f -name '*.[ch]')
+
+test: $(filter bin/test/%, $(BIN))
+	@for exe in $^; do echo $$exe; mpirun -n 2 $$exe -q; done
+
+clean:
+	@rm -rf obj bin
 
 # dependencies
 CFLAGS += -MMD -MP
@@ -54,5 +59,9 @@ obj/%.o: src/%.c Makefile
 	@$(MPICC) $(CFLAGS) -c $< -o $@
 
 bin/%: run/%.c $(OBJ)
+	@mkdir -p $(@D)
+	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
+
+bin/test/%: test/%.c $(OBJ)
 	@mkdir -p $(@D)
 	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
