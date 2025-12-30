@@ -75,6 +75,7 @@ typedef struct {
     int32_t entity_dim;
     int32_t entity_tag;
     int32_t parametric;
+    int len_coord;
     uint64_t num_nodes;
     uint64_t *tag;
     double *coord;
@@ -92,6 +93,7 @@ typedef struct {
     int32_t entity_dim;
     int32_t entity_tag;
     int32_t element_type;
+    int len_node_tag;
     uint64_t num_elements;
     uint64_t *tag;
     uint64_t *node_tag;
@@ -313,6 +315,7 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
 
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->parametric, 1, MPI_INT32_T, mode);
+    block->len_coord = 3 + (block->parametric ? block->entity_dim : 0);
 
     parse(file, &block->num_nodes, 1, MPI_UINT64_T, mode);
     assert(block->num_nodes <= LONG_MAX);
@@ -327,9 +330,8 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
     block->tag = teal_alloc((int)num_nodes, sizeof(*block->tag));
     parse(file, block->tag, (int)num_nodes, MPI_UINT64_T, mode | SPLIT);
 
-    int len = 3 + (block->parametric ? block->entity_dim : 0);
-    assert(num_nodes < INT_MAX / len);
-    int tot_coords = (int)num_nodes * len;
+    assert(num_nodes < INT_MAX / block->len_coord);
+    int tot_coords = (int)num_nodes * block->len_coord;
     block->coord = teal_alloc(tot_coords, sizeof(*block->coord));
     parse(file, block->coord, tot_coords, MPI_DOUBLE, mode | SPLIT);
 
@@ -384,6 +386,7 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
 
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->element_type, 1, MPI_INT32_T, mode);
+    block->len_node_tag = num_node_tags(block->element_type);
 
     parse(file, &block->num_elements, 1, MPI_UINT64_T, mode);
     assert(block->num_elements <= LONG_MAX);
@@ -397,19 +400,18 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
 
     block->tag = teal_alloc((int)num_elements, sizeof(*block->tag));
 
-    int len = num_node_tags(block->element_type);
-    assert(num_elements < INT_MAX / len);
-    int tot_node_tags = (int)num_elements * len;
+    assert(num_elements < INT_MAX / block->len_node_tag);
+    int tot_node_tags = (int)num_elements * block->len_node_tag;
     block->node_tag = teal_alloc(tot_node_tags, sizeof(*block->node_tag));
 
-    int stride = 1 + len;
+    int stride = 1 + block->len_node_tag;
     assert(num_elements <= INT_MAX / stride);
     uint64_t (*tmp)[stride] = teal_alloc((int)num_elements, sizeof(*tmp));
     parse(file, tmp, (int)num_elements * stride, MPI_UINT64_T, mode | SPLIT);
     for (int i = 0; i < num_elements; i++) {
         block->tag[i] = tmp[i][0];
-        for (int j = 0; j < len; j++) {
-            block->node_tag[(i * len) + j] = tmp[i][1 + j];
+        for (int j = 0; j < block->len_node_tag; j++) {
+            block->node_tag[(i * block->len_node_tag) + j] = tmp[i][1 + j];
         }
     }
     teal_free(tmp);
@@ -527,9 +529,10 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
     int num_nodes = 0;
     for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
-        assert(gmsh->nodes.block[i].num_nodes <= INT_MAX);
-        assert(num_nodes <= INT_MAX - (int)gmsh->nodes.block[i].num_nodes);
-        num_nodes += (int)gmsh->nodes.block[i].num_nodes;
+        NodeBlock *block = &gmsh->nodes.block[i];
+        assert(block->num_nodes <= INT_MAX);
+        assert(num_nodes <= INT_MAX - (int)block->num_nodes);
+        num_nodes += (int)block->num_nodes;
     }
     assert(num_nodes > 0);
     mesh->nodes.num = num_nodes;
@@ -538,13 +541,11 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
     int num = 0;
     for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
         NodeBlock *block = &gmsh->nodes.block[i];
-        int len = 3 + (block->parametric ? block->entity_dim : 0);
-        assert(len >= 0);
+        double (*block_coord)[block->len_coord] = (void *)block->coord;
         for (uint64_t j = 0; j < block->num_nodes; j++) {
-            uint64_t base = j * (uint64_t)len;
-            coord[num].x = block->coord[base + 0];
-            coord[num].y = block->coord[base + 1];
-            coord[num].z = block->coord[base + 2];
+            coord[num].x = block_coord[j][0];
+            coord[num].y = block_coord[j][1];
+            coord[num].z = block_coord[j][2];
             num += 1;
         }
     }
