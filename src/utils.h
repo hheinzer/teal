@@ -14,5 +14,8 @@ int isclose(double lhs, double rhs);
 // Compare two ints for qsort ordering.
 int cmp_int(const void *lhs_, const void *rhs_);
 
+// Compare two longs for qsort ordering.
+int cmp_long(const void *lhs_, const void *rhs_);
+
 // Compare two doubles for qsort ordering.
 int cmp_double(const void *lhs_, const void *rhs_);
