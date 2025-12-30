@@ -2,11 +2,11 @@
 
 #include "utils.h"
 
-int cmp_long(const void *lhs_, const void *rhs_)
+int cmp_int(const void *lhs_, const void *rhs_)
 {
     assert(lhs_ && rhs_);
-    const long *lhs = lhs_;
-    const long *rhs = rhs_;
+    const int *lhs = lhs_;
+    const int *rhs = rhs_;
     return (*lhs > *rhs) - (*lhs < *rhs);
 }
 

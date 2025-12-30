@@ -8,5 +8,5 @@
 
 int isclose(double lhs, double rhs);
 
-int cmp_long(const void *lhs_, const void *rhs_);
+int cmp_int(const void *lhs_, const void *rhs_);
 int cmp_double(const void *lhs_, const void *rhs_);
