@@ -1,23 +1,23 @@
 #include "sync.h"
 
-long sync_lmin(long val)
+int sync_min(int val)
 {
-    long min = val;
-    MPI_Allreduce(&val, &min, 1, MPI_LONG, MPI_MIN, sync.comm);
+    int min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_INT, MPI_MIN, sync.comm);
     return min;
 }
 
-long sync_lmax(long val)
+int sync_max(int val)
 {
-    long max = val;
-    MPI_Allreduce(&val, &max, 1, MPI_LONG, MPI_MAX, sync.comm);
+    int max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_INT, MPI_MAX, sync.comm);
     return max;
 }
 
-long sync_lsum(long val)
+int sync_sum(int val)
 {
-    long sum = val;
-    MPI_Allreduce(&val, &sum, 1, MPI_LONG, MPI_SUM, sync.comm);
+    int sum = val;
+    MPI_Allreduce(&val, &sum, 1, MPI_INT, MPI_SUM, sync.comm);
     return sum;
 }
 
@@ -42,9 +42,9 @@ double sync_fsum(double val)
     return sum;
 }
 
-long sync_exsum(long val)
+int sync_exsum(int val)
 {
-    long exsum = 0;
-    MPI_Exscan(&val, &exsum, 1, MPI_LONG, MPI_SUM, sync.comm);
+    int exsum = 0;
+    MPI_Exscan(&val, &exsum, 1, MPI_INT, MPI_SUM, sync.comm);
     return (sync.rank == 0) ? 0 : exsum;
 }
