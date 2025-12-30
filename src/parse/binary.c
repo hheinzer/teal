@@ -9,7 +9,7 @@
 #include "teal.h"
 
 // Swap byte order for fixed-size elements.
-static void swap_bytes(void *buf, long num, long size)
+static void swap_bytes(void *buf, int num, int size)
 {
     switch (size) {
         case 1: break;
@@ -34,20 +34,20 @@ static void swap_bytes(void *buf, long num, long size)
             }
             break;
         }
-        default: teal_error("invalid size (%ld)", size);
+        default: teal_error("invalid size (%d)", size);
     }
 }
 
-int parse_binary(Parse *file, void *buf, long num, MPI_Datatype datatype, int swap)
+int parse_binary(Parse *file, void *buf, int num, MPI_Datatype datatype, int mode)
 {
-    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
+    assert(file && (buf || num == 0) && num >= 0);
     if (num == 0) {
         return 0;
     }
     int count = 0;
     if (sync.rank == 0) {
         MPI_Status status;
-        MPI_File_read_at(file->handle, file->offset, buf, (int)num, datatype, &status);
+        MPI_File_read_at(file->handle, file->offset, buf, num, datatype, &status);
         MPI_Get_count(&status, datatype, &count);
         if (count <= 0) {
             teal_error("invalid read (probably end-of-file)");
@@ -57,7 +57,7 @@ int parse_binary(Parse *file, void *buf, long num, MPI_Datatype datatype, int sw
         if (size <= 0) {
             teal_error("invalid type size (%d)", size);
         }
-        if (swap) {
+        if (mode & SWAP) {
             swap_bytes(buf, count, size);
         }
         file->offset += (MPI_Offset)count * size;
@@ -68,9 +68,10 @@ int parse_binary(Parse *file, void *buf, long num, MPI_Datatype datatype, int sw
     return count;
 }
 
-int parse_binary_split(Parse *file, void *buf, long num, MPI_Datatype datatype, int swap)
+int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, int mode)
 {
-    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
+    assert(file && (buf || num == 0) && num >= 0);
+
     int size = 0;
     MPI_Type_size(datatype, &size);
     if (size <= 0) {
@@ -83,17 +84,17 @@ int parse_binary_split(Parse *file, void *buf, long num, MPI_Datatype datatype, 
     int count = 0;
     if (num > 0) {
         MPI_Status status;
-        MPI_File_read_at(file->handle, offset, buf, (int)num, datatype, &status);
+        MPI_File_read_at(file->handle, offset, buf, num, datatype, &status);
         MPI_Get_count(&status, datatype, &count);
         if (count <= 0) {
             teal_error("invalid read (probably end-of-file)");
         }
-        if (swap) {
+        if (mode & SWAP) {
             swap_bytes(buf, count, size);
         }
     }
 
-    long total = sync_lsum(count);
+    long total = sync_sum(count);
     file->offset += total * size;
     return count;
 }

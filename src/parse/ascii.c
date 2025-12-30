@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <mpi.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,15 +31,17 @@ static int refill(Buffer *buffer, Parse *file)
     }
     if (buffer->beg > buffer->data) {
         // slide unread data to the front of the buffer
-        long consumed = buffer->beg - buffer->data;
-        long remaining = buffer->end - buffer->beg;
-        memmove(buffer->data, buffer->beg, remaining);
+        ptrdiff_t consumed = buffer->beg - buffer->data;
+        ptrdiff_t remaining = buffer->end - buffer->beg;
+        assert(remaining >= 0);
+        memmove(buffer->data, buffer->beg, (size_t)remaining);
         buffer->offset += consumed;
         buffer->beg = buffer->data;
         buffer->end = buffer->data + remaining;
     }
-    int used = (int)(buffer->end - buffer->data);
-    int available = SIZE - used;
+    ptrdiff_t used = buffer->end - buffer->data;
+    assert(0 <= used && used <= INT_MAX);
+    int available = SIZE - (int)used;
     if (available <= 0) {
         return 0;
     }
@@ -104,39 +107,55 @@ static char *next(Buffer *buffer, Parse *file)
 }
 
 // Convert one token into the requested MPI datatype.
-static void convert(const char *token, void *buf, int index, MPI_Datatype datatype)
+static void convert(const char *token, void *buf, int idx, MPI_Datatype datatype)
 {
     errno = 0;
     char *end = 0;
     if (datatype == MPI_INT8_T) {
-        ((int8_t *)buf)[index] = (int8_t)strtol(token, &end, 10);
+        long val = strtol(token, &end, 10);
+        assert(val >= INT8_MIN && val <= INT8_MAX);
+        ((int8_t *)buf)[idx] = (int8_t)val;
     }
     else if (datatype == MPI_INT16_T) {
-        ((int16_t *)buf)[index] = (int16_t)strtol(token, &end, 10);
+        long val = strtol(token, &end, 10);
+        assert(val >= INT16_MIN && val <= INT16_MAX);
+        ((int16_t *)buf)[idx] = (int16_t)val;
     }
     else if (datatype == MPI_INT32_T) {
-        ((int32_t *)buf)[index] = (int32_t)strtol(token, &end, 10);
+        long val = strtol(token, &end, 10);
+        assert(val >= INT32_MIN && val <= INT32_MAX);
+        ((int32_t *)buf)[idx] = (int32_t)val;
     }
     else if (datatype == MPI_INT64_T) {
-        ((int64_t *)buf)[index] = (int64_t)strtoll(token, &end, 10);
+        long long val = strtoll(token, &end, 10);
+        assert(val >= INT64_MIN && val <= INT64_MAX);
+        ((int64_t *)buf)[idx] = (int64_t)val;
     }
     else if (datatype == MPI_UINT8_T) {
-        ((uint8_t *)buf)[index] = (uint8_t)strtoul(token, &end, 10);
+        unsigned long val = strtoul(token, &end, 10);
+        assert(val <= UINT8_MAX);
+        ((uint8_t *)buf)[idx] = (uint8_t)val;
     }
     else if (datatype == MPI_UINT16_T) {
-        ((uint16_t *)buf)[index] = (uint16_t)strtoul(token, &end, 10);
+        unsigned long val = strtoul(token, &end, 10);
+        assert(val <= UINT16_MAX);
+        ((uint16_t *)buf)[idx] = (uint16_t)val;
     }
     else if (datatype == MPI_UINT32_T) {
-        ((uint32_t *)buf)[index] = (uint32_t)strtoul(token, &end, 10);
+        unsigned long val = strtoul(token, &end, 10);
+        assert(val <= UINT32_MAX);
+        ((uint32_t *)buf)[idx] = (uint32_t)val;
     }
     else if (datatype == MPI_UINT64_T) {
-        ((uint64_t *)buf)[index] = (uint64_t)strtoull(token, &end, 10);
+        unsigned long long val = strtoull(token, &end, 10);
+        assert(val <= UINT64_MAX);
+        ((uint64_t *)buf)[idx] = (uint64_t)val;
     }
     else if (datatype == MPI_FLOAT) {
-        ((float *)buf)[index] = strtof(token, &end);
+        ((float *)buf)[idx] = strtof(token, &end);
     }
     else if (datatype == MPI_DOUBLE) {
-        ((double *)buf)[index] = strtod(token, &end);
+        ((double *)buf)[idx] = strtod(token, &end);
     }
     else {
         char name[MPI_MAX_OBJECT_NAME];
@@ -167,9 +186,9 @@ static int read_tokens(Buffer *buffer, Parse *file, void *buf, int num, MPI_Data
     return count;
 }
 
-int parse_ascii(Parse *file, void *buf, long num, MPI_Datatype datatype)
+int parse_ascii(Parse *file, void *buf, int num, MPI_Datatype datatype)
 {
-    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
+    assert(file && (buf || num == 0) && num >= 0);
     if (num == 0) {
         return 0;
     }
@@ -180,7 +199,7 @@ int parse_ascii(Parse *file, void *buf, long num, MPI_Datatype datatype)
             .end = buffer.data,
             .offset = file->offset,
         };
-        count = read_tokens(&buffer, file, buf, (int)num, datatype);
+        count = read_tokens(&buffer, file, buf, num, datatype);
         file->offset = buffer.offset + buffer.beg - buffer.data;
     }
     MPI_Bcast(&count, 1, MPI_INT, 0, sync.comm);
@@ -189,15 +208,15 @@ int parse_ascii(Parse *file, void *buf, long num, MPI_Datatype datatype)
     return count;
 }
 
-int parse_ascii_split(Parse *file, void *buf, long num, MPI_Datatype datatype)
+int parse_ascii_split(Parse *file, void *buf, int num, MPI_Datatype datatype)
 {
-    assert(file && (buf || num == 0) && 0 <= num && num <= INT_MAX);
+    assert(file && (buf || num == 0) && num >= 0);
 
     int *num_rank = 0;
     if (sync.rank == 0) {
         num_rank = teal_alloc(sync.size, sizeof(*num_rank));
     }
-    MPI_Gather(&(int){(int)num}, 1, MPI_INT, num_rank, 1, MPI_INT, 0, sync.comm);
+    MPI_Gather(&num, 1, MPI_INT, num_rank, 1, MPI_INT, 0, sync.comm);
 
     int count = 0;
     if (sync.rank == 0) {
@@ -220,7 +239,7 @@ int parse_ascii_split(Parse *file, void *buf, long num, MPI_Datatype datatype)
             teal_error("invalid type size (%d)", size);
         }
 
-        void *buf_rank = teal_alloc(cap, size);
+        void *buf_rank = teal_alloc(cap, (size_t)size);
         for (int rank = 0; rank < sync.size; rank++) {
             void *dst = (rank == 0) ? buf : buf_rank;
             int count_rank = read_tokens(&buffer, file, dst, num_rank[rank], datatype);

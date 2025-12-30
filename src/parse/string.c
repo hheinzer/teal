@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <limits.h>
+#include <stddef.h>
 #include <string.h>
 
 #include "parse.h"
@@ -29,9 +30,9 @@ static char *find_quote(char *beg, const char *end)
     return beg;
 }
 
-int parse_string(Parse *file, char *str, long size)
+int parse_string(Parse *file, char *str, int size)
 {
-    assert(file && (str || size == 0) && 0 <= size && size <= INT_MAX);
+    assert(file && (str || size == 0) && size >= 0);
     if (size == 0) {
         return 0;
     }
@@ -39,7 +40,7 @@ int parse_string(Parse *file, char *str, long size)
     if (sync.rank == 0) {
         // read a fixed chunk for one token
         MPI_Status status;
-        MPI_File_read_at(file->handle, file->offset, str, (int)size, MPI_CHAR, &status);
+        MPI_File_read_at(file->handle, file->offset, str, size, MPI_CHAR, &status);
         int count = 0;
         MPI_Get_count(&status, MPI_CHAR, &count);
         if (count <= 0) {
@@ -77,12 +78,14 @@ int parse_string(Parse *file, char *str, long size)
         }
 
         // pack the token into the destination buffer
-        len = (int)(end - beg);
-        memmove(str, beg, len);
-        memset(str + len, 0, size - len);
+        ptrdiff_t diff = end - beg;
+        assert(diff >= 0 && diff <= size);
+        len = (int)diff;
+        memmove(str, beg, (size_t)len);
+        memset(str + len, 0, (size_t)(size - len));
     }
     MPI_Bcast(&len, 1, MPI_INT, 0, sync.comm);
-    MPI_Bcast(str, (int)size, MPI_CHAR, 0, sync.comm);
+    MPI_Bcast(str, size, MPI_CHAR, 0, sync.comm);
     MPI_Bcast(&file->offset, 1, MPI_OFFSET, 0, sync.comm);
     return len;
 }
