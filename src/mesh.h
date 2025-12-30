@@ -1,119 +1,112 @@
 #pragma once
 
+#include "vector.h"
+
 enum { MAX_CELL_NODES = 8 };
 enum { MAX_CELL_FACES = 6 };
 enum { MAX_FACE_NODES = 4 };
 
-typedef struct {
-    double *x, *y, *z;
-} Vector;
-
-// node order:
+// Node types (in order):
 // - inner: rank owns this node
-// - outer: other owns this node, is used to specify cells
+// - outer: other rank owns this node; used to define cells
 typedef struct {
-    long num;
-    long num_inner;
+    int num;
+    int num_inner;
     long *global;
-    Vector coord;
+    vector *coord;
 } MeshNodes;
 
-// compressed sparse row graph
+// Compressed sparse row graph
 typedef struct {
-    long num;
-    long *off;  // [num + 1] offsets into idx
+    int num;
+    int *off;   // [num + 1] offsets into idx
     long *idx;  // [off[num]] indices
 } Graph;
 
-// cell order:
+// Cell types (in order):
 // - inner: rank owns this cell
-// - boundary: rank owns this cell, is used to specify boundary conditions
-// - periodic: rank owns this cell, is used to specify a periodic boundary condition; the connected
-//   cell can be on this rank or on another rank
-// - neighbor: other rank owns this cell, used to receive cell values from neighbor ranks
+// - boundary: rank owns this cell; used for boundary conditions
+// - periodic: rank owns this cell; used for periodic boundaries
+// - neighbor: other rank owns this cell; used for halo exchange
 typedef struct {
-    long num;
-    long num_inner;
-    long off_boundary;  // num_inner + num_boundary
-    long off_periodic;  // num_inner + num_boundary + num_periodic
-    Graph node;         // cell-to-node connectivity
-    Graph cell;         // cell-to-cell connectivity
+    int num;
+    int num_inner;
+    int off_boundary;  // num_inner + num_boundary
+    int off_periodic;  // num_inner + num_boundary + num_periodic
+    Graph node;        // cell-to-node connectivity
+    Graph cell;        // cell-to-cell connectivity
     double *volume, sum_volume;
-    Vector center;
-    Vector projection;  // axis-aligned projection of cell volume
-    Vector offset;      // cell-to-face offset
+    vector *center;
+    vector *projection;  // axis-aligned projection of cell volume
+    vector *offset;      // cell-to-face offset
 } MeshCells;
 
 typedef struct {
-    long *left, *right;  // left is always inner
+    long left, right;  // left is always inner; right can be inner or outer
 } Adjacent;
 
 typedef struct {
-    Vector normal, tangent1, tangent2;
+    vector normal, tangent1, tangent2;
 } Basis;
 
 typedef struct {
-    Vector left, right;
+    vector left, right;
 } Weight;
 
 typedef struct {
-    Vector left, right;
+    vector left, right;
 } Offset;
 
 typedef struct {
-    Vector unit;
-    double *norm;
+    vector unit;
+    double norm;
 } Correction;
 
-// face order:
+// Face types (in order):
 // - inner: face between two inner cells
 // - boundary: face between an inner and a boundary cell
-// - periodic: face between and inner and a periodic cell
-// - neighbor: face between and inner and a neighbor cell
+// - periodic: face between an inner and a periodic cell
+// - neighbor: face between an inner and a neighbor cell
 typedef struct {
-    long num;
-    long num_inner;
-    long off_boundary;  // num_inner + num_boundary
-    long off_periodic;  // num_inner + num_boundary + num_periodic
-    Graph node;         // face-to-node connectivity
-    Adjacent cell;      // face-to-cell connectivity
+    int num;
+    int num_inner;
+    int off_boundary;  // num_inner + num_boundary
+    int off_periodic;  // num_inner + num_boundary + num_periodic
+    Graph node;        // face-to-node connectivity
+    Adjacent *cell;    // face-to-cell connectivity
     double *area;
-    Vector center;
-    Basis basis;            // local orthonormal basis
-    Weight weight;          // least-squares weights for gradient reconstruction
-    Offset offset;          // cell-to-face offset
-    Correction correction;  // correction vector for gradient averaging
+    vector *center;
+    Basis *basis;            // local orthonormal basis
+    Weight *weight;          // least-squares weights for gradient reconstruction
+    Offset *offset;          // cell-to-face offset
+    Correction *correction;  // correction vector for gradient averaging
 } MeshFaces;
 
-// entity order:
+typedef char Name[128];
+
+// Entity types (in order):
 // - inner: group of inner cells
 // - boundary: group of boundary cells
 typedef struct {
     int num;
     int num_inner;
-    char (*name)[128];
-    long *cell;  // entity-to-cell offsets
-    long *face;  // entity-to-face offsets
+    Name *name;
+    int *cell_off;  // entity-to-cell offsets
+    int *face_off;  // entity-to-face offsets
 } MeshEntities;
 
 typedef struct {
-    Vector x, y, z;
-} Matrix;
-
-// WARN: not the final design
-typedef struct {
     int num;
-    long *cell;  // periodic-to-cell offsets
-    long *face;  // periodic-to-face offsets
-    Vector translation;
-    Matrix rotation;
+    int *cell_off;  // periodic-to-cell offsets
+    int *face_off;  // periodic-to-face offsets
+    vector *translation;
 } MeshPeriodics;
 
 typedef struct {
     int num;
     int *rank;
-    long *recv;  // neighbor-to-cell offsets for receiving
-    Graph send;  // neighbor-to-cell graph for sending
+    int *recv_off;  // neighbor-to-cell offsets for receiving
+    Graph send;     // neighbor-to-cell graph for sending
 } MeshNeighbors;
 
 typedef struct {
@@ -125,18 +118,24 @@ typedef struct {
     MeshNeighbors neighbors;
 } Mesh;
 
-Mesh *mesh_create(const double *min_coord, const double *max_coord, const long *num_cells,
-                  const int *periodic, int ndims);
+// Create a Cartesian mesh with optional per-axis periodicity.
+Mesh *mesh_create(vector min_coord, vector max_coord, const long *num_cells, const int *periodic,
+                  int ndims);
 
+// Read a mesh from a file.
 Mesh *mesh_read(const char *fname);
 
-void mesh_split(Mesh *mesh, const char *entity, const double *root, const double *normal,
-                int ndims);
+// Split a mesh entity by a plane into below (<entity>-a) and above the plane (<entity>-b).
+void mesh_split(Mesh *mesh, const char *entity, vector root, vector normal, int ndims);
 
+// Generate derived mesh data.
 void mesh_generate(Mesh *mesh);
 
+// Print a brief mesh summary.
 void mesh_summary(const Mesh *mesh);
 
-void mesh_write(const Mesh *mesh, const char *prefix);
+// Write a mesh to a file.
+void mesh_write(const Mesh *mesh, const char *fname);
 
+// Release all mesh allocations.
 void mesh_free(Mesh *mesh);

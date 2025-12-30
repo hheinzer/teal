@@ -2,7 +2,7 @@
 
 #include "mesh.h"
 
-void mesh_write(const Mesh *mesh, const char *prefix)
+void mesh_write(const Mesh *mesh, const char *fname)
 {
-    assert(mesh && prefix);
+    assert(mesh && fname);
 }
