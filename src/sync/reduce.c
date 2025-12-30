@@ -1,16 +1,16 @@
 #include "sync.h"
 
-long sync_lmin(long val)
+int sync_min(int val)
 {
-    long min = val;
-    MPI_Allreduce(&val, &min, 1, MPI_LONG, MPI_MIN, sync.comm);
+    int min = val;
+    MPI_Allreduce(&val, &min, 1, MPI_INT, MPI_MIN, sync.comm);
     return min;
 }
 
-long sync_lmax(long val)
+int sync_max(int val)
 {
-    long max = val;
-    MPI_Allreduce(&val, &max, 1, MPI_LONG, MPI_MAX, sync.comm);
+    int max = val;
+    MPI_Allreduce(&val, &max, 1, MPI_INT, MPI_MAX, sync.comm);
     return max;
 }
 
