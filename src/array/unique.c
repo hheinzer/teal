@@ -4,15 +4,15 @@
 #include "array.h"
 #include "utils.h"
 
-void array_unique(long *arr, long *num)
+void array_unique(int *arr, int *num)
 {
     assert((arr || *num == 0) && *num >= 0);
     if (*num <= 1) {
         return;
     }
-    qsort(arr, *num, sizeof(*arr), cmp_long);
-    long unique = 1;
-    for (long i = 1; i < *num; i++) {
+    qsort(arr, (size_t)*num, sizeof(*arr), cmp_int);
+    int unique = 1;
+    for (int i = 1; i < *num; i++) {
         if (arr[i] != arr[unique - 1]) {
             arr[unique++] = arr[i];
         }
@@ -20,14 +20,14 @@ void array_unique(long *arr, long *num)
     *num = unique;
 }
 
-long array_digitize(const long *arr, long val, long num)
+int array_digitize(const int *arr, int val, int num)
 {
     assert((arr || num == 0) && num >= 0);
     if (num == 0) {
         return 0;
     }
-    long left = 0;
-    long right = num - 1;
+    int left = 0;
+    int right = num - 1;
     if (val < arr[left]) {
         return 0;
     }
@@ -35,7 +35,7 @@ long array_digitize(const long *arr, long val, long num)
         return num;
     }
     while (left < right) {
-        long mid = left + ((right - left) / 2);
+        int mid = left + ((right - left) / 2);
         if (arr[mid] <= val) {
             left = mid + 1;
         }

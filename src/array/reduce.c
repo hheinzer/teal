@@ -6,61 +6,61 @@
 #include "array.h"
 #include "utils.h"
 
-long array_lmin(const long *arr, long num)
+int array_min(const int *arr, int num)
 {
     assert((arr || num == 0) && num >= 0);
-    long min_val = LONG_MAX;
-    for (long i = 0; i < num; i++) {
+    int min_val = INT_MAX;
+    for (int i = 0; i < num; i++) {
         min_val = min(min_val, arr[i]);
     }
     return min_val;
 }
 
-long array_lmax(const long *arr, long num)
+int array_max(const int *arr, int num)
 {
     assert((arr || num == 0) && num >= 0);
-    long max_val = LONG_MIN;
-    for (long i = 0; i < num; i++) {
+    int max_val = INT_MIN;
+    for (int i = 0; i < num; i++) {
         max_val = max(max_val, arr[i]);
     }
     return max_val;
 }
 
-long array_lsum(const long *arr, long num)
+int array_sum(const int *arr, int num)
 {
     assert((arr || num == 0) && num >= 0);
-    long sum = 0;
-    for (long i = 0; i < num; i++) {
+    int sum = 0;
+    for (int i = 0; i < num; i++) {
         sum += arr[i];
     }
     return sum;
 }
 
-double array_fmin(const double *arr, long num)
+double array_fmin(const double *arr, int num)
 {
     assert((arr || num == 0) && num >= 0);
     double min_val = DBL_MAX;
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         min_val = fmin(min_val, arr[i]);
     }
     return min_val;
 }
 
-double array_fmax(const double *arr, long num)
+double array_fmax(const double *arr, int num)
 {
     assert((arr || num == 0) && num >= 0);
     double max_val = -DBL_MAX;
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         max_val = fmax(max_val, arr[i]);
     }
     return max_val;
 }
 
-double array_fsum(const double *arr, long num)
+double array_fsum(const double *arr, int num)
 {
     assert((arr || num == 0) && num >= 0);
     double sum = 0;
-    for (long i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
         sum += arr[i];
     }
     return sum;
