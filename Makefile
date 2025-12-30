@@ -7,7 +7,7 @@ LDLIBS = -lm -lhdf5 -lmetis -lparmetis
 
 # default flags
 CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
-		 -Wno-unused-parameter -Wno-unused-function -Wno-sign-conversion
+		 -Wno-unused-parameter -Wno-unused-function
 
 # debug flags
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined -fanalyzer
