@@ -78,7 +78,7 @@ int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, i
         teal_error("invalid type size (%d)", size);
     }
 
-    long prefix = sync_exsum(num);
+    long prefix = sync_lexsum(num);
     MPI_Offset offset = file->offset + (prefix * size);
 
     int count = 0;
@@ -94,7 +94,7 @@ int parse_binary_split(Parse *file, void *buf, int num, MPI_Datatype datatype, i
         }
     }
 
-    long total = sync_sum(count);
+    long total = sync_lsum(count);
     file->offset += total * size;
     return count;
 }
