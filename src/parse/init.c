@@ -15,3 +15,10 @@ Parse *parse_init(const char *fname)
     MPI_File_set_errhandler(file->handle, MPI_ERRORS_ARE_FATAL);
     return file;
 }
+
+void parse_deinit(Parse *file)
+{
+    assert(file);
+    MPI_File_close(&file->handle);
+    teal_free(file);
+}
