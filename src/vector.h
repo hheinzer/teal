@@ -16,7 +16,7 @@ vector vector_mul(double val, vector vec);
 // Return a vector divided by a scalar.
 vector vector_div(vector vec, double val);
 
-// Return the component wise absolute value of a vector.
+// Return the componentwise absolute value of a vector.
 vector vector_abs(vector vec);
 
 // Add rhs to lhs in place.

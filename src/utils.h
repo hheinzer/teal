@@ -25,4 +25,5 @@ int cmp_long(const void *lhs_, const void *rhs_);
 // Compare two doubles for qsort ordering.
 int cmp_double(const void *lhs_, const void *rhs_);
 
+// Duplicate num elements from a buffer.
 void *memdup(const void *ptr, int num, size_t size);

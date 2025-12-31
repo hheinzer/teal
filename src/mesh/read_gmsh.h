@@ -133,6 +133,7 @@ typedef struct {
     Periodics periodics;
 } Gmsh;
 
+// Read the mesh format and return the parse mode.
 static int read_format(Gmsh *gmsh, Parse *file)
 {
     parse_ascii(file, &gmsh->format.version, 1, MPI_DOUBLE);
@@ -159,6 +160,7 @@ static int read_format(Gmsh *gmsh, Parse *file)
     return mode;
 }
 
+// Read physical names into the gmsh struct.
 static void read_physicals(Gmsh *gmsh, Parse *file)
 {
     parse_ascii(file, &gmsh->physicals.num, 1, MPI_INT32_T);
@@ -172,6 +174,7 @@ static void read_physicals(Gmsh *gmsh, Parse *file)
     gmsh->physicals.physical = physical;
 }
 
+// Read point entities into a new array.
 static Point *read_points(int num, Parse *file, int mode)
 {
     Point *point = teal_alloc(num, sizeof(*point));
@@ -192,6 +195,7 @@ static Point *read_points(int num, Parse *file, int mode)
     return point;
 }
 
+// Read curve entities into a new array.
 static Curve *read_curves(int num, Parse *file, int mode)
 {
     Curve *curve = teal_alloc(num, sizeof(*curve));
@@ -223,6 +227,7 @@ static Curve *read_curves(int num, Parse *file, int mode)
     return curve;
 }
 
+// Read surface entities into a new array.
 static Surface *read_surfaces(int num, Parse *file, int mode)
 {
     Surface *surface = teal_alloc(num, sizeof(*surface));
@@ -254,6 +259,7 @@ static Surface *read_surfaces(int num, Parse *file, int mode)
     return surface;
 }
 
+// Read volume entities into a new array.
 static Volume *read_volumes(int num, Parse *file, int mode)
 {
     Volume *volume = teal_alloc(num, sizeof(*volume));
@@ -285,6 +291,7 @@ static Volume *read_volumes(int num, Parse *file, int mode)
     return volume;
 }
 
+// Read the entities section into gmsh.
 static void read_entities(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->entities.num_points, 1, MPI_UINT64_T, mode);
@@ -309,6 +316,7 @@ static void read_entities(Gmsh *gmsh, Parse *file, int mode)
     gmsh->entities.volume = read_volumes(num_volumes, file, mode);
 }
 
+// Read one node block and return its original size.
 static long read_node_block(NodeBlock *block, long beg, long end, long off, Parse *file, int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
@@ -339,6 +347,7 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
     return tot_nodes;
 }
 
+// Read the nodes section into gmsh.
 static void read_nodes(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->nodes.num_blocks, 1, MPI_UINT64_T, mode);
@@ -366,6 +375,7 @@ static void read_nodes(Gmsh *gmsh, Parse *file, int mode)
     gmsh->nodes.block = block;
 }
 
+// Return the node count for a given element type.
 static int32_t num_node_tags(int32_t element_type)
 {
     switch (element_type) {
@@ -379,6 +389,7 @@ static int32_t num_node_tags(int32_t element_type)
     }
 }
 
+// Read one element block and return its original size.
 static long read_element_block(ElementBlock *block, long beg, long end, long off, Parse *file,
                                int mode)
 {
@@ -420,6 +431,7 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
     return tot_elements;
 }
 
+// Read the elements section into gmsh.
 static void read_elements(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->elements.num_blocks, 1, MPI_UINT64_T, mode);
@@ -447,6 +459,7 @@ static void read_elements(Gmsh *gmsh, Parse *file, int mode)
     gmsh->elements.block = block;
 }
 
+// Read one periodic link.
 static void read_link(Periodic *link, Parse *file, int mode)
 {
     parse(file, &link->entity_dim, 1, MPI_INT32_T, mode);
@@ -477,6 +490,7 @@ static void read_link(Periodic *link, Parse *file, int mode)
     teal_free(tmp);
 }
 
+// Read the periodic section into gmsh.
 static void read_periodics(Gmsh *gmsh, Parse *file, int mode)
 {
     parse(file, &gmsh->periodics.num, 1, MPI_UINT64_T, mode);
@@ -490,6 +504,7 @@ static void read_periodics(Gmsh *gmsh, Parse *file, int mode)
     gmsh->periodics.periodic = link;
 }
 
+// Parse a Gmsh file into an in-memory struct.
 static Gmsh *gmsh_init(const char *fname)
 {
     Gmsh *gmsh = teal_alloc(1, sizeof(*gmsh));
@@ -526,6 +541,7 @@ static Gmsh *gmsh_init(const char *fname)
     return gmsh;
 }
 
+// Compare element blocks by entity tag.
 static int cmp_element_block(const void *lhs_, const void *rhs_)
 {
     const ElementBlock *lhs = lhs_;
@@ -534,12 +550,14 @@ static int cmp_element_block(const void *lhs_, const void *rhs_)
     return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
 }
 
+// Sort element blocks by entity tag.
 static void reorder_element_blocks(Gmsh *gmsh)
 {
     qsort(gmsh->elements.block, gmsh->elements.num_blocks, sizeof(*gmsh->elements.block),
           cmp_element_block);
 }
 
+// Populate mesh nodes from gmsh data.
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
     int num_nodes = 0;
@@ -568,6 +586,7 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
     mesh->nodes.coord = coord;
 }
 
+// Map node tags to local indices.
 static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *gmsh)
 {
     typedef struct {
@@ -625,6 +644,7 @@ static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *g
     return idx;
 }
 
+// Build inner cell connectivity from element blocks.
 static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
 {
     assert(gmsh->elements.num_blocks <= INT_MAX);
@@ -667,6 +687,7 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
     mesh->cells.node.idx = tag_to_idx(node_tag, node_off[num_cells], mesh, gmsh);
 }
 
+// Build boundary face connectivity from element blocks.
 static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
 {
     assert(gmsh->elements.num_blocks <= INT_MAX);
@@ -709,6 +730,7 @@ static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
     mesh->faces.node.idx = tag_to_idx(node_tag, node_off[num_faces], mesh, gmsh);
 }
 
+// Compare physical names by dimension and tag.
 static int cmp_name(const void *lhs_, const void *rhs_)
 {
     const Physical *lhs = lhs_;
@@ -721,6 +743,7 @@ static int cmp_name(const void *lhs_, const void *rhs_)
     return -cmp_int(&lhs->dim, &rhs->dim);  // descending
 }
 
+// Create mesh entities from physical names.
 static void create_entities(Mesh *mesh, const Gmsh *gmsh)
 {
     int num_entities = gmsh->physicals.num;
@@ -753,10 +776,12 @@ static void create_entities(Mesh *mesh, const Gmsh *gmsh)
     teal_free(physical);
 }
 
+// Create mesh periodic data from gmsh.
 static void create_periodics(Mesh *mesh, const Gmsh *gmsh)
 {
 }
 
+// Release all gmsh allocations.
 static void gmsh_deinit(Gmsh *gmsh)
 {
     if (!gmsh) {
@@ -821,6 +846,7 @@ static void gmsh_deinit(Gmsh *gmsh)
     teal_free(gmsh);
 }
 
+// Read a Gmsh file into a mesh.
 static void read_gmsh(Mesh *mesh, const char *fname)
 {
     Gmsh *gmsh = gmsh_init(fname);

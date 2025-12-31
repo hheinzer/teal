@@ -5,6 +5,7 @@
 #include "read_gmsh.h"
 #include "teal.h"
 
+// Read a mesh file based on its extension.
 static void read_file(Mesh *mesh, const char *fname)
 {
     char *ext = strrchr(fname, '.');

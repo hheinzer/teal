@@ -9,7 +9,7 @@
 #include "teal.h"
 #include "utils.h"
 
-// Return non zero if the character is a quote delimiter.
+// Return nonzero if the character is a quote delimiter.
 static int isquote(char chr)
 {
     switch (chr) {
