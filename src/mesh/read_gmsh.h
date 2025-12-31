@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
     int32_t num;
     PhysicalName *name;
-} PhysicalNames;
+} Physicals;
 
 typedef struct {
     int32_t tag;
@@ -126,7 +126,7 @@ typedef struct {
 
 typedef struct {
     MeshFormat format;
-    PhysicalNames names;
+    Physicals physicals;
     Entities entities;
     Nodes nodes;
     Elements elements;
@@ -159,17 +159,17 @@ static int read_format(Gmsh *gmsh, Parse *file)
     return mode;
 }
 
-static void read_names(Gmsh *gmsh, Parse *file)
+static void read_physicals(Gmsh *gmsh, Parse *file)
 {
-    parse_ascii(file, &gmsh->names.num, 1, MPI_INT32_T);
+    parse_ascii(file, &gmsh->physicals.num, 1, MPI_INT32_T);
 
-    PhysicalName *name = teal_alloc(gmsh->names.num, sizeof(*name));
-    for (int i = 0; i < gmsh->names.num; i++) {
+    PhysicalName *name = teal_alloc(gmsh->physicals.num, sizeof(*name));
+    for (int i = 0; i < gmsh->physicals.num; i++) {
         parse_ascii(file, &name[i].dim, 1, MPI_INT32_T);
         parse_ascii(file, &name[i].tag, 1, MPI_INT32_T);
         parse_string(file, name[i].name, sizeof(name->name));
     }
-    gmsh->names.name = name;
+    gmsh->physicals.name = name;
 }
 
 static Point *read_points(int num, Parse *file, int mode)
@@ -501,7 +501,7 @@ static Gmsh *gmsh_init(const char *fname)
             mode = read_format(gmsh, file);
         }
         else if (!strcmp(section, "$PhysicalNames")) {
-            read_names(gmsh, file);
+            read_physicals(gmsh, file);
         }
         else if (!strcmp(section, "$Entities")) {
             read_entities(gmsh, file, mode);
@@ -601,6 +601,7 @@ static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
         MPI_Sendrecv_replace(map, cap, datatype, next, 1, prev, 1, sync.comm, MPI_STATUS_IGNORE);
     }
     MPI_Type_free(&datatype);
+
     teal_free(map);
 
     for (int i = 0; i < num_tags; i++) {
@@ -611,7 +612,7 @@ static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
     return idx;
 }
 
-static void create_cells(Mesh *mesh, const Gmsh *gmsh)
+static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
 {
     int num_cells = 0;
     for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
@@ -650,8 +651,51 @@ static void create_cells(Mesh *mesh, const Gmsh *gmsh)
     mesh->cells.node.idx = tag_to_idx(node_tag, mesh, gmsh);
 }
 
+static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
+{
+}
+
+static int cmp_name(const void *lhs_, const void *rhs_)
+{
+    const PhysicalName *lhs = lhs_;
+    const PhysicalName *rhs = rhs_;
+    if (lhs->dim == rhs->dim) {
+        return cmp_int(&lhs->tag, &rhs->tag);  // ascending
+    }
+    return -cmp_int(&lhs->dim, &rhs->dim);  // descending
+}
+
 static void create_entities(Mesh *mesh, const Gmsh *gmsh)
 {
+    int num_entities = gmsh->physicals.num;
+    assert(num_entities > 0);
+    mesh->entities.num = num_entities;
+
+    PhysicalName *physical_name =
+        memdup(gmsh->physicals.name, num_entities, sizeof(*physical_name));
+    qsort(physical_name, (size_t)num_entities, sizeof(*physical_name), cmp_name);
+
+    Name *name = teal_alloc(num_entities, sizeof(*name));
+    int num_inner = 0;
+    int num_boundary = 0;
+    for (int i = 0; i < num_entities; i++) {
+        strcpy(name[i], physical_name[i].name);
+        if (physical_name[i].dim == 3) {
+            num_inner += 1;
+        }
+        else if (physical_name[i].dim == 2) {
+            num_boundary += 1;
+        }
+        else {
+            teal_error("invalid physical name (%d, %d, %s)", physical_name[i].dim,
+                       physical_name[i].tag, physical_name[i].name);
+        }
+    }
+    assert(num_boundary == num_entities - num_inner);
+    mesh->entities.num_inner = num_inner;
+    mesh->entities.name = name;
+
+    teal_free(physical_name);
 }
 
 static void create_periodics(Mesh *mesh, const Gmsh *gmsh)
@@ -668,7 +712,7 @@ static void gmsh_deinit(Gmsh *gmsh)
         return;
     }
 
-    teal_free(gmsh->names.name);
+    teal_free(gmsh->physicals.name);
 
     if (gmsh->entities.point) {
         for (uint64_t i = 0; i < gmsh->entities.num_points; i++) {
@@ -731,7 +775,7 @@ static void read_gmsh(Mesh *mesh, const char *fname)
     Gmsh *gmsh = gmsh_init(fname);
 
     create_nodes(mesh, gmsh);
-    create_cells(mesh, gmsh);
+    create_inner_cells(mesh, gmsh);
     create_entities(mesh, gmsh);
     create_periodics(mesh, gmsh);
 
