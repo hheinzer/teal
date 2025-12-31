@@ -554,7 +554,7 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
     mesh->nodes.coord = coord;
 }
 
-static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
+static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *gmsh)
 {
     typedef struct {
         long tag, idx;
@@ -577,7 +577,6 @@ static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
     assert(num == mesh->nodes.num);
     qsort(map, (size_t)num, sizeof(*map), cmp_long);
 
-    int num_tags = mesh->cells.node.off[mesh->cells.num];
     long *idx = teal_alloc(num_tags, sizeof(*idx));
 
     MPI_Datatype datatype;
@@ -661,7 +660,7 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
     }
     assert(num == num_cells);
     mesh->cells.node.off = node_off;
-    mesh->cells.node.idx = tag_to_idx(node_tag, mesh, gmsh);
+    mesh->cells.node.idx = tag_to_idx(node_tag, node_off[num_cells], mesh, gmsh);
 
     teal_free(block);
 }
@@ -683,7 +682,7 @@ static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
         assert(num_faces <= INT_MAX - (int)block[i].num_elements);
         num_faces += (int)block[i].num_elements;
     }
-    assert(num_faces > 0);
+    assert(num_faces >= 0);
     mesh->faces.num = num_faces;
 
     int *node_off = teal_alloc(num_faces + 1, sizeof(*node_off));
@@ -707,7 +706,7 @@ static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
     }
     assert(num == num_faces);
     mesh->faces.node.off = node_off;
-    mesh->faces.node.idx = tag_to_idx(node_tag, mesh, gmsh);
+    mesh->faces.node.idx = tag_to_idx(node_tag, node_off[num_faces], mesh, gmsh);
 
     teal_free(block);
 }
