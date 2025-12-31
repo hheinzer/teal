@@ -10,6 +10,9 @@
 
 #define inrange(min, val, max) ((min) <= (val) && (val) <= (max))
 
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#define array_view(arr, shape, ptr) __typeof__ (*(ptr))(*arr) shape = (void *)(ptr)
+
 // Return nonzero if two doubles are close within tolerances.
 int isclose(double lhs, double rhs);
 

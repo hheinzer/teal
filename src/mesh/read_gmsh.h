@@ -542,7 +542,7 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
     int num = 0;
     for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
         NodeBlock *block = &gmsh->nodes.block[i];
-        double (*block_coord)[block->len_coord] = (void *)block->coord;
+        const array_view(block_coord, [block->len_coord], block->coord);
         for (uint64_t j = 0; j < block->num_nodes; j++) {
             coord[num].x = block_coord[j][0];
             coord[num].y = block_coord[j][1];
@@ -648,7 +648,7 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
         }
         assert(block[i].len_node_tag <= MAX_CELL_NODES);
         int len = block[i].len_node_tag;
-        uint64_t (*block_node_tag)[len] = (void *)block[i].node_tag;
+        const array_view(block_node_tag, [len], block[i].node_tag);
         for (uint64_t j = 0; j < block[i].num_elements; j++) {
             node_off[num + 1] = node_off[num] + len;
             for (int k = 0; k < len; k++) {
@@ -694,7 +694,7 @@ static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
         }
         assert(block[i].len_node_tag <= MAX_FACE_NODES);
         int len = block[i].len_node_tag;
-        uint64_t (*block_node_tag)[len] = (void *)block[i].node_tag;
+        const array_view(block_node_tag, [len], block[i].node_tag);
         for (uint64_t j = 0; j < block[i].num_elements; j++) {
             node_off[num + 1] = node_off[num] + len;
             for (int k = 0; k < len; k++) {
