@@ -3,7 +3,7 @@ CC = gcc
 MPICC = OMPI_CC=$(CC) mpicc
 
 # libraries
-LDLIBS = -lm -lhdf5 -lmetis -lparmetis
+LDLIBS = -lm -lhdf5 -lparmetis
 
 # default flags
 CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
