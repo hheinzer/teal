@@ -612,17 +612,30 @@ static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
     return idx;
 }
 
+static int cmp_element_block(const void *lhs_, const void *rhs_)
+{
+    const ElementBlock *lhs = lhs_;
+    const ElementBlock *rhs = rhs_;
+    assert(sizeof(((ElementBlock *)0)->entity_tag) == sizeof(int));
+    return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
+}
+
 static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
 {
+    assert(gmsh->elements.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->elements.num_blocks;
+
+    ElementBlock *block = memdup(gmsh->elements.block, num_blocks, sizeof(*block));
+    qsort(block, (size_t)num_blocks, sizeof(*block), cmp_element_block);
+
     int num_cells = 0;
-    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
-        const ElementBlock *block = &gmsh->elements.block[i];
-        if (block->entity_dim != 3) {
+    for (int i = 0; i < num_blocks; i++) {
+        if (block[i].entity_dim != 3) {
             continue;
         }
-        assert(block->num_elements <= INT_MAX);
-        assert(num_cells <= INT_MAX - (int)block->num_elements);
-        num_cells += (int)block->num_elements;
+        assert(block[i].num_elements <= INT_MAX);
+        assert(num_cells <= INT_MAX - (int)block[i].num_elements);
+        num_cells += (int)block[i].num_elements;
     }
     assert(num_cells > 0);
     mesh->cells.num = num_cells;
@@ -630,14 +643,14 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
     int *node_off = teal_alloc(num_cells + 1, sizeof(*node_off));
     long *node_tag = teal_alloc(num_cells * MAX_CELL_NODES, sizeof(*node_tag));
     long num = 0;
-    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
-        ElementBlock *block = &gmsh->elements.block[i];
-        if (block->entity_dim != 3) {
+    for (int i = 0; i < num_blocks; i++) {
+        if (block[i].entity_dim != 3) {
             continue;
         }
-        int len = block->len_node_tag;
-        uint64_t (*block_node_tag)[len] = (void *)block->node_tag;
-        for (uint64_t j = 0; j < block->num_elements; j++) {
+        assert(block[i].len_node_tag <= MAX_CELL_NODES);
+        int len = block[i].len_node_tag;
+        uint64_t (*block_node_tag)[len] = (void *)block[i].node_tag;
+        for (uint64_t j = 0; j < block[i].num_elements; j++) {
             node_off[num + 1] = node_off[num] + len;
             for (int k = 0; k < len; k++) {
                 assert(inrange(1, block_node_tag[j][k], LONG_MAX));
@@ -649,10 +662,54 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
     assert(num == num_cells);
     mesh->cells.node.off = node_off;
     mesh->cells.node.idx = tag_to_idx(node_tag, mesh, gmsh);
+
+    teal_free(block);
 }
 
 static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
 {
+    assert(gmsh->elements.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->elements.num_blocks;
+
+    ElementBlock *block = memdup(gmsh->elements.block, num_blocks, sizeof(*block));
+    qsort(block, (size_t)num_blocks, sizeof(*block), cmp_element_block);
+
+    int num_faces = 0;
+    for (int i = 0; i < num_blocks; i++) {
+        if (block[i].entity_dim != 2) {
+            continue;
+        }
+        assert(block[i].num_elements <= INT_MAX);
+        assert(num_faces <= INT_MAX - (int)block[i].num_elements);
+        num_faces += (int)block[i].num_elements;
+    }
+    assert(num_faces > 0);
+    mesh->faces.num = num_faces;
+
+    int *node_off = teal_alloc(num_faces + 1, sizeof(*node_off));
+    long *node_tag = teal_alloc(num_faces * MAX_FACE_NODES, sizeof(*node_tag));
+    long num = 0;
+    for (int i = 0; i < num_blocks; i++) {
+        if (block[i].entity_dim != 2) {
+            continue;
+        }
+        assert(block[i].len_node_tag <= MAX_FACE_NODES);
+        int len = block[i].len_node_tag;
+        uint64_t (*block_node_tag)[len] = (void *)block[i].node_tag;
+        for (uint64_t j = 0; j < block[i].num_elements; j++) {
+            node_off[num + 1] = node_off[num] + len;
+            for (int k = 0; k < len; k++) {
+                assert(inrange(1, block_node_tag[j][k], LONG_MAX));
+                node_tag[node_off[num] + k] = (long)block_node_tag[j][k];
+            }
+            num += 1;
+        }
+    }
+    assert(num == num_faces);
+    mesh->faces.node.off = node_off;
+    mesh->faces.node.idx = tag_to_idx(node_tag, mesh, gmsh);
+
+    teal_free(block);
 }
 
 static int cmp_name(const void *lhs_, const void *rhs_)
@@ -660,8 +717,10 @@ static int cmp_name(const void *lhs_, const void *rhs_)
     const Physical *lhs = lhs_;
     const Physical *rhs = rhs_;
     if (lhs->dim == rhs->dim) {
+        assert(sizeof(((Physical *)0)->tag) == sizeof(int));
         return cmp_int(&lhs->tag, &rhs->tag);  // ascending
     }
+    assert(sizeof(((Physical *)0)->dim) == sizeof(int));
     return -cmp_int(&lhs->dim, &rhs->dim);  // descending
 }
 
