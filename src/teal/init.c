@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <getopt.h>
+#include <mpi.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -52,13 +53,6 @@ void teal_init(int *argc, char ***argv)
 
     sync_init(argc, argv);
 
-    if (sizeof(int) != 4) {
-        teal_error("unexpected sizeof(int) (%zu)", sizeof(int));
-    }
-    if (sizeof(long) != 8) {
-        teal_error("unexpected sizeof(long) (%zu)", sizeof(long));
-    }
-
     parse_options(*argc, *argv);
     remove_parsed_options(argc, argv);
 
@@ -68,4 +62,25 @@ void teal_init(int *argc, char ***argv)
     teal_print("Hello, World! This is teal!");
     teal_print("\t start time      : %s", now);
     teal_print("\t number of ranks : %d", sync.size);
+}
+
+void teal_deinit(void)
+{
+    char now[128];
+    strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
+
+    teal_print("Goodbye, World!");
+    teal_print("\t stop time : %s", now);
+
+    sync_deinit();
+}
+
+void teal_exit(int status)
+{
+    int flag;
+    MPI_Initialized(&flag);
+    if (flag) {
+        MPI_Finalize();
+    }
+    exit(status);
 }
