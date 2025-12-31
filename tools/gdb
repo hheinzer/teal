@@ -1,14 +1,8 @@
 #!/bin/bash
 
-term=kgx
-if ! command -v $term >/dev/null 2>&1; then
-    term=xterm
-fi
-
 ntasks=1
-while getopts "t:n:" opt; do
+while getopts "n:" opt; do
     case $opt in
-        t) term=$OPTARG ;;
         n) ntasks=$OPTARG ;;
         *) exit 1 ;;
     esac
@@ -19,7 +13,7 @@ prog=$1
 args=${@:2}
 
 if [ $ntasks -gt 1 ]; then
-    exec mpirun -n $ntasks $term -e gdb -q -ex run --args $prog $args
+    exec mpirun -n $ntasks xterm -e gdb -q -ex run --args $prog $args
 else
     exec gdb -q -ex run --args $prog $args
 fi
