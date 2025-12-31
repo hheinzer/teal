@@ -67,7 +67,7 @@ static int read_token(Parse *file, char *str, int size, int count)
 
     // pack the token into the destination buffer
     ptrdiff_t diff = end - beg;
-    assert(in_range(0, diff, size));
+    assert(inrange(0, diff, size));
     int len = (int)diff;
     memmove(str, beg, (size_t)len);
     memset(str + len, 0, (size_t)(size - len));

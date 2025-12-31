@@ -312,7 +312,7 @@ static void read_entities(Gmsh *gmsh, Parse *file, int mode)
 static long read_node_block(NodeBlock *block, long beg, long end, long off, Parse *file, int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
-    assert(in_range(0, block->entity_dim, 3));
+    assert(inrange(0, block->entity_dim, 3));
 
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->parametric, 1, MPI_INT32_T, mode);
@@ -383,7 +383,7 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
                                int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
-    assert(in_range(0, block->entity_dim, 3));
+    assert(inrange(0, block->entity_dim, 3));
 
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->element_type, 1, MPI_INT32_T, mode);
@@ -568,7 +568,7 @@ static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
     for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
         NodeBlock *block = &gmsh->nodes.block[i];
         for (uint64_t j = 0; j < block->num_nodes; j++) {
-            assert(in_range(1, block->tag[j], LONG_MAX));
+            assert(inrange(1, block->tag[j], LONG_MAX));
             map[num].tag = (long)block->tag[j];
             map[num].idx = prefix + num;
             num += 1;
@@ -639,7 +639,7 @@ static void create_cells(Mesh *mesh, const Gmsh *gmsh)
         for (uint64_t j = 0; j < block->num_elements; j++) {
             node_off[num + 1] = node_off[num] + len;
             for (int k = 0; k < len; k++) {
-                assert(in_range(1, block_node_tag[j][k], LONG_MAX));
+                assert(inrange(1, block_node_tag[j][k], LONG_MAX));
                 node_tag[node_off[num] + k] = (long)block_node_tag[j][k];
             }
             num += 1;
