@@ -526,6 +526,20 @@ static Gmsh *gmsh_init(const char *fname)
     return gmsh;
 }
 
+static int cmp_element_block(const void *lhs_, const void *rhs_)
+{
+    const ElementBlock *lhs = lhs_;
+    const ElementBlock *rhs = rhs_;
+    assert(sizeof(((ElementBlock *)0)->entity_tag) == sizeof(int));
+    return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
+}
+
+static void reorder_element_blocks(Gmsh *gmsh)
+{
+    qsort(gmsh->elements.block, gmsh->elements.num_blocks, sizeof(*gmsh->elements.block),
+          cmp_element_block);
+}
+
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
     int num_nodes = 0;
@@ -611,21 +625,11 @@ static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *g
     return idx;
 }
 
-static int cmp_element_block(const void *lhs_, const void *rhs_)
-{
-    const ElementBlock *lhs = lhs_;
-    const ElementBlock *rhs = rhs_;
-    assert(sizeof(((ElementBlock *)0)->entity_tag) == sizeof(int));
-    return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
-}
-
 static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
 {
     assert(gmsh->elements.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->elements.num_blocks;
-
-    ElementBlock *block = memdup(gmsh->elements.block, num_blocks, sizeof(*block));
-    qsort(block, (size_t)num_blocks, sizeof(*block), cmp_element_block);
+    const ElementBlock *block = gmsh->elements.block;
 
     int num_cells = 0;
     for (int i = 0; i < num_blocks; i++) {
@@ -661,17 +665,13 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
     assert(num == num_cells);
     mesh->cells.node.off = node_off;
     mesh->cells.node.idx = tag_to_idx(node_tag, node_off[num_cells], mesh, gmsh);
-
-    teal_free(block);
 }
 
 static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
 {
     assert(gmsh->elements.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->elements.num_blocks;
-
-    ElementBlock *block = memdup(gmsh->elements.block, num_blocks, sizeof(*block));
-    qsort(block, (size_t)num_blocks, sizeof(*block), cmp_element_block);
+    const ElementBlock *block = gmsh->elements.block;
 
     int num_faces = 0;
     for (int i = 0; i < num_blocks; i++) {
@@ -707,8 +707,6 @@ static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
     assert(num == num_faces);
     mesh->faces.node.off = node_off;
     mesh->faces.node.idx = tag_to_idx(node_tag, node_off[num_faces], mesh, gmsh);
-
-    teal_free(block);
 }
 
 static int cmp_name(const void *lhs_, const void *rhs_)
@@ -756,10 +754,6 @@ static void create_entities(Mesh *mesh, const Gmsh *gmsh)
 }
 
 static void create_periodics(Mesh *mesh, const Gmsh *gmsh)
-{
-}
-
-static void reorder_cells(Mesh *mesh, const Gmsh *gmsh)
 {
 }
 
@@ -831,13 +825,13 @@ static void read_gmsh(Mesh *mesh, const char *fname)
 {
     Gmsh *gmsh = gmsh_init(fname);
 
+    reorder_element_blocks(gmsh);
+
     create_nodes(mesh, gmsh);
     create_inner_cells(mesh, gmsh);
     create_boundary_faces(mesh, gmsh);
     create_entities(mesh, gmsh);
     create_periodics(mesh, gmsh);
-
-    reorder_cells(mesh, gmsh);
 
     gmsh_deinit(gmsh);
 }
