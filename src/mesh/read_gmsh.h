@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "mesh.h"
@@ -553,8 +554,100 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
     mesh->nodes.coord = coord;
 }
 
+static long *tag_to_idx(long *tag, const Mesh *mesh, const Gmsh *gmsh)
+{
+    typedef struct {
+        long tag, idx;
+    } Map;
+
+    int cap = sync_max(mesh->nodes.num);
+    Map *map = teal_alloc(cap, sizeof(*map));
+
+    long prefix = sync_lexsum(mesh->nodes.num);
+    int num = 0;
+    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
+        NodeBlock *block = &gmsh->nodes.block[i];
+        for (uint64_t j = 0; j < block->num_nodes; j++) {
+            assert(in_range(1, block->tag[j], LONG_MAX));
+            map[num].tag = (long)block->tag[j];
+            map[num].idx = prefix + num;
+            num += 1;
+        }
+    }
+    assert(num == mesh->nodes.num);
+    qsort(map, (size_t)num, sizeof(*map), cmp_long);
+
+    int num_tags = mesh->cells.node.off[mesh->cells.num];
+    long *idx = teal_alloc(num_tags, sizeof(*idx));
+
+    MPI_Datatype datatype;
+    MPI_Type_contiguous(2, MPI_LONG, &datatype);
+    MPI_Type_commit(&datatype);
+
+    int next = (sync.rank + 1) % sync.size;
+    int prev = (sync.rank - 1 + sync.size) % sync.size;
+    for (int rank = 0; rank < sync.size; rank++) {
+        for (int i = 0; i < num_tags; i++) {
+            if (tag[i] > 0) {
+                Map key = {.tag = tag[i]};
+                Map *val = bsearch(&key, map, (size_t)num, sizeof(*map), cmp_long);
+                if (val) {
+                    idx[i] = val->idx;
+                    tag[i] = -tag[i];
+                }
+            }
+        }
+        MPI_Sendrecv_replace(&num, 1, MPI_INT, next, 0, prev, 0, sync.comm, MPI_STATUS_IGNORE);
+        MPI_Sendrecv_replace(map, cap, datatype, next, 1, prev, 1, sync.comm, MPI_STATUS_IGNORE);
+    }
+    MPI_Type_free(&datatype);
+    teal_free(map);
+
+    for (int i = 0; i < num_tags; i++) {
+        assert(tag[i] < 0);
+    }
+    teal_free(tag);
+
+    return idx;
+}
+
 static void create_cells(Mesh *mesh, const Gmsh *gmsh)
 {
+    int num_cells = 0;
+    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
+        ElementBlock *block = &gmsh->elements.block[i];
+        if (block->entity_dim != 3) {
+            continue;
+        }
+        assert(block->num_elements <= INT_MAX);
+        assert(num_cells <= INT_MAX - (int)block->num_elements);
+        num_cells += (int)block->num_elements;
+    }
+    assert(num_cells > 0);
+    mesh->cells.num = num_cells;
+
+    int *node_off = teal_alloc(num_cells + 1, sizeof(*node_off));
+    long *node_tag = teal_alloc(num_cells * MAX_CELL_NODES, sizeof(*node_tag));
+    long num = 0;
+    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
+        ElementBlock *block = &gmsh->elements.block[i];
+        if (block->entity_dim != 3) {
+            continue;
+        }
+        int len = block->len_node_tag;
+        uint64_t (*block_node_tag)[len] = (void *)block->node_tag;
+        for (uint64_t j = 0; j < block->num_elements; j++) {
+            node_off[num + 1] = node_off[num] + len;
+            for (int k = 0; k < len; k++) {
+                assert(in_range(1, block_node_tag[j][k], LONG_MAX));
+                node_tag[node_off[num] + k] = (long)block_node_tag[j][k];
+            }
+            num += 1;
+        }
+    }
+    assert(num == num_cells);
+    mesh->cells.node.off = node_off;
+    mesh->cells.node.idx = tag_to_idx(node_tag, mesh, gmsh);
 }
 
 static void create_entities(Mesh *mesh, const Gmsh *gmsh)

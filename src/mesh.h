@@ -18,7 +18,6 @@ typedef struct {
 
 // Compressed sparse row graph
 typedef struct {
-    int num;
     int *off;   // [num + 1] offsets into idx
     long *idx;  // [off[num]] indices
 } Graph;
