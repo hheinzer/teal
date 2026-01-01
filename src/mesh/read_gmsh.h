@@ -837,8 +837,8 @@ static int physical_index(int dim, int tag, const Gmsh *gmsh)
 {
     Physical key = {.dim = dim, .tag = tag};
     assert(gmsh->physicals.num >= 0);
-    Physical *val = bsearch(&key, gmsh->physicals.physical, (size_t)gmsh->physicals.num,
-                            sizeof(*gmsh->physicals.physical), cmp_physical);
+    const Physical *val = bsearch(&key, gmsh->physicals.physical, (size_t)gmsh->physicals.num,
+                                  sizeof(*gmsh->physicals.physical), cmp_physical);
     if (!val) {
         teal_error("could not find physical (%d, %d)", dim, tag);
     }
@@ -848,11 +848,11 @@ static int physical_index(int dim, int tag, const Gmsh *gmsh)
 }
 
 // Find a volume entity by tag.
-static Volume *find_volume(int tag, const Gmsh *gmsh)
+static const Volume *find_volume(int tag, const Gmsh *gmsh)
 {
     Volume key = {.tag = tag};
-    Volume *val = bsearch(&key, gmsh->entities.volume, gmsh->entities.num_volumes,
-                          sizeof(*gmsh->entities.volume), cmp_volume);
+    const Volume *val = bsearch(&key, gmsh->entities.volume, gmsh->entities.num_volumes,
+                                sizeof(*gmsh->entities.volume), cmp_volume);
     if (!val) {
         teal_error("could not find volume entity (%d)", tag);
     }
@@ -860,11 +860,11 @@ static Volume *find_volume(int tag, const Gmsh *gmsh)
 }
 
 // Find a surface entity by tag.
-static Surface *find_surface(int tag, const Gmsh *gmsh)
+static const Surface *find_surface(int tag, const Gmsh *gmsh)
 {
     Surface key = {.tag = tag};
-    Surface *val = bsearch(&key, gmsh->entities.surface, gmsh->entities.num_surfaces,
-                           sizeof(*gmsh->entities.surface), cmp_surface);
+    const Surface *val = bsearch(&key, gmsh->entities.surface, gmsh->entities.num_surfaces,
+                                 sizeof(*gmsh->entities.surface), cmp_surface);
     if (!val) {
         teal_error("could not find surface entity (%d)", tag);
     }
@@ -876,14 +876,14 @@ static int entity_index(int dim, int tag, const Gmsh *gmsh)
 {
     switch (dim) {
         case 3: {
-            Volume *volume = find_volume(tag, gmsh);
+            const Volume *volume = find_volume(tag, gmsh);
             if (volume->num_physical_tags != 1) {
                 teal_error("unsupported number of physical tags (%zu)", volume->num_physical_tags);
             }
             return physical_index(dim, volume->physical_tag[0], gmsh);
         }
         case 2: {
-            Surface *surface = find_surface(tag, gmsh);
+            const Surface *surface = find_surface(tag, gmsh);
             if (surface->num_physical_tags != 1) {
                 teal_error("unsupported number of physical tags (%zu)", surface->num_physical_tags);
             }
