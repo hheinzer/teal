@@ -829,41 +829,68 @@ static void create_boundary_faces(Mesh *mesh, const Gmsh *gmsh)
     assert(num_faces >= 0);
     mesh->faces.num = num_faces;
 
-    int *node_off = teal_alloc(num_faces + 1, sizeof(*node_off));
-    long *node_tag = teal_alloc(num_faces * MAX_FACE_NODES, sizeof(*node_tag));
-    long num = 0;
-    for (int i = 0; i < num_blocks; i++) {
-        if (block[i].entity_dim != 2) {
-            continue;
-        }
-        assert(block[i].len_node_tag <= MAX_FACE_NODES);
-        int len = block[i].len_node_tag;
-        const array_view(block_node_tag, [len], block[i].node_tag);
-        for (uint64_t j = 0; j < block[i].num_elements; j++) {
-            node_off[num + 1] = node_off[num] + len;
-            for (int k = 0; k < len; k++) {
-                assert(inrange(1, block_node_tag[j][k], LONG_MAX));
-                node_tag[node_off[num] + k] = (long)block_node_tag[j][k];
-            }
-            num += 1;
-        }
-    }
-    assert(num == num_faces);
-    mesh->faces.node.off = node_off;
-    mesh->faces.node.idx = tag_to_idx(node_tag, node_off[num_faces], mesh, gmsh);
+    create_node_graph(&mesh->faces.node, num_faces, MAX_FACE_NODES, 2, mesh, gmsh);
 }
 
-// Compare physical names by dimension and tag.
-static int cmp_name(const void *lhs_, const void *rhs_)
+// Return the physical index for a dimension and tag.
+static int physical_index(int dim, int tag, const Gmsh *gmsh)
 {
-    const Physical *lhs = lhs_;
-    const Physical *rhs = rhs_;
-    if (lhs->dim == rhs->dim) {
-        assert(sizeof(((Physical *)0)->tag) == sizeof(int));
-        return cmp_int(&lhs->tag, &rhs->tag);  // ascending
+    Physical key = {.dim = dim, .tag = tag};
+    assert(gmsh->physicals.num >= 0);
+    Physical *val = bsearch(&key, gmsh->physicals.physical, (size_t)gmsh->physicals.num,
+                            sizeof(*gmsh->physicals.physical), cmp_physical);
+    if (!val) {
+        teal_error("could not find physical (%d, %d)", dim, tag);
     }
-    assert(sizeof(((Physical *)0)->dim) == sizeof(int));
-    return -cmp_int(&lhs->dim, &rhs->dim);  // descending
+    ptrdiff_t idx = val - gmsh->physicals.physical;
+    assert(idx <= INT_MAX);
+    return (int)idx;
+}
+
+// Find a volume entity by tag.
+static Volume *find_volume(int tag, const Gmsh *gmsh)
+{
+    Volume key = {.tag = tag};
+    Volume *val = bsearch(&key, gmsh->entities.volume, gmsh->entities.num_volumes,
+                          sizeof(*gmsh->entities.volume), cmp_volume);
+    if (!val) {
+        teal_error("could not find volume entity (%d)", tag);
+    }
+    return val;
+}
+
+// Find a surface entity by tag.
+static Surface *find_surface(int tag, const Gmsh *gmsh)
+{
+    Surface key = {.tag = tag};
+    Surface *val = bsearch(&key, gmsh->entities.surface, gmsh->entities.num_surfaces,
+                           sizeof(*gmsh->entities.surface), cmp_surface);
+    if (!val) {
+        teal_error("could not find surface entity (%d)", tag);
+    }
+    return val;
+}
+
+// Return the physical entity index for a mesh entity tag.
+static int entity_index(int dim, int tag, const Gmsh *gmsh)
+{
+    switch (dim) {
+        case 3: {
+            Volume *volume = find_volume(tag, gmsh);
+            if (volume->num_physical_tags != 1) {
+                teal_error("unsupported number of physical tags (%zu)", volume->num_physical_tags);
+            }
+            return physical_index(dim, volume->physical_tag[0], gmsh);
+        }
+        case 2: {
+            Surface *surface = find_surface(tag, gmsh);
+            if (surface->num_physical_tags != 1) {
+                teal_error("unsupported number of physical tags (%zu)", surface->num_physical_tags);
+            }
+            return physical_index(dim, surface->physical_tag[0], gmsh);
+        }
+        default: teal_error("unsupported entity dimension (%d)", dim);
+    }
 }
 
 // Create mesh entities from physical names.
@@ -873,30 +900,54 @@ static void create_entities(Mesh *mesh, const Gmsh *gmsh)
     assert(num_entities > 0);
     mesh->entities.num = num_entities;
 
-    Physical *physical = memdup(gmsh->physicals.physical, num_entities, sizeof(*physical));
-    qsort(physical, (size_t)num_entities, sizeof(*physical), cmp_name);
+    const Physical *physical = gmsh->physicals.physical;
+    const ElementBlock *block = gmsh->elements.block;
 
     Name *name = teal_alloc(num_entities, sizeof(*name));
     int num_inner = 0;
     int num_boundary = 0;
     for (int i = 0; i < num_entities; i++) {
         strcpy(name[i], physical[i].name);
-        if (physical[i].dim == 3) {
-            num_inner += 1;
-        }
-        else if (physical[i].dim == 2) {
-            num_boundary += 1;
-        }
-        else {
-            teal_error("invalid physical name (%d, %d, %s)", physical[i].dim, physical[i].tag,
-                       physical[i].name);
+        switch (physical[i].dim) {
+            case 3: num_inner += 1; break;
+            case 2: num_boundary += 1; break;
+            default: teal_error("unsupported physical dimension (%d)", physical[i].dim);
         }
     }
     assert(num_boundary == num_entities - num_inner);
     mesh->entities.num_inner = num_inner;
     mesh->entities.name = name;
 
-    teal_free(physical);
+    int *num_volumes = teal_alloc(num_entities, sizeof(*num_volumes));
+    int *num_surfaces = teal_alloc(num_entities, sizeof(*num_surfaces));
+    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
+        int idx = entity_index(block[i].entity_dim, block[i].entity_tag, gmsh);
+        switch (block[i].entity_dim) {
+            case 3:
+                assert(block[i].num_elements <= INT_MAX);
+                assert(num_volumes[idx] <= INT_MAX - (int)block[i].num_elements);
+                num_volumes[idx] += (int)block[i].num_elements;
+                break;
+            case 2:
+                assert(block[i].num_elements <= INT_MAX);
+                assert(num_surfaces[idx] <= INT_MAX - (int)block[i].num_elements);
+                num_surfaces[idx] += (int)block[i].num_elements;
+                break;
+            default: teal_error("unsupported entity dimension (%d)", block[i].entity_dim);
+        }
+    }
+
+    int *cell_off = teal_alloc(num_entities + 1, sizeof(*cell_off));
+    int *face_off = teal_alloc(num_entities + 1, sizeof(*face_off));
+    for (int i = 0; i < num_entities; i++) {
+        cell_off[i + 1] += cell_off[i] + num_volumes[i];
+        face_off[i + 1] += face_off[i] + num_surfaces[i];
+    }
+    mesh->entities.cell_off = cell_off;
+    mesh->entities.face_off = face_off;
+
+    teal_free(num_volumes);
+    teal_free(num_surfaces);
 }
 
 // Create mesh periodic data from gmsh.
