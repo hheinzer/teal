@@ -15,21 +15,21 @@ static void swap_bytes(void *buf, int num, int size)
         case 1: break;
         case 2: {
             uint16_t *u16 = buf;
-            for (long i = 0; i < num; i++) {
+            for (int i = 0; i < num; i++) {
                 u16[i] = bswap_16(u16[i]);
             }
             break;
         }
         case 4: {
             uint32_t *u32 = buf;
-            for (long i = 0; i < num; i++) {
+            for (int i = 0; i < num; i++) {
                 u32[i] = bswap_32(u32[i]);
             }
             break;
         }
         case 8: {
             uint64_t *u64 = buf;
-            for (long i = 0; i < num; i++) {
+            for (int i = 0; i < num; i++) {
                 u64[i] = bswap_64(u64[i]);
             }
             break;

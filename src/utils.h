@@ -2,16 +2,23 @@
 
 #include <stddef.h>
 
-#define sq(val) ((val) * (val))
-#define cb(val) ((val) * (val) * (val))
+// Return the square of a value.
+double sq(double val);
 
-#define min(lhs, rhs) (((lhs) < (rhs)) ? (lhs) : (rhs))
-#define max(lhs, rhs) (((lhs) > (rhs)) ? (lhs) : (rhs))
+// Return the cube of a value.
+double cb(double val);
 
-#define inrange(min, val, max) ((min) <= (val) && (val) <= (max))
+// Return the minimum of two ints.
+int min(int lhs, int rhs);
 
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
-#define array_view(arr, shape, ptr) __typeof__ (*(ptr))(*arr) shape = (void *)(ptr)
+// Return the maximum of two ints.
+int max(int lhs, int rhs);
+
+// Return the minimum of two longs.
+long lmin(long lhs, long rhs);
+
+// Return the maximum of two longs.
+long lmax(long lhs, long rhs);
 
 // Return nonzero if two doubles are close within tolerances.
 int isclose(double lhs, double rhs);

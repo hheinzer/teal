@@ -76,7 +76,6 @@ typedef struct {
     int32_t entity_dim;
     int32_t entity_tag;
     int32_t parametric;
-    int len_coord;
     uint64_t num_nodes;
     uint64_t *tag;
     double *coord;
@@ -94,7 +93,6 @@ typedef struct {
     int32_t entity_dim;
     int32_t entity_tag;
     int32_t element_type;
-    int len_node_tag;
     uint64_t num_elements;
     uint64_t *tag;
     uint64_t *node_tag;
@@ -138,7 +136,7 @@ static int read_format(Gmsh *gmsh, Parse *file)
 {
     parse_ascii(file, &gmsh->format.version, 1, MPI_DOUBLE);
     if (!isclose(gmsh->format.version, 4.1)) {
-        teal_error("unsuppored version (%g)", gmsh->format.version);
+        teal_error("unsupported version (%g)", gmsh->format.version);
     }
 
     parse_ascii(file, &gmsh->format.file_type, 1, MPI_INT32_T);
@@ -146,7 +144,7 @@ static int read_format(Gmsh *gmsh, Parse *file)
 
     parse_ascii(file, &gmsh->format.data_size, 1, MPI_INT32_T);
     if (gmsh->format.data_size != 8) {
-        teal_error("unsuppored data-size (%d)", gmsh->format.data_size);
+        teal_error("unsupported data-size (%d)", gmsh->format.data_size);
     }
 
     if (gmsh->format.file_type == 1) {
@@ -316,31 +314,37 @@ static void read_entities(Gmsh *gmsh, Parse *file, int mode)
     gmsh->entities.volume = read_volumes(num_volumes, file, mode);
 }
 
+// Return the coordinate stride for a node block.
+static int len_coord(const NodeBlock *block)
+{
+    return 3 + (block->parametric ? block->entity_dim : 0);
+}
+
 // Read one node block and return its original size.
 static long read_node_block(NodeBlock *block, long beg, long end, long off, Parse *file, int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
-    assert(inrange(0, block->entity_dim, 3));
+    assert(0 <= block->entity_dim && block->entity_dim <= 3);
 
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->parametric, 1, MPI_INT32_T, mode);
-    block->len_coord = 3 + (block->parametric ? block->entity_dim : 0);
 
     parse(file, &block->num_nodes, 1, MPI_UINT64_T, mode);
     assert(block->num_nodes <= LONG_MAX);
     long tot_nodes = (long)block->num_nodes;
 
-    long beg_nodes = max(beg, off);
-    long end_nodes = min(end, off + tot_nodes);
-    long num_nodes = max(0, end_nodes - beg_nodes);
+    long beg_nodes = lmax(beg, off);
+    long end_nodes = lmin(end, off + tot_nodes);
+    long num_nodes = lmax(0, end_nodes - beg_nodes);
     assert(num_nodes <= INT_MAX && tot_nodes == sync_lsum((int)num_nodes));
     block->num_nodes = (uint64_t)num_nodes;
 
     block->tag = teal_alloc((int)num_nodes, sizeof(*block->tag));
     parse(file, block->tag, (int)num_nodes, MPI_UINT64_T, mode | SPLIT);
 
-    assert(num_nodes < INT_MAX / block->len_coord);
-    int tot_coords = (int)num_nodes * block->len_coord;
+    int len = len_coord(block);
+    assert(num_nodes < INT_MAX / len);
+    int tot_coords = (int)num_nodes * len;
     block->coord = teal_alloc(tot_coords, sizeof(*block->coord));
     parse(file, block->coord, tot_coords, MPI_DOUBLE, mode | SPLIT);
 
@@ -375,17 +379,17 @@ static void read_nodes(Gmsh *gmsh, Parse *file, int mode)
     gmsh->nodes.block = block;
 }
 
-// Return the node count for a given element type.
-static int32_t num_node_tags(int32_t element_type)
+// Return the node tag count for an element block.
+static int len_node_tags(const ElementBlock *block)
 {
-    switch (element_type) {
+    switch (block->element_type) {
         case 2: return 3;  // triangle
         case 3:            // quadrangle
         case 4: return 4;  // tetrahedron
         case 5: return 8;  // hexahedron
         case 6: return 6;  // prism
         case 7: return 5;  // pyramid
-        default: teal_error("unsupported element type (%d)", element_type);
+        default: teal_error("unsupported element type (%d)", block->element_type);
     }
 }
 
@@ -394,36 +398,36 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
                                int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
-    assert(inrange(0, block->entity_dim, 3));
+    assert(0 <= block->entity_dim && block->entity_dim <= 3);
 
     parse(file, &block->entity_tag, 1, MPI_INT32_T, mode);
     parse(file, &block->element_type, 1, MPI_INT32_T, mode);
-    block->len_node_tag = num_node_tags(block->element_type);
 
     parse(file, &block->num_elements, 1, MPI_UINT64_T, mode);
     assert(block->num_elements <= LONG_MAX);
     long tot_elements = (long)block->num_elements;
 
-    long beg_elements = max(beg, off);
-    long end_elements = min(end, off + tot_elements);
-    long num_elements = max(0, end_elements - beg_elements);
+    long beg_elements = lmax(beg, off);
+    long end_elements = lmin(end, off + tot_elements);
+    long num_elements = lmax(0, end_elements - beg_elements);
     assert(num_elements <= INT_MAX && tot_elements == sync_lsum(num_elements));
     block->num_elements = (uint64_t)num_elements;
 
     block->tag = teal_alloc((int)num_elements, sizeof(*block->tag));
 
-    assert(num_elements < INT_MAX / block->len_node_tag);
-    int tot_node_tags = (int)num_elements * block->len_node_tag;
+    int len = len_node_tags(block);
+    assert(num_elements < INT_MAX / len);
+    int tot_node_tags = (int)num_elements * len;
     block->node_tag = teal_alloc(tot_node_tags, sizeof(*block->node_tag));
 
-    int stride = 1 + block->len_node_tag;
+    int stride = 1 + len;
     assert(num_elements <= INT_MAX / stride);
     uint64_t (*tmp)[stride] = teal_alloc((int)num_elements, sizeof(*tmp));
     parse(file, tmp, (int)num_elements * stride, MPI_UINT64_T, mode | SPLIT);
     for (int i = 0; i < num_elements; i++) {
         block->tag[i] = tmp[i][0];
-        for (int j = 0; j < block->len_node_tag; j++) {
-            block->node_tag[(i * block->len_node_tag) + j] = tmp[i][1 + j];
+        for (int j = 0; j < len; j++) {
+            block->node_tag[(i * len) + j] = tmp[i][1 + j];
         }
     }
     teal_free(tmp);
@@ -541,44 +545,147 @@ static Gmsh *gmsh_init(const char *fname)
     return gmsh;
 }
 
-// Compare element blocks by entity tag.
+// Compare physicals by dimension then tag.
+static int cmp_physical(const void *lhs_, const void *rhs_)
+{
+    const Physical *lhs = lhs_;
+    const Physical *rhs = rhs_;
+    if (lhs->dim != rhs->dim) {
+        assert(sizeof(((Physical *)0)->dim) == sizeof(int));
+        return -cmp_int(&lhs->dim, &rhs->dim);
+    }
+    assert(sizeof(((Physical *)0)->tag) == sizeof(int));
+    return cmp_int(&lhs->tag, &rhs->tag);
+}
+
+// Compare points by tag.
+static int cmp_point(const void *lhs_, const void *rhs_)
+{
+    const Point *lhs = lhs_;
+    const Point *rhs = rhs_;
+    assert(sizeof(((Point *)0)->tag) == sizeof(int));
+    return cmp_int(&lhs->tag, &rhs->tag);
+}
+
+// Compare curves by tag.
+static int cmp_curve(const void *lhs_, const void *rhs_)
+{
+    const Curve *lhs = lhs_;
+    const Curve *rhs = rhs_;
+    assert(sizeof(((Curve *)0)->tag) == sizeof(int));
+    return cmp_int(&lhs->tag, &rhs->tag);
+}
+
+// Compare surfaces by tag.
+static int cmp_surface(const void *lhs_, const void *rhs_)
+{
+    const Surface *lhs = lhs_;
+    const Surface *rhs = rhs_;
+    assert(sizeof(((Surface *)0)->tag) == sizeof(int));
+    return cmp_int(&lhs->tag, &rhs->tag);
+}
+
+// Compare volumes by tag.
+static int cmp_volume(const void *lhs_, const void *rhs_)
+{
+    const Volume *lhs = lhs_;
+    const Volume *rhs = rhs_;
+    assert(sizeof(((Volume *)0)->tag) == sizeof(int));
+    return cmp_int(&lhs->tag, &rhs->tag);
+}
+
+// Compare node blocks by dimension then tag.
+static int cmp_node_block(const void *lhs_, const void *rhs_)
+{
+    const NodeBlock *lhs = lhs_;
+    const NodeBlock *rhs = rhs_;
+    if (lhs->entity_dim != rhs->entity_dim) {
+        assert(sizeof(((NodeBlock *)0)->entity_dim) == sizeof(int));
+        return -cmp_int(&lhs->entity_dim, &rhs->entity_dim);
+    }
+    assert(sizeof(((NodeBlock *)0)->entity_tag) == sizeof(int));
+    return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
+}
+
+// Compare element blocks by dimension then tag.
 static int cmp_element_block(const void *lhs_, const void *rhs_)
 {
     const ElementBlock *lhs = lhs_;
     const ElementBlock *rhs = rhs_;
+    if (lhs->entity_dim != rhs->entity_dim) {
+        assert(sizeof(((ElementBlock *)0)->entity_dim) == sizeof(int));
+        return -cmp_int(&lhs->entity_dim, &rhs->entity_dim);
+    }
     assert(sizeof(((ElementBlock *)0)->entity_tag) == sizeof(int));
     return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
 }
 
-// Sort element blocks by entity tag.
-static void reorder_element_blocks(Gmsh *gmsh)
+// Compare periodic links by dimension then tag.
+static int cmp_periodic(const void *lhs_, const void *rhs_)
 {
+    const Periodic *lhs = lhs_;
+    const Periodic *rhs = rhs_;
+    if (lhs->entity_dim != rhs->entity_dim) {
+        assert(sizeof(((Periodic *)0)->entity_dim) == sizeof(int));
+        return -cmp_int(&lhs->entity_dim, &rhs->entity_dim);
+    }
+    assert(sizeof(((Periodic *)0)->entity_tag) == sizeof(int));
+    return cmp_int(&lhs->entity_tag, &rhs->entity_tag);
+}
+
+// Sort gmsh arrays into a deterministic order.
+static void reorder(Gmsh *gmsh)
+{
+    assert(gmsh->physicals.num >= 0);
+    qsort(gmsh->physicals.physical, (size_t)gmsh->physicals.num, sizeof(*gmsh->physicals.physical),
+          cmp_physical);
+
+    qsort(gmsh->entities.point, gmsh->entities.num_points, sizeof(*gmsh->entities.point),
+          cmp_point);
+
+    qsort(gmsh->entities.curve, gmsh->entities.num_curves, sizeof(*gmsh->entities.curve),
+          cmp_curve);
+
+    qsort(gmsh->entities.surface, gmsh->entities.num_surfaces, sizeof(*gmsh->entities.surface),
+          cmp_surface);
+
+    qsort(gmsh->entities.volume, gmsh->entities.num_volumes, sizeof(*gmsh->entities.volume),
+          cmp_volume);
+
+    qsort(gmsh->nodes.block, gmsh->nodes.num_blocks, sizeof(*gmsh->nodes.block), cmp_node_block);
+
     qsort(gmsh->elements.block, gmsh->elements.num_blocks, sizeof(*gmsh->elements.block),
           cmp_element_block);
+
+    qsort(gmsh->periodics.periodic, gmsh->periodics.num, sizeof(*gmsh->periodics.periodic),
+          cmp_periodic);
 }
 
 // Populate mesh nodes from gmsh data.
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
+    assert(gmsh->nodes.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->nodes.num_blocks;
+    const NodeBlock *block = gmsh->nodes.block;
+
     int num_nodes = 0;
-    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
-        const NodeBlock *block = &gmsh->nodes.block[i];
-        assert(block->num_nodes <= INT_MAX);
-        assert(num_nodes <= INT_MAX - (int)block->num_nodes);
-        num_nodes += (int)block->num_nodes;
+    for (int i = 0; i < num_blocks; i++) {
+        assert(block[i].num_nodes <= INT_MAX);
+        assert(num_nodes <= INT_MAX - (int)block[i].num_nodes);
+        num_nodes += (int)block[i].num_nodes;
     }
     assert(num_nodes > 0);
     mesh->nodes.num = num_nodes;
 
     vector *coord = teal_alloc(num_nodes, sizeof(*coord));
     int num = 0;
-    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
-        NodeBlock *block = &gmsh->nodes.block[i];
-        const array_view(block_coord, [block->len_coord], block->coord);
-        for (uint64_t j = 0; j < block->num_nodes; j++) {
-            coord[num].x = block_coord[j][0];
-            coord[num].y = block_coord[j][1];
-            coord[num].z = block_coord[j][2];
+    for (int i = 0; i < num_blocks; i++) {
+        int len = len_coord(&block[i]);
+        assert(block[i].num_nodes <= INT_MAX);
+        for (int j = 0; j < (int)block[i].num_nodes; j++) {
+            coord[num].x = block[i].coord[(j * len) + 0];
+            coord[num].y = block[i].coord[(j * len) + 1];
+            coord[num].z = block[i].coord[(j * len) + 2];
             num += 1;
         }
     }
@@ -589,6 +696,10 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 // Map node tags to local indices.
 static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *gmsh)
 {
+    assert(gmsh->nodes.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->nodes.num_blocks;
+    const NodeBlock *block = gmsh->nodes.block;
+
     typedef struct {
         long tag, idx;
     } Map;
@@ -598,11 +709,11 @@ static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *g
 
     long prefix = sync_lexsum(mesh->nodes.num);
     int num = 0;
-    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
-        NodeBlock *block = &gmsh->nodes.block[i];
-        for (uint64_t j = 0; j < block->num_nodes; j++) {
-            assert(inrange(1, block->tag[j], LONG_MAX));
-            map[num].tag = (long)block->tag[j];
+    for (int i = 0; i < num_blocks; i++) {
+        assert(block[i].num_nodes <= INT_MAX);
+        for (int j = 0; j < (int)block[i].num_nodes; j++) {
+            assert(0 < block[i].tag[j] && block[i].tag[j] <= LONG_MAX);
+            map[num].tag = (long)block[i].tag[j];
             map[num].idx = prefix + num;
             num += 1;
         }
@@ -632,8 +743,8 @@ static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *g
         MPI_Sendrecv_replace(&num, 1, MPI_INT, next, 0, prev, 0, sync.comm, MPI_STATUS_IGNORE);
         MPI_Sendrecv_replace(map, cap, datatype, next, 1, prev, 1, sync.comm, MPI_STATUS_IGNORE);
     }
-    MPI_Type_free(&datatype);
 
+    MPI_Type_free(&datatype);
     teal_free(map);
 
     for (int i = 0; i < num_tags; i++) {
@@ -642,6 +753,39 @@ static long *tag_to_idx(long *tag, int num_tags, const Mesh *mesh, const Gmsh *g
     teal_free(tag);
 
     return idx;
+}
+
+// Build a node graph for element blocks of one dimension.
+static void create_node_graph(Graph *node, int num_items, int max_len, int dim, const Mesh *mesh,
+                              const Gmsh *gmsh)
+{
+    assert(gmsh->elements.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->elements.num_blocks;
+    const ElementBlock *block = gmsh->elements.block;
+
+    int *off = teal_alloc(num_items + 1, sizeof(*off));
+    long *tag = teal_alloc(num_items * max_len, sizeof(*tag));
+    int num = 0;
+    for (int i = 0; i < num_blocks; i++) {
+        if (block[i].entity_dim != dim) {
+            continue;
+        }
+        int len = len_node_tags(&block[i]);
+        assert(len <= max_len);
+        assert(block[i].num_elements <= INT_MAX);
+        for (int j = 0; j < (int)block[i].num_elements; j++) {
+            off[num + 1] = off[num] + len;
+            for (int k = 0; k < len; k++) {
+                assert(0 < block[i].node_tag[(j * len) + k] &&
+                       block[i].node_tag[(j * len) + k] <= LONG_MAX);
+                tag[off[num] + k] = (long)block[i].node_tag[(j * len) + k];
+            }
+            num += 1;
+        }
+    }
+    assert(num == num_items);
+    node->off = off;
+    node->idx = tag_to_idx(tag, off[num], mesh, gmsh);
 }
 
 // Build inner cell connectivity from element blocks.
@@ -663,28 +807,7 @@ static void create_inner_cells(Mesh *mesh, const Gmsh *gmsh)
     assert(num_cells > 0);
     mesh->cells.num = num_cells;
 
-    int *node_off = teal_alloc(num_cells + 1, sizeof(*node_off));
-    long *node_tag = teal_alloc(num_cells * MAX_CELL_NODES, sizeof(*node_tag));
-    long num = 0;
-    for (int i = 0; i < num_blocks; i++) {
-        if (block[i].entity_dim != 3) {
-            continue;
-        }
-        assert(block[i].len_node_tag <= MAX_CELL_NODES);
-        int len = block[i].len_node_tag;
-        const array_view(block_node_tag, [len], block[i].node_tag);
-        for (uint64_t j = 0; j < block[i].num_elements; j++) {
-            node_off[num + 1] = node_off[num] + len;
-            for (int k = 0; k < len; k++) {
-                assert(inrange(1, block_node_tag[j][k], LONG_MAX));
-                node_tag[node_off[num] + k] = (long)block_node_tag[j][k];
-            }
-            num += 1;
-        }
-    }
-    assert(num == num_cells);
-    mesh->cells.node.off = node_off;
-    mesh->cells.node.idx = tag_to_idx(node_tag, node_off[num_cells], mesh, gmsh);
+    create_node_graph(&mesh->cells.node, num_cells, MAX_CELL_NODES, 3, mesh, gmsh);
 }
 
 // Build boundary face connectivity from element blocks.
@@ -851,7 +974,7 @@ static void read_gmsh(Mesh *mesh, const char *fname)
 {
     Gmsh *gmsh = gmsh_init(fname);
 
-    reorder_element_blocks(gmsh);
+    reorder(gmsh);
 
     create_nodes(mesh, gmsh);
     create_inner_cells(mesh, gmsh);

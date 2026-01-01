@@ -40,7 +40,7 @@ static int refill(Buffer *buffer, Parse *file)
         buffer->end = buffer->data + remaining;
     }
     ptrdiff_t used = buffer->end - buffer->data;
-    assert(inrange(0, used, INT_MAX));
+    assert(0 <= used && used <= INT_MAX);
     int available = SIZE - (int)used;
     if (available <= 0) {
         return 0;
@@ -110,7 +110,7 @@ static char *next(Buffer *buffer, Parse *file)
 static long long str_to_signed(const char *token, char **end, long long min, long long max)
 {
     long long val = strtoll(token, end, 10);
-    assert(inrange(min, val, max));
+    assert(min <= val && val <= max);
     return val;
 }
 
