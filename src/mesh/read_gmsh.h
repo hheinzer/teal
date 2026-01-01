@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -878,14 +879,16 @@ static int entity_index(int dim, int tag, const Gmsh *gmsh)
         case 3: {
             const Volume *volume = find_volume(tag, gmsh);
             if (volume->num_physical_tags != 1) {
-                teal_error("unsupported number of physical tags (%zu)", volume->num_physical_tags);
+                teal_error("unsupported number of physical tags (%" PRIu64 ")",
+                           volume->num_physical_tags);
             }
             return physical_index(dim, volume->physical_tag[0], gmsh);
         }
         case 2: {
             const Surface *surface = find_surface(tag, gmsh);
             if (surface->num_physical_tags != 1) {
-                teal_error("unsupported number of physical tags (%zu)", surface->num_physical_tags);
+                teal_error("unsupported number of physical tags (%" PRIu64 ")",
+                           surface->num_physical_tags);
             }
             return physical_index(dim, surface->physical_tag[0], gmsh);
         }
@@ -901,7 +904,6 @@ static void create_entities(Mesh *mesh, const Gmsh *gmsh)
     mesh->entities.num = num_entities;
 
     const Physical *physical = gmsh->physicals.physical;
-    const ElementBlock *block = gmsh->elements.block;
 
     Name *name = teal_alloc(num_entities, sizeof(*name));
     int num_inner = 0;
@@ -918,9 +920,13 @@ static void create_entities(Mesh *mesh, const Gmsh *gmsh)
     mesh->entities.num_inner = num_inner;
     mesh->entities.name = name;
 
+    assert(gmsh->elements.num_blocks <= INT_MAX);
+    int num_blocks = (int)gmsh->elements.num_blocks;
+    const ElementBlock *block = gmsh->elements.block;
+
     int *num_volumes = teal_alloc(num_entities, sizeof(*num_volumes));
     int *num_surfaces = teal_alloc(num_entities, sizeof(*num_surfaces));
-    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
+    for (int i = 0; i < num_blocks; i++) {
         int idx = entity_index(block[i].entity_dim, block[i].entity_tag, gmsh);
         switch (block[i].entity_dim) {
             case 3:
@@ -940,8 +946,8 @@ static void create_entities(Mesh *mesh, const Gmsh *gmsh)
     int *cell_off = teal_alloc(num_entities + 1, sizeof(*cell_off));
     int *face_off = teal_alloc(num_entities + 1, sizeof(*face_off));
     for (int i = 0; i < num_entities; i++) {
-        cell_off[i + 1] += cell_off[i] + num_volumes[i];
-        face_off[i + 1] += face_off[i] + num_surfaces[i];
+        cell_off[i + 1] = cell_off[i] + num_volumes[i];
+        face_off[i + 1] = face_off[i] + num_surfaces[i];
     }
     mesh->entities.cell_off = cell_off;
     mesh->entities.face_off = face_off;
