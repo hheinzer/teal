@@ -101,7 +101,7 @@ typedef struct {
 
 typedef struct {
     uint64_t num_blocks;
-    uint64_t tot_elements;
+    uint64_t num_elements;
     uint64_t min_tag;
     uint64_t max_tag;
     ElementBlock *block;
@@ -400,8 +400,8 @@ static int len_node_tags(const ElementBlock *block)
 }
 
 // Read one element block and return its original size.
-static long read_element_block(ElementBlock *block, long beg, long end, long off, Parse *file,
-                               int mode)
+static long read_element_block(ElementBlock *block, long beg_elements, long end_elements, long off,
+                               Parse *file, int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
     assert(0 <= block->entity_dim && block->entity_dim <= 3);
@@ -413,9 +413,9 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
     assert(block->num_elements <= LONG_MAX);
     long tot_elements = (long)block->num_elements;
 
-    long beg_elements = lmax(beg, off);
-    long end_elements = lmin(end, off + tot_elements);
-    long num_elements = lmax(0, end_elements - beg_elements);
+    long beg = lmax(beg_elements, off);
+    long end = lmin(end_elements, off + tot_elements);
+    long num_elements = lmax(0, end - beg);
     assert(tot_elements == sync_lsum(num_elements));
     block->num_elements = (uint64_t)num_elements;
 
@@ -449,22 +449,25 @@ static void read_elements(Gmsh *gmsh, Parse *file, int mode)
     assert(gmsh->elements.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->elements.num_blocks;
 
-    parse(file, &gmsh->elements.tot_elements, 1, MPI_UINT64_T, mode);
-    assert(gmsh->elements.tot_elements <= LONG_MAX);
-    long tot_elements = (long)gmsh->elements.tot_elements;
+    parse(file, &gmsh->elements.num_elements, 1, MPI_UINT64_T, mode);
+    assert(gmsh->elements.num_elements <= LONG_MAX);
+    long tot_elements = (long)gmsh->elements.num_elements;
 
     parse(file, &gmsh->elements.min_tag, 1, MPI_UINT64_T, mode);
     parse(file, &gmsh->elements.max_tag, 1, MPI_UINT64_T, mode);
 
     long base = tot_elements / sync.size;
     long extra = tot_elements % sync.size;
-    long beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
-    long end = beg + base + (sync.rank < extra);
+    long beg_elements = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
+    long end_elements = beg_elements + base + (sync.rank < extra);
+    long num_elements = end_elements - beg_elements;
+    assert(num_elements >= 0);
+    gmsh->elements.num_elements = (uint64_t)num_elements;
 
     ElementBlock *block = teal_alloc(num_blocks, sizeof(*block));
     long off = 0;
     for (int i = 0; i < num_blocks; i++) {
-        off += read_element_block(&block[i], beg, end, off, file, mode);
+        off += read_element_block(&block[i], beg_elements, end_elements, off, file, mode);
     }
     assert(off == tot_elements);
     gmsh->elements.block = block;
@@ -671,12 +674,12 @@ static void reorder(Gmsh *gmsh)
 // Populate mesh nodes from gmsh data.
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
-    assert(gmsh->nodes.num_nodes <= INT_MAX);
-    mesh->nodes.num = (int)gmsh->nodes.num_nodes;
-
     assert(gmsh->nodes.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->nodes.num_blocks;
     const NodeBlock *block = gmsh->nodes.block;
+
+    assert(gmsh->nodes.num_nodes <= INT_MAX);
+    mesh->nodes.num = (int)gmsh->nodes.num_nodes;
 
     vector *coord = teal_alloc(mesh->nodes.num, sizeof(*coord));
     int num = 0;
