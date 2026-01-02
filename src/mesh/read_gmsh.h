@@ -671,17 +671,42 @@ static void reorder(Gmsh *gmsh)
           cmp_periodic);
 }
 
+// Create mesh entities from physical names.
+static void create_entities(Mesh *mesh, const Gmsh *gmsh)
+{
+    int num_entities = gmsh->physicals.num;
+    const Physical *physical = gmsh->physicals.physical;
+
+    Name *name = teal_alloc(num_entities, sizeof(*name));
+    int num_inner = 0;
+    int num_boundary = 0;
+    for (int i = 0; i < num_entities; i++) {
+        strcpy(name[i], physical[i].name);
+        switch (physical[i].dim) {
+            case 3: num_inner += 1; break;
+            case 2: num_boundary += 1; break;
+            default: teal_error("unsupported physical dimension (%d)", physical[i].dim);
+        }
+    }
+    assert(num_boundary == num_entities - num_inner);
+
+    mesh->entities.num = num_entities;
+    mesh->entities.num_inner = num_inner;
+    mesh->entities.name = name;
+    mesh->entities.cell_off = teal_alloc(num_entities + 1, sizeof(*mesh->entities.cell_off));
+    mesh->entities.face_off = teal_alloc(num_entities + 1, sizeof(*mesh->entities.face_off));
+}
+
 // Populate mesh nodes from gmsh data.
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
     assert(gmsh->nodes.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->nodes.num_blocks;
+    assert(gmsh->nodes.num_nodes <= INT_MAX);
+    int num_nodes = (int)gmsh->nodes.num_nodes;
     const NodeBlock *block = gmsh->nodes.block;
 
-    assert(gmsh->nodes.num_nodes <= INT_MAX);
-    mesh->nodes.num = (int)gmsh->nodes.num_nodes;
-
-    vector *coord = teal_alloc(mesh->nodes.num, sizeof(*coord));
+    vector *coord = teal_alloc(num_nodes, sizeof(*coord));
     int num = 0;
     for (int i = 0; i < num_blocks; i++) {
         int len = len_coord(&block[i]);
@@ -693,7 +718,9 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
             num += 1;
         }
     }
-    assert(num == mesh->nodes.num);
+    assert(num == num_nodes);
+
+    mesh->nodes.num = num_nodes;
     mesh->nodes.coord = coord;
 }
 
@@ -899,66 +926,6 @@ static int entity_index(int dim, int tag, const Gmsh *gmsh)
     }
 }
 
-// Create mesh entities from physical names.
-static void create_entities(Mesh *mesh, const Gmsh *gmsh)
-{
-    int num_entities = gmsh->physicals.num;
-    assert(num_entities > 0);
-    mesh->entities.num = num_entities;
-
-    const Physical *physical = gmsh->physicals.physical;
-
-    Name *name = teal_alloc(num_entities, sizeof(*name));
-    int num_inner = 0;
-    int num_boundary = 0;
-    for (int i = 0; i < num_entities; i++) {
-        strcpy(name[i], physical[i].name);
-        switch (physical[i].dim) {
-            case 3: num_inner += 1; break;
-            case 2: num_boundary += 1; break;
-            default: teal_error("unsupported physical dimension (%d)", physical[i].dim);
-        }
-    }
-    assert(num_boundary == num_entities - num_inner);
-    mesh->entities.num_inner = num_inner;
-    mesh->entities.name = name;
-
-    assert(gmsh->elements.num_blocks <= INT_MAX);
-    int num_blocks = (int)gmsh->elements.num_blocks;
-    const ElementBlock *block = gmsh->elements.block;
-
-    int *num_volumes = teal_alloc(num_entities, sizeof(*num_volumes));
-    int *num_surfaces = teal_alloc(num_entities, sizeof(*num_surfaces));
-    for (int i = 0; i < num_blocks; i++) {
-        int idx = entity_index(block[i].entity_dim, block[i].entity_tag, gmsh);
-        switch (block[i].entity_dim) {
-            case 3:
-                assert(block[i].num_elements <= INT_MAX);
-                assert(num_volumes[idx] <= INT_MAX - (int)block[i].num_elements);
-                num_volumes[idx] += (int)block[i].num_elements;
-                break;
-            case 2:
-                assert(block[i].num_elements <= INT_MAX);
-                assert(num_surfaces[idx] <= INT_MAX - (int)block[i].num_elements);
-                num_surfaces[idx] += (int)block[i].num_elements;
-                break;
-            default: teal_error("unsupported entity dimension (%d)", block[i].entity_dim);
-        }
-    }
-
-    int *cell_off = teal_alloc(num_entities + 1, sizeof(*cell_off));
-    int *face_off = teal_alloc(num_entities + 1, sizeof(*face_off));
-    for (int i = 0; i < num_entities; i++) {
-        cell_off[i + 1] = cell_off[i] + num_volumes[i];
-        face_off[i + 1] = face_off[i] + num_surfaces[i];
-    }
-    mesh->entities.cell_off = cell_off;
-    mesh->entities.face_off = face_off;
-
-    teal_free(num_volumes);
-    teal_free(num_surfaces);
-}
-
 // Create mesh periodic data from gmsh.
 static void create_periodics(Mesh *mesh, const Gmsh *gmsh)
 {
@@ -1036,10 +1003,10 @@ static void read_gmsh(Mesh *mesh, const char *fname)
 
     reorder(gmsh);
 
+    create_entities(mesh, gmsh);
     create_nodes(mesh, gmsh);
     create_inner_cells(mesh, gmsh);
     create_boundary_faces(mesh, gmsh);
-    create_entities(mesh, gmsh);
     create_periodics(mesh, gmsh);
 
     gmsh_deinit(gmsh);
