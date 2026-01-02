@@ -84,7 +84,7 @@ typedef struct {
 
 typedef struct {
     uint64_t num_blocks;
-    uint64_t tot_nodes;
+    uint64_t num_nodes;
     uint64_t min_tag;
     uint64_t max_tag;
     NodeBlock *block;
@@ -322,7 +322,8 @@ static int len_coord(const NodeBlock *block)
 }
 
 // Read one node block and return its original size.
-static long read_node_block(NodeBlock *block, long beg, long end, long off, Parse *file, int mode)
+static long read_node_block(NodeBlock *block, long beg_nodes, long end_nodes, long off, Parse *file,
+                            int mode)
 {
     parse(file, &block->entity_dim, 1, MPI_INT32_T, mode);
     assert(0 <= block->entity_dim && block->entity_dim <= 3);
@@ -334,12 +335,13 @@ static long read_node_block(NodeBlock *block, long beg, long end, long off, Pars
     assert(block->num_nodes <= LONG_MAX);
     long tot_nodes = (long)block->num_nodes;
 
-    long beg_nodes = lmax(beg, off);
-    long end_nodes = lmin(end, off + tot_nodes);
-    long num_nodes = lmax(0, end_nodes - beg_nodes);
-    assert(num_nodes <= INT_MAX && tot_nodes == sync_lsum((int)num_nodes));
+    long beg = lmax(beg_nodes, off);
+    long end = lmin(end_nodes, off + tot_nodes);
+    long num_nodes = lmax(0, end - beg);
+    assert(tot_nodes == sync_lsum(num_nodes));
     block->num_nodes = (uint64_t)num_nodes;
 
+    assert(num_nodes <= INT_MAX);
     block->tag = teal_alloc((int)num_nodes, sizeof(*block->tag));
     parse(file, block->tag, (int)num_nodes, MPI_UINT64_T, mode | SPLIT);
 
@@ -359,22 +361,25 @@ static void read_nodes(Gmsh *gmsh, Parse *file, int mode)
     assert(gmsh->nodes.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->nodes.num_blocks;
 
-    parse(file, &gmsh->nodes.tot_nodes, 1, MPI_UINT64_T, mode);
-    assert(gmsh->nodes.tot_nodes <= LONG_MAX);
-    long tot_nodes = (long)gmsh->nodes.tot_nodes;
+    parse(file, &gmsh->nodes.num_nodes, 1, MPI_UINT64_T, mode);
+    assert(gmsh->nodes.num_nodes <= LONG_MAX);
+    long tot_nodes = (long)gmsh->nodes.num_nodes;
 
     parse(file, &gmsh->nodes.min_tag, 1, MPI_UINT64_T, mode);
     parse(file, &gmsh->nodes.max_tag, 1, MPI_UINT64_T, mode);
 
     long base = tot_nodes / sync.size;
     long extra = tot_nodes % sync.size;
-    long beg = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
-    long end = beg + base + (sync.rank < extra);
+    long beg_nodes = (sync.rank * base) + ((sync.rank < extra) ? sync.rank : extra);
+    long end_nodes = beg_nodes + base + (sync.rank < extra);
+    long num_nodes = end_nodes - beg_nodes;
+    assert(num_nodes >= 0);
+    gmsh->nodes.num_nodes = (uint64_t)num_nodes;
 
     NodeBlock *block = teal_alloc(num_blocks, sizeof(*block));
     long off = 0;
     for (int i = 0; i < num_blocks; i++) {
-        off += read_node_block(&block[i], beg, end, off, file, mode);
+        off += read_node_block(&block[i], beg_nodes, end_nodes, off, file, mode);
     }
     assert(off == tot_nodes);
     gmsh->nodes.block = block;
@@ -411,9 +416,10 @@ static long read_element_block(ElementBlock *block, long beg, long end, long off
     long beg_elements = lmax(beg, off);
     long end_elements = lmin(end, off + tot_elements);
     long num_elements = lmax(0, end_elements - beg_elements);
-    assert(num_elements <= INT_MAX && tot_elements == sync_lsum(num_elements));
+    assert(tot_elements == sync_lsum(num_elements));
     block->num_elements = (uint64_t)num_elements;
 
+    assert(num_elements <= INT_MAX);
     block->tag = teal_alloc((int)num_elements, sizeof(*block->tag));
 
     int len = len_node_tags(block);
@@ -665,20 +671,14 @@ static void reorder(Gmsh *gmsh)
 // Populate mesh nodes from gmsh data.
 static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
 {
+    assert(gmsh->nodes.num_nodes <= INT_MAX);
+    mesh->nodes.num = (int)gmsh->nodes.num_nodes;
+
     assert(gmsh->nodes.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->nodes.num_blocks;
     const NodeBlock *block = gmsh->nodes.block;
 
-    int num_nodes = 0;
-    for (int i = 0; i < num_blocks; i++) {
-        assert(block[i].num_nodes <= INT_MAX);
-        assert(num_nodes <= INT_MAX - (int)block[i].num_nodes);
-        num_nodes += (int)block[i].num_nodes;
-    }
-    assert(num_nodes > 0);
-    mesh->nodes.num = num_nodes;
-
-    vector *coord = teal_alloc(num_nodes, sizeof(*coord));
+    vector *coord = teal_alloc(mesh->nodes.num, sizeof(*coord));
     int num = 0;
     for (int i = 0; i < num_blocks; i++) {
         int len = len_coord(&block[i]);
@@ -690,7 +690,7 @@ static void create_nodes(Mesh *mesh, const Gmsh *gmsh)
             num += 1;
         }
     }
-    assert(num == num_nodes);
+    assert(num == mesh->nodes.num);
     mesh->nodes.coord = coord;
 }
 
