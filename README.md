@@ -31,16 +31,23 @@ eventually. To test the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of t
 number of MPI ranks, keeping the problem size fixed in each case. For each resolution, speedup and
 efficiency are computed relative to the 128-rank run.
 
-| cells | ranks | time      | speedup | efficiency [%] |
-|-------|-------|-----------|---------|----------------|
-| 128^3 | 128   | 1m 18.0s  | 1.00    | 100.0          |
-| 128^3 | 256   | 39.8s     | 1.96    | 98.0           |
-| 128^3 | 512   | 23.9s     | 3.26    | 81.4           |
-| 128^3 | 1024  | 26.7s     | 2.92    | 36.6           |
-| 256^3 | 128   | 20m 19.4s | 1.00    | 100.0          |
-| 256^3 | 256   | 10m 44.2s | 1.89    | 94.7           |
-| 256^3 | 512   | 5m 33.7s  | 3.65    | 91.3           |
-| 256^3 | 1024  | 3m 5.7s   | 6.57    | 82.1           |
+| cells | ranks | time         | speedup | efficiency [%] |
+| ----- | ----- | ------------ | ------- | -------------- |
+| 128^3 | 128   | 1m 18.0s     | 1.00    | 100.0          |
+| 128^3 | 256   | 39.8s        | 1.96    | 98.0           |
+| 128^3 | 512   | 23.9s        | 3.26    | 81.4           |
+| 128^3 | 1024  | 26.7s        | 2.92    | 36.6           |
+| 256^3 | 128   | 20m 19.4s    | 1.00    | 100.0          |
+| 256^3 | 256   | 10m 44.2s    | 1.89    | 94.7           |
+| 256^3 | 512   | 5m 33.7s     | 3.65    | 91.3           |
+| 256^3 | 1024  | 3m 5.7s      | 6.57    | 82.1           |
+| 512^3 | 128   | 5h 52m 59.4s | 1.00    | 100.0          |
+| 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3 (*)      |
+| 512^3 | 512   | 1h 31m 3.0s  | 3.88    | 96.9           |
+| 512^3 | 1024  | 44m 52.6s    | 7.87    | 98.3           |
+
+(*) The slightly superlinear scaling is probably cache/memory effects (plus a bit of measurement
+noise), but I'll choose to believe it’s because my code is simply that good.
 
 ## Requirements
 
