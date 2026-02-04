@@ -11,6 +11,8 @@
 #include "sync2.h"
 #include "teal2.h"
 
+enum { ALIGN = 64 };
+
 struct Teal2 teal2 = {0};
 
 static void print_help(char **argv)
@@ -129,8 +131,6 @@ void *teal2_malloc(size_t bytes)
     if (bytes == 0) {
         return 0;
     }
-
-    enum { ALIGN = 64 };
 
     size_t extra = sizeof(Alloc) + (ALIGN - 1);
     if (bytes > SIZE_MAX - extra) {

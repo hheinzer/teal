@@ -5,12 +5,13 @@
 #include "sanitizer.h"
 #include "teal2.h"
 
+enum { CAPACITY = 10 << 20 };
+enum { ALIGN = 64 };
+
 Arena2 *arena2_init(size_t capacity)
 {
-    enum { MIN_CAPACITY = 10 << 20 };
-
-    if (capacity < MIN_CAPACITY) {
-        capacity = MIN_CAPACITY;
+    if (capacity < CAPACITY) {
+        capacity = CAPACITY;
     }
 
     Arena2 *self = teal2_malloc(capacity);
@@ -70,8 +71,6 @@ void *arena2_calloc(Arena2 *self, int num, int size)
     if (num == 0) {
         return 0;
     }
-
-    enum { ALIGN = 64 };
 
     ptrdiff_t available = self->end - self->beg;
     if (num > (available - REDZONE - (ALIGN - 1)) / size) {
