@@ -1,19 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-ntasks=1
-while getopts "n:" opt; do
+ntasks=0
+single=0
+while getopts "n:s" opt; do
     case $opt in
         n) ntasks=$OPTARG ;;
+        s) single=1 ;;
         *) exit 1 ;;
     esac
 done
 shift $((OPTIND - 1))
 
-prog=$1
-args=${@:2}
+export ASAN_OPTIONS=abort_on_error=1:detect_leaks=0
+export UBSAN_OPTIONS=abort_on_error=1
 
-if [ $ntasks -gt 1 ]; then
-    exec mpirun -n 1 gdb -q -ex 'start' --args $prog $args : -n $((ntasks - 1)) $prog $args
-else
-    exec gdb -q -ex 'start' --args $prog $args
+if [ $ntasks -le 0 ]; then
+    exec gdb -q -ex run --args "$@"
 fi
+
+if [ $single -eq 1 ]; then
+    exec mpirun -n 1 xterm -e gdb -q -ex run --args "$@" : -n $((ntasks - 1)) "$@"
+fi
+
+exec mpirun -n $ntasks xterm -e gdb -q -ex run --args "$@"
