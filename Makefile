@@ -1,21 +1,22 @@
 # compiler
-CC = clang
-MPICC = OMPI_CC=$(CC) MPICH_CC=$(CC) mpicc
+CC = gcc
+MPICC = OMPI_CC=$(CC) mpicc
 
 # libraries
-LDLIBS = -lm -lhdf5 -lmetis -lparmetis
+LDLIBS = -lm -lmetis -lparmetis -lhdf5
 
 # default flags
-CFLAGS = -Isrc -std=c99 -g -Wall -Wextra -Wpedantic -Wshadow -Wwrite-strings
+CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow \
+		 -Wno-unused-parameter -Wno-unused-function
 
 # debug flags
-#CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
+CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 
 # valgrind flags
 #CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
 
 # release flags
-CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-parameter
+#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
 
 # gprof flags
 #CFLAGS += -pg -fno-omit-frame-pointer -fno-inline-functions
@@ -26,11 +27,13 @@ CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused -Wno-unused-paramete
 # sources, objects, and programs
 SRC := $(shell find src -type f -name '*.c')
 RUN := $(shell find run -type f -name '*.c')
+TST := $(shell find test -type f -name '*.c')
 OBJ := $(patsubst src/%.c, obj/%.o, $(SRC))
-BIN := $(patsubst run/%.c, bin/%, $(RUN))
+BIN := $(patsubst run/%.c, bin/%, $(RUN)) \
+	   $(patsubst test/%.c, bin/test/%, $(TST))
 
 # make functions
-.PHONY: all clean check tidy format
+.PHONY: all clean check tidy format test
 
 all: $(BIN)
 
@@ -38,15 +41,18 @@ clean:
 	@rm -rf obj bin
 
 check:
-	@cppcheck --project=compile_commands.json --check-level=exhaustive --enable=all \
+	@cppcheck -q --project=compile_commands.json --check-level=exhaustive --enable=all \
 		--suppress=checkersReport --suppress=missingIncludeSystem \
 		--suppress=unusedFunction --suppress=constVariablePointer --suppress=constVariable
 
 tidy: $(OBJ)
-	@clang-tidy $(shell find . -type f -name '*.[ch]')
+	@clang-tidy --quiet $(shell find . -type f -name '*.[ch]')
 
 format:
 	@clang-format -i $(shell find . -type f -name '*.[ch]')
+
+test: $(filter bin/test/%, $(BIN))
+	@for exe in $^; do echo $$exe; mpirun -n 2 $$exe -q; done
 
 # dependencies
 CFLAGS += -MMD -MP
@@ -61,4 +67,8 @@ obj/%.o: src/%.c Makefile
 
 bin/%: run/%.c $(OBJ)
 	@mkdir -p $(@D)
-	@$(MPICC) $(CFLAGS) -Wno-unused-parameter $< $(OBJ) $(LDLIBS) -o $@
+	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@
+
+bin/test/%: test/%.c $(OBJ)
+	@mkdir -p $(@D)
+	@$(MPICC) $(CFLAGS) $< $(OBJ) $(LDLIBS) -o $@

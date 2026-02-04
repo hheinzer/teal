@@ -1,0 +1,6 @@
+---
+InheritParentConfig: true
+Checks:
+  - -bugprone-narrowing-conversions
+  - -readability-avoid-nested-conditional-operator
+...

@@ -5,5 +5,4 @@ Checks:
   - -misc-unused-parameters
   - -readability-identifier-length
   - -readability-isolate-declaration
-  - -readability-magic-numbers
 ...
