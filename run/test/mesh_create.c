@@ -7,8 +7,8 @@ int main(int argc, char **argv)
     teal_initialize(&argc, &argv);
 
     vector min_coord = {0, 0, 0};
-    vector max_coord = {9, 3, 1};
-    tuple num_cells = {300, 100, 33};
+    vector max_coord = {9, 3, 3};
+    tuple num_cells = {90, 30, 30};
     bool periodic[] = {true, false, true};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
 
