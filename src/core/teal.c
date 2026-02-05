@@ -7,7 +7,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "sanitizer.h"
 #include "sync2.h"
 #include "teal2.h"
 
@@ -121,34 +120,21 @@ void teal2_error(const char *fmt, ...)
     teal2_exit(EXIT_FAILURE);
 }
 
-typedef struct {
-    void *base;
-    size_t bytes;
-} Alloc;
-
-void *teal2_malloc(size_t bytes)
+void *teal2_malloc(size_t size)
 {
-    if (bytes == 0) {
+    if (size == 0) {
         return 0;
     }
 
-    size_t extra = sizeof(Alloc) + (ALIGN - 1);
-    if (bytes > SIZE_MAX - extra) {
-        teal2_error("overflow (%zu)", bytes);
+    if (size > SIZE_MAX - (ALIGN - 1)) {
+        teal2_error("overflow (%zu)", size);
     }
 
-    char *base = malloc(bytes + extra);
-    if (!base) {
-        teal2_error("malloc failure (%zu)", bytes);
+    size_t padded = (size + (ALIGN - 1)) & ~(ALIGN - 1);
+    void *ptr = aligned_alloc(ALIGN, padded);
+    if (!ptr) {
+        teal2_error("malloc failure (%zu)", padded);
     }
-
-    char *beg = base + sizeof(Alloc);
-    char *ptr = beg + (-(uintptr_t)beg & (ALIGN - 1));
-
-    ((Alloc *)ptr)[-1].base = base;
-    ((Alloc *)ptr)[-1].bytes = bytes;
-
-    MAKE_REGION_NOACCESS(base, ptr - base);
 
     return ptr;
 }
@@ -173,40 +159,5 @@ void *teal2_calloc(int num, int size)
 
 void teal2_free(void *ptr)
 {
-    if (!ptr) {
-        return;
-    }
-
-    MAKE_REGION_ADDRESSABLE((char *)ptr - sizeof(Alloc), sizeof(Alloc));
-
-    free(((Alloc *)ptr)[-1].base);
-}
-
-void *teal2_recalloc(void *ptr, int num, int size)
-{
-    assert(num >= 0 && size > 0);
-
-    if (!ptr) {
-        return teal2_calloc(num, size);
-    }
-
-    if (num == 0) {
-        teal2_free(ptr);
-        return 0;
-    }
-
-    void *new = teal2_calloc(num, size);
-    size_t bytes = (size_t)num * size;
-
-    MAKE_REGION_ADDRESSABLE((char *)ptr - sizeof(Alloc), sizeof(Alloc));
-
-    if (((Alloc *)ptr)[-1].bytes < bytes) {
-        bytes = ((Alloc *)ptr)[-1].bytes;
-    }
-
-    memcpy(new, ptr, bytes);
-
-    free(((Alloc *)ptr)[-1].base);
-
-    return new;
+    free(ptr);
 }
