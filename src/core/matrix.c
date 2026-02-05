@@ -1,7 +1,6 @@
-#include "matrix.h"
-
 #include <assert.h>
 
+#include "matrix2.h"
 #include "utils2.h"
 
 Vector matrix_vector(Matrix mat, Vector vec)

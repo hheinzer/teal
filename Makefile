@@ -9,6 +9,11 @@ LDLIBS = -lm -lmetis -lparmetis -lhdf5
 CFLAGS = -Isrc -std=c11 -g3 -Wall -Wextra -Wpedantic -Wshadow \
 		 -Wno-unused-parameter -Wno-unused-function
 
+# exceptions
+ifeq ($(CC), gcc)
+	CFLAGS += -Wno-discarded-qualifiers
+endif
+
 # debug flags
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 
@@ -43,7 +48,7 @@ clean:
 check:
 	@cppcheck -q --project=compile_commands.json --check-level=exhaustive --enable=all \
 		--suppress=checkersReport --suppress=missingIncludeSystem \
-		--suppress=unusedFunction --suppress=constVariablePointer --suppress=constVariable
+		--suppress=constVariablePointer --suppress=constVariable --suppress=unusedFunction
 
 tidy: $(OBJ)
 	@clang-tidy --quiet $(shell find . -type f -name '*.[ch]')

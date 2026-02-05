@@ -5,12 +5,11 @@
 
 #include "utils2.h"
 
-static const double abs_tol = 1e-8;
-static const double rel_tol = 1e-5;
-
 int isclose(double lhs, double rhs)
 {
     assert(isfinite(lhs) && isfinite(rhs));
+    double abs_tol = 1e-8;
+    double rel_tol = 1e-5;
     return fabs(lhs - rhs) <= fmax(abs_tol, rel_tol * fmax(fabs(lhs), fabs(rhs)));
 }
 
@@ -47,7 +46,7 @@ int digitize(const void *key, const void *base_, int num, int size, Compare comp
         return -2;
     }
 
-    const char (*base)[size] = (void *)base_;
+    const char (*base)[size] = base_;
 
     if (compare(key, base[0]) < 0) {
         return -1;

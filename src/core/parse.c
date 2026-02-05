@@ -73,14 +73,14 @@ static char *find_space(char *beg, const char *end)
 
 static int read_token(MPI_Offset *offset, char *str, int size, int count)
 {
-    const char *end = str + count;
+    char *end = str + count;
     char *beg = skip_space(str, end);
     if (beg >= end) {
         teal2_error("invalid string (only spaces)");
     }
 
     if (isquote(*beg)) {
-        const char *quote = find_quote(beg, end);
+        char *quote = find_quote(beg, end);
         if (quote >= end) {
             teal2_error("unterminated quoted string");
         }
@@ -88,7 +88,7 @@ static int read_token(MPI_Offset *offset, char *str, int size, int count)
         beg += 1;
     }
     else {
-        const char *space = find_space(beg, end);
+        char *space = find_space(beg, end);
         if (space >= end && count == size) {
             teal2_error("missing delimiter (buffer too small)");
         }
@@ -306,7 +306,7 @@ static int read_tokens(Buffer *buffer, void *buf, int num, MPI_Datatype type)
 {
     int count = 0;
     for (int i = 0; i < num; i++) {
-        const char *token = next_token(buffer);
+        char *token = next_token(buffer);
         if (!token) {
             break;
         }
