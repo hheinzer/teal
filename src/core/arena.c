@@ -14,7 +14,7 @@ Arena2 *arena2_init(size_t capacity)
         capacity = min_capacity;
     }
 
-    Arena2 *self = teal2_malloc(capacity);
+    Arena2 *self = teal2_malloc(sizeof(*self) + capacity);
 
     self->base = (char *)(self + 1);
     MAKE_REGION_NOACCESS(self->base, capacity);
