@@ -13,6 +13,24 @@ int isclose(double lhs, double rhs)
     return fabs(lhs - rhs) <= fmax(abs_tol, rel_tol * fmax(fabs(lhs), fabs(rhs)));
 }
 
+void *copy(void *dst, const void *src, int num, int size)
+{
+    assert(((dst && src) || num == 0) && num >= 0 && size > 0);
+    if (num == 0) {
+        return 0;
+    }
+    return memcpy(dst, src, (size_t)num * size);
+}
+
+void sort(void *base, int num, int size, Compare compare)
+{
+    assert((base || num == 0) && num >= 0 && size > 0 && compare);
+    if (num <= 1) {
+        return;
+    }
+    qsort(base, num, size, compare);
+}
+
 int unique(void *base_, int num_, int size, Compare compare)
 {
     assert((base_ || num_ == 0) && num_ >= 0 && size > 0 && compare);
@@ -36,6 +54,15 @@ int unique(void *base_, int num_, int size, Compare compare)
     }
 
     return num;
+}
+
+void *search(const void *key, const void *base, int num, int size, Compare compare)
+{
+    assert(key && (base || num == 0) && num >= 0 && size > 0 && compare);
+    if (num == 0) {
+        return 0;
+    }
+    return bsearch(key, base, num, size, compare);
 }
 
 int digitize(const void *key, const void *base_, int num, int size, Compare compare)
