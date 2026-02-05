@@ -4,6 +4,8 @@ typedef struct {
     double x, y, z;
 } Vector;
 
+_Static_assert(sizeof(Vector) == sizeof(double[3]), "Vector must be packed");
+
 // Return `lhs + rhs`.
 Vector vector2_add(Vector lhs, Vector rhs);
 
