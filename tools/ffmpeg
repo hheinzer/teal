@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+usage() {
+    echo "usage: $(basename "$0") [-r RATE] [-o OUTPUT] FILE [FILE ...]"
+}
+
+rate=25
+output=""
+while getopts "hr:o:" opt; do
+    case $opt in
+        h) usage; exit 0 ;;
+        r) rate=$OPTARG ;;
+        o) output=$OPTARG ;;
+        *) usage >&2; exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+[ $# -ge 1 ] || {
+    usage >&2; exit 1
+}
+
+if [ -z "$output" ]; then
+    dir="$(dirname "$1")"
+    output="${dir%/}/out.mp4"
+fi
+
+ffmpeg -y \
+    -framerate "$rate" \
+    -f image2pipe -i <(cat -- "$@") \
+    -c:v libx264 \
+    -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2,fps=25,format=yuv420p" \
+    "$output"
