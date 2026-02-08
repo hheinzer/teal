@@ -5,6 +5,7 @@
 extern struct teal {
     int quiet;
     int verbose;
+    int partitioned;
 } teal2;
 
 // Initialize teal; call once at program begin.

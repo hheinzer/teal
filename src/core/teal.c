@@ -21,8 +21,9 @@ static void print_help(char **argv)
         "options:\n"
         "  %-10s show this help message and exit\n"
         "  %-10s disable normal and verbose printing (errors are still shown)\n"
-        "  %-10s enable verbose printing\n",
-        argv[0], "-h", "-q", "-v");
+        "  %-10s enable verbose printing\n"
+        "  %-10s enable partitioned output files\n",
+        argv[0], "-h", "-q", "-v", "-p");
 }
 
 static void parse_options(int *argc, char ***argv)
@@ -30,11 +31,12 @@ static void parse_options(int *argc, char ***argv)
     opterr = 0;
 
     int opt;
-    while ((opt = getopt(*argc, *argv, "hqv")) != -1) {
+    while ((opt = getopt(*argc, *argv, "hqvp")) != -1) {
         switch (opt) {
             case 'h': print_help(*argv); teal2_exit(EXIT_SUCCESS);
             case 'q': teal2.quiet = 1; break;
             case 'v': teal2.verbose = 1; break;
+            case 'p': teal2.partitioned = 1; break;
             default: print_help(*argv); teal2_exit(EXIT_FAILURE);
         }
     }
@@ -54,6 +56,8 @@ void teal2_init(int *argc, char ***argv)
 
     sync2_init(argc, argv);
     parse_options(argc, argv);
+
+    srand(time(0) + sync2.rank);
 
     char now[128];
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
