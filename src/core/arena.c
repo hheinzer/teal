@@ -7,6 +7,18 @@
 
 enum { ALIGN = 64 };
 
+struct Arena2 {
+    char *base;
+    char *beg;
+    char *end;
+    Arena2 *prev;
+};
+
+struct Save2 {
+    char *base;
+    char *beg;
+};
+
 Arena2 *arena2_init(size_t capacity)
 {
     size_t min_capacity = 10 << 20;
@@ -88,32 +100,42 @@ void *arena2_calloc(Arena2 *self, int num, int size)
     return memset(ptr, 0, bytes);
 }
 
-Save2 arena2_save(const Arena2 *self)
+Save2 *arena2_save(Arena2 *self)
 {
     assert(self);
-    return (Save2){self->base, self->beg};
+
+    char *base = self->base;
+    char *beg = self->beg;
+
+    Save2 *save = arena2_calloc(self, 1, sizeof(*save));
+
+    save->base = base;
+    save->beg = beg;
+
+    return save;
 }
 
-void arena2_load(Arena2 *self, Save2 save)
+void arena2_load(Arena2 *self, const Save2 *save)
 {
-    assert(self);
+    assert(self && save);
 
-    while (self->prev && self->base != save.base) {
+    while (self->prev && self->base != save->base) {
         Arena2 *prev = self->prev;
         *self = *prev;
         teal2_free(prev);
     }
 
-    int matching_base = (self->base == save.base);
-    int inside_base = (self->base <= save.beg && save.beg <= self->end);
-    int from_past = (save.beg <= self->beg);
+    int matching_base = (self->base == save->base);
+    int inside_base = (self->base <= save->beg && save->beg <= self->end);
+    int from_past = (save->beg <= self->beg);
     if (!matching_base || !inside_base || !from_past) {
         teal2_error("invalid checkpoint (%d, %d, %d)", matching_base, inside_base, from_past);
     }
 
-    if (self->beg > save.beg) {
-        MAKE_REGION_NOACCESS(save.beg, self->beg - save.beg);
-    }
+    char *beg = save->beg;
 
-    self->beg = save.beg;
+    assert(self->beg > save->beg);
+    MAKE_REGION_NOACCESS(save->beg, self->beg - save->beg);
+
+    self->beg = beg;
 }
