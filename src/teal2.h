@@ -31,5 +31,11 @@ void *teal2_malloc(size_t size);
 // Allocate `num * size` bytes and zero-initialize.
 void *teal2_calloc(int num, int size) __attribute__((malloc));
 
+// Duplicate `num * size` bytes from `ptr`.
+void *teal2_memdup(const void *ptr, int num, int size) __attribute__((malloc));
+
+// Reallocate `num * size` bytes, preserving existing contents.
+void *teal2_realloc(void *ptr, int num, int size);
+
 // Free memory allocated with `teal2_malloc` or `teal2_calloc`.
 void teal2_free(void *ptr);

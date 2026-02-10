@@ -76,7 +76,7 @@ static void append_chunk(Arena2 *self, int num, int size, int align)
     self->prev = next;
 }
 
-void *arena2_calloc(Arena2 *self, int num, int size)
+static void *arena2_malloc(Arena2 *self, int num, int size)
 {
     assert(self && num >= 0 && size > 0);
 
@@ -97,7 +97,33 @@ void *arena2_calloc(Arena2 *self, int num, int size)
 
     MAKE_REGION_ADDRESSABLE(ptr, bytes);
 
-    return memset(ptr, 0, bytes);
+    return ptr;
+}
+
+void *arena2_calloc(Arena2 *self, int num, int size)
+{
+    assert(self && num >= 0 && size > 0);
+
+    if (num == 0) {
+        return 0;
+    }
+
+    void *ptr = arena2_malloc(self, num, size);
+
+    return memset(ptr, 0, (size_t)num * size);
+}
+
+void *arena2_memdup(Arena2 *self, const void *ptr, int num, int size)
+{
+    assert(self && (ptr || num == 0) && num >= 0 && size > 0);
+
+    if (num == 0) {
+        return 0;
+    }
+
+    void *dup = arena2_malloc(self, num, size);
+
+    return memcpy(dup, ptr, (size_t)num * size);
 }
 
 Save2 *arena2_save(Arena2 *self)

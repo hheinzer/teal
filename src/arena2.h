@@ -14,6 +14,9 @@ void arena2_deinit(Arena2 *self);
 // Allocate `num * size` bytes from an arena and zero-initialize.
 void *arena2_calloc(Arena2 *self, int num, int size) __attribute__((malloc));
 
+// Duplicate `num * size` bytes from `ptr` into the arena.
+void *arena2_memdup(Arena2 *self, const void *ptr, int num, int size) __attribute__((malloc));
+
 // Save the current arena position for later rollback.
 Save2 *arena2_save(Arena2 *self);
 

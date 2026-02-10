@@ -157,6 +157,58 @@ void *teal2_calloc(int num, int size)
     return memset(ptr, 0, bytes);
 }
 
+void *teal2_memdup(const void *ptr, int num, int size)
+{
+    assert((ptr || num == 0) && num >= 0 && size > 0);
+
+    if (num == 0) {
+        return 0;
+    }
+
+    if ((size_t)num > SIZE_MAX / size) {
+        teal2_error("overflow (%d, %d)", num, size);
+    }
+
+    size_t bytes = (size_t)num * size;
+    void *dup = teal2_malloc(bytes);
+
+    return memcpy(dup, ptr, bytes);
+}
+
+void *teal2_realloc(void *ptr, int num, int size)
+{
+    assert(num >= 0 && size > 0);
+
+    if (!ptr) {
+        return teal2_calloc(num, size);
+    }
+
+    if (num == 0) {
+        teal2_free(ptr);
+        return 0;
+    }
+
+    if ((size_t)num > SIZE_MAX / size) {
+        teal2_error("overflow (%d, %d)", num, size);
+    }
+
+    size_t bytes = (size_t)num * size;
+    void *new = realloc(ptr, bytes);
+    if (!new) {
+        teal2_error("realloc failure (%zu)", bytes);
+    }
+
+    if ((uintptr_t)new % ALIGN == 0) {
+        return new;
+    }
+
+    void *aligned = teal2_malloc(bytes);
+    memcpy(aligned, new, bytes);
+
+    teal2_free(new);
+    return aligned;
+}
+
 void teal2_free(void *ptr)
 {
     free(ptr);
