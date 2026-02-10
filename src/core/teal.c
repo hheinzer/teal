@@ -16,7 +16,13 @@ struct Teal2 teal2 = {0};
 
 static void print_help(char **argv)
 {
-    teal2_print("usage: %s [-h] [-q] [-v] ...", argv[0]);
+    teal2_print(
+        "usage: %s [options] ...\n\n"
+        "options:\n"
+        "  %-10s show this help message and exit\n"
+        "  %-10s disable normal and verbose printing (errors are still shown)\n"
+        "  %-10s enable verbose printing\n",
+        argv[0], "-h", "-q", "-v");
 }
 
 static void parse_options(int *argc, char ***argv)
