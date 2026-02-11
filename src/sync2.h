@@ -2,7 +2,7 @@
 
 #include <mpi.h>
 
-extern struct Sync2 {
+extern struct sync {
     MPI_Comm comm;
     int rank;
     int size;

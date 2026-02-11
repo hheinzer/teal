@@ -2,8 +2,11 @@
 
 #include <stddef.h>
 
-typedef struct Arena2 Arena2;
-typedef struct Save2 Save2;
+// Arena allocator with checkpoint rollback support.
+typedef struct arena Arena2;
+
+// Checkpoint token.
+typedef struct save Save2;
 
 // Initialize an arena.
 Arena2 *arena2_init(size_t capacity);

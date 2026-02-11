@@ -2,12 +2,12 @@
 
 #include <mpi.h>
 
-typedef enum {
+enum mode {
     ASCII = 1 << 0,
     BINARY = 1 << 1,
     SPLIT = 1 << 2,
     SWAP = 1 << 3,
-} ParseMode;
+};
 
 // Open a file in read-only mode.
 MPI_File parse2_open(const char *fname);

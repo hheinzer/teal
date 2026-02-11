@@ -7,14 +7,14 @@
 
 enum { ALIGN = 64 };
 
-struct Arena2 {
+struct arena {
     char *base;
     char *beg;
     char *end;
     Arena2 *prev;
 };
 
-struct Save2 {
+struct save {
     char *base;
     char *beg;
 };

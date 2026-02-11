@@ -4,7 +4,7 @@
 
 #include "sync2.h"
 
-struct Sync2 sync2 = {0};
+struct sync sync2 = {0};
 
 void sync2_init(int *argc, char ***argv)
 {

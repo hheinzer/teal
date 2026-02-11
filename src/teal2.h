@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-extern struct Teal2 {
+extern struct teal {
     int quiet;
     int verbose;
 } teal2;

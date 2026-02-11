@@ -12,7 +12,7 @@
 
 enum { ALIGN = 64 };
 
-struct Teal2 teal2 = {0};
+struct teal teal2 = {0};
 
 static void print_help(char **argv)
 {
