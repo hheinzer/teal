@@ -214,7 +214,7 @@ def parse_args():
     )
     camera_group.add_argument(
         "--keyframes",
-        nargs="*",
+        nargs="+",
         type=float,
         help="set camera using keyframes (pos,focal,up triples)",
     )
@@ -276,7 +276,7 @@ def render_file(fname, idx, num, args):
         plot.render_window.SetPosition(pos_x, pos_y)
 
     if args.wireframe:
-        plot.add_mesh(mesh, style="wireframe", color="white", opacity=0.01)
+        plot.add_mesh(mesh, scalars=None, style="wireframe", opacity=0.5)
 
     if args.cavities:
         cavities = mesh.extract_surface()
@@ -288,7 +288,7 @@ def render_file(fname, idx, num, args):
         remap = {rid: i for i, rid in enumerate(order)}
         cavities["RegionId"] = np.array([remap[rid] for rid in cavities["RegionId"]], dtype=int)
         cavities = cavities.threshold(scalars="RegionId", value=[0.5, cavities["RegionId"].max()])
-        plot.add_mesh(cavities, color="white")
+        plot.add_mesh(cavities, scalars=None)
 
     if args.quality:
         mesh = mesh.cell_quality(quality_measure=args.quality, null_value=float("nan"))

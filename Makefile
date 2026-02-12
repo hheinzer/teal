@@ -17,14 +17,8 @@ endif
 # debug flags
 CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 
-# valgrind flags
-#CFLAGS += -Og -fno-omit-frame-pointer -DVALGRIND
-
 # release flags
 #CFLAGS += -O3 -march=native -flto=auto -DNDEBUG
-
-# gprof flags
-#CFLAGS += -pg -fno-omit-frame-pointer -fno-inline-functions
 
 # perf flags
 #CFLAGS += -fno-omit-frame-pointer -fno-inline-functions

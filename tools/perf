@@ -1,15 +1,24 @@
 #!/usr/bin/env bash
 
+usage() {
+    echo "usage: $(basename "$0") [-n NTASKS] [-f FREQUENCY] PROGRAM [ARGS ...]"
+}
+
 ntasks=1
 frequency=200
-while getopts "n:f:" opt; do
+while getopts "hn:f:" opt; do
     case $opt in
+        h) usage; exit 0 ;;
         n) ntasks=$OPTARG ;;
         f) frequency=$OPTARG ;;
-        *) exit 1 ;;
+        *) usage >&2; exit 1 ;;
     esac
 done
 shift $((OPTIND - 1))
+
+[ $# -ge 1 ] || {
+    usage >&2; exit 1
+}
 
 prog=$1
 
@@ -17,6 +26,6 @@ dat=${prog}_perf.dat
 out=${prog}_perf.out
 pdf=${prog}_perf.pdf
 
-perf record -F $frequency -g -o $dat -- mpirun -n $ntasks "$@"
-perf report -i $dat --stdio > $out
-perf script -i $dat | gprof2dot -f perf | dot -Tpdf -o $pdf
+perf record -F "$frequency" -g -o "$dat" -- mpirun -n "$ntasks" "$@"
+perf report -i "$dat" --stdio > "$out"
+perf script -i "$dat" | gprof2dot -f perf | dot -Tpdf -o "$pdf"

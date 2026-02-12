@@ -1,6 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-input=$1 # input file
-output=$2 # output file
+usage() {
+    echo "usage: $(basename "$0") INPUT OUTPUT"
+}
 
-exec h5copy -f ext -i $input -o $output -s VTKHDF -d VTKHDF
+[ $# -eq 2 ] || {
+    usage >&2; exit 1
+}
+
+exec h5copy -f ext -i "$1" -o "$2" -s VTKHDF -d VTKHDF

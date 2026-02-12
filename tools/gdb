@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 
+usage() {
+    echo "usage: $(basename "$0") [-n NTASKS] [-s] PROGRAM [ARGS ...]"
+}
+
 ntasks=0
 single=0
-while getopts "n:s" opt; do
+while getopts "hn:s" opt; do
     case $opt in
+        h) usage; exit 0 ;;
         n) ntasks=$OPTARG ;;
         s) single=1 ;;
-        *) exit 1 ;;
+        *) usage >&2; exit 1 ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -18,7 +23,7 @@ if [ $ntasks -le 0 ]; then
     exec gdb -q -ex run --args "$@"
 fi
 
-if [ $single -eq 1 ]; then
+if [ $ntasks -gt 1 ] && [ $single -eq 1 ]; then
     exec mpirun -n 1 xterm -e gdb -q -ex run --args "$@" : -n $((ntasks - 1)) "$@"
 fi
 
