@@ -479,14 +479,6 @@ void parse2_binary_split(MPI_File file, void *buf, int num, MPI_Datatype type, i
 
 void parse2(MPI_File file, void *buf, int num, MPI_Datatype type, int mode)
 {
-    if (mode & ASCII) {
-        if (mode & SPLIT) {
-            parse2_ascii_split(file, buf, num, type);
-            return;
-        }
-        parse2_ascii(file, buf, num, type);
-        return;
-    }
     if (mode & BINARY) {
         if (mode & SPLIT) {
             parse2_binary_split(file, buf, num, type, mode & SWAP);
@@ -495,5 +487,9 @@ void parse2(MPI_File file, void *buf, int num, MPI_Datatype type, int mode)
         parse2_binary(file, buf, num, type, mode & SWAP);
         return;
     }
-    teal2_error("invalid mode (%d)", mode);
+    if (mode & SPLIT) {
+        parse2_ascii_split(file, buf, num, type);
+        return;
+    }
+    parse2_ascii(file, buf, num, type);
 }

@@ -2,11 +2,10 @@
 
 #include <mpi.h>
 
-enum mode {
-    ASCII = 1 << 0,
-    BINARY = 1 << 1,
-    SPLIT = 1 << 2,
-    SWAP = 1 << 3,
+enum ParseModes {
+    BINARY = 1 << 0,
+    SPLIT = 1 << 1,
+    SWAP = 1 << 2,
 };
 
 // Open a file in read-only mode.
