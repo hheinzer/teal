@@ -1,0 +1,4 @@
+numpy
+pyvista
+darkdetect
+mpi4py

@@ -1,0 +1,436 @@
+#!/usr/bin/env python3
+
+import os
+import darkdetect
+import numpy as np
+import pyvista as pv
+from argparse import ArgumentParser
+from mpi4py import MPI
+
+
+def parse_args():
+    parser = ArgumentParser(
+        usage="%(prog)s fnames [flags]",
+        description="Render a dataset using PyVista with optional filters.",
+    )
+    parser.add_argument(
+        "fnames",
+        nargs="+",
+        help="input mesh or dataset files readable by PyVista",
+    )
+    parser.add_argument(
+        "-l",
+        "--list",
+        action="store_true",
+        help="list available arrays and exit",
+    )
+    parser.add_argument(
+        "-s",
+        "--scalars",
+        help="name of the array to visualize",
+    )
+    parser.add_argument(
+        "-p",
+        "--points",
+        action="store_true",
+        help="convert cell data to point data before processing",
+    )
+
+    field_group = parser.add_argument_group("fields")
+    field_group.add_argument(
+        "-z",
+        "--zip",
+        metavar=("NAME", "SCALARS"),
+        nargs="+",
+        help="zip scalar arrays into a new multi-component array",
+    )
+    field_group.add_argument(
+        "-g",
+        "--gradient",
+        metavar="SCALARS",
+        help="compute gradient of the given array",
+    )
+    field_group.add_argument(
+        "-d",
+        "--divergence",
+        metavar="SCALARS",
+        help="compute divergence of the given array",
+    )
+    field_group.add_argument(
+        "-v",
+        "--vorticity",
+        metavar="SCALARS",
+        help="compute vorticity of the given array",
+    )
+    field_group.add_argument(
+        "-q",
+        "--qcriterion",
+        metavar="SCALARS",
+        help="compute q-criterion of the given array",
+    )
+    field_group.add_argument(
+        "--quality",
+        metavar="MEASURE",
+        help="compute cell quality",
+    )
+
+    filter_group = parser.add_argument_group("filters")
+    filter_group.add_argument(
+        "-t",
+        "--threshold",
+        metavar=("SCALARS", "MIN", "MAX"),
+        nargs=3,
+        help="threshold by array range [min, max]",
+    )
+    filter_group.add_argument(
+        "-i",
+        "--isosurfaces",
+        metavar=("SCALARS", "VALUE"),
+        nargs="+",
+        help="contour at one or more iso values",
+    )
+    filter_group.add_argument(
+        "-n",
+        "--nisosurfaces",
+        metavar=("SCALARS", "NUM"),
+        nargs=2,
+        help="contour with num evenly spaced iso values",
+    )
+    filter_group.add_argument(
+        "--clip",
+        metavar="AXIS",
+        choices=("x", "y", "z"),
+        nargs="?",
+        const="z",
+        help="clip with a plane normal to axis (default %(const)s)",
+    )
+    filter_group.add_argument(
+        "--slice",
+        metavar="AXIS",
+        choices=("x", "y", "z"),
+        nargs="?",
+        const="z",
+        help="slice with a plane normal to axis (default %(const)s)",
+    )
+    filter_group.add_argument(
+        "--explode",
+        metavar="FACTOR",
+        nargs="?",
+        type=float,
+        const=0.1,
+        help="explode blocks by optional factor (default %(const)s)",
+    )
+    filter_group.add_argument(
+        "--smooth",
+        nargs="?",
+        type=int,
+        const=20,
+        help="smooth surface with optional iteration count (default %(const)s)",
+    )
+
+    render_group = parser.add_argument_group("rendering")
+    render_group.add_argument(
+        "--cmap",
+        default="RdYlBu_r",
+        help="set colormap (default %(default)s)",
+    )
+    render_group.add_argument(
+        "--clim",
+        metavar=("MIN", "MAX"),
+        nargs=2,
+        type=float,
+        help="set scalar color limits",
+    )
+    render_group.add_argument(
+        "--opacity",
+        metavar="ALPHA",
+        type=float,
+        help="set mesh opacity",
+    )
+    render_group.add_argument(
+        "--edges",
+        action="store_true",
+        help="show mesh edges",
+    )
+    render_group.add_argument(
+        "--shading",
+        action="store_true",
+        help="enable smooth shading",
+    )
+    render_group.add_argument(
+        "--wireframe",
+        action="store_true",
+        help="overlay mesh wireframe",
+    )
+    render_group.add_argument(
+        "--cavities",
+        action="store_true",
+        help="extract and overlay cavity surfaces",
+    )
+    render_group.add_argument(
+        "--bounds",
+        action="store_true",
+        help="show bounding box",
+    )
+    render_group.add_argument(
+        "--axes",
+        action="store_true",
+        help="show axes",
+    )
+    render_group.add_argument(
+        "--hide-scalar-bar",
+        action="store_true",
+        help="hide scalar bar",
+    )
+    render_group.add_argument(
+        "--ssao",
+        action="store_true",
+        help="enable Screen Space Ambient Occlusion (SSAO)",
+    )
+    render_group.add_argument(
+        "--lighting",
+        default="light kit",
+        help="set lighting preset (default %(default)s)",
+    )
+    render_group.add_argument(
+        "--theme",
+        default="document" if darkdetect.isLight() else "dark",
+        help="set pyvista theme (default %(default)s)",
+    )
+
+    camera_group = parser.add_argument_group("camera")
+    camera_group.add_argument(
+        "--view",
+        metavar="PLANE",
+        choices=("xy", "xz", "yz", "iso"),
+        default="xy",
+        help="set view plane (default %(default)s)",
+    )
+    camera_group.add_argument(
+        "--camera",
+        type=float,
+        nargs=9,
+        help="set camera position, focal point, and view up",
+    )
+    camera_group.add_argument(
+        "--keyframes",
+        nargs="*",
+        type=float,
+        help="set camera using keyframes (pos,focal,up triples)",
+    )
+
+    output_group = parser.add_argument_group("output")
+    output_group.add_argument(
+        "--screenshot",
+        action="store_true",
+        help="save screenshot (off-screen)",
+    )
+    output_group.add_argument(
+        "--repeat",
+        metavar="NUM",
+        type=int,
+        default=1,
+        help="repeat each input file NUM times (default %(default)s)",
+    )
+    output_group.add_argument(
+        "--resolution",
+        metavar=("WIDTH", "HEIGHT"),
+        nargs=2,
+        type=int,
+        default=(1600, 1000),
+        help="set window resolution (default %(default)s)",
+    )
+    return parser.parse_args()
+
+
+def read_mesh(fname):
+    mesh = pv.read(fname)
+    if isinstance(mesh, pv.PartitionedDataSet):
+        mesh = pv.merge(tuple(mesh))
+        mesh = mesh.clean(tolerance=1e-8)
+    return mesh
+
+
+def render_file(fname, idx, num, args):
+    pv.set_plot_theme(args.theme)
+
+    mesh = read_mesh(fname)
+
+    screenshot = None
+    if args.screenshot:
+        base, _ = os.path.splitext(fname)
+        scalars = args.scalars or "mesh"
+        screenshot = f"{base}_{scalars}_{idx:04d}.png"
+
+    plot = pv.Plotter(
+        lighting=args.lighting,
+        window_size=tuple(args.resolution),
+        off_screen=bool(screenshot),
+    )
+
+    if plot.render_window:
+        screen = plot.render_window.GetScreenSize()
+        window = plot.render_window.GetSize()
+        pos_x = (screen[0] - window[0]) // 2
+        pos_y = (screen[1] - window[1]) // 2
+        plot.render_window.SetPosition(pos_x, pos_y)
+
+    if args.wireframe:
+        plot.add_mesh(mesh, style="wireframe", color="white", opacity=0.01)
+
+    if args.cavities:
+        cavities = mesh.extract_surface()
+        cavities = cavities.connectivity(extraction_mode="all")
+        cavities = cavities.compute_cell_sizes(area=True)
+        unique = np.unique(cavities["RegionId"])
+        totals = {rid: cavities["Area"][cavities["RegionId"] == rid].sum() for rid in unique}
+        order = sorted(unique, key=lambda rid: totals[rid], reverse=True)
+        remap = {rid: i for i, rid in enumerate(order)}
+        cavities["RegionId"] = np.array([remap[rid] for rid in cavities["RegionId"]], dtype=int)
+        cavities = cavities.threshold(scalars="RegionId", value=[0.5, cavities["RegionId"].max()])
+        plot.add_mesh(cavities, color="white")
+
+    if args.quality:
+        mesh = mesh.cell_quality(quality_measure=args.quality, null_value=float("nan"))
+
+    if args.points:
+        mesh = mesh.cell_data_to_point_data()
+
+    if args.zip:
+        assert len(args.zip) >= 2
+        name, keys = args.zip[0], args.zip[1:]
+        mesh[name] = np.column_stack([mesh[key] for key in keys])
+        mesh.set_active_scalars(name)
+
+    if args.gradient:
+        mesh = mesh.compute_derivative(scalars=args.gradient, gradient=True)
+        mesh.set_active_scalars("gradient")
+
+    if args.divergence:
+        mesh = mesh.compute_derivative(scalars=args.divergence, gradient=False, divergence=True)
+        mesh.set_active_scalars("divergence")
+
+    if args.vorticity:
+        mesh = mesh.compute_derivative(scalars=args.vorticity, gradient=False, vorticity=True)
+        mesh.set_active_scalars("vorticity")
+
+    if args.qcriterion:
+        mesh = mesh.compute_derivative(scalars=args.qcriterion, gradient=False, qcriterion=True)
+        mesh.set_active_scalars("qcriterion")
+
+    if args.threshold:
+        scalars, value = args.threshold[0], tuple(map(float, args.threshold[1:]))
+        mesh = mesh.threshold(scalars=scalars, value=value)
+        mesh.set_active_scalars(scalars)
+
+    if args.isosurfaces:
+        scalars = args.isosurfaces[0]
+        if len(args.isosurfaces) == 1:
+            isosurfaces = (mesh[scalars].min() + mesh[scalars].max()) / 2
+            mesh = mesh.contour(scalars=scalars, isosurfaces=isosurfaces, compute_normals=True)
+        else:
+            isosurfaces = tuple(map(float, args.isosurfaces[1:]))
+            mesh = mesh.contour(scalars=scalars, isosurfaces=isosurfaces, compute_normals=True)
+
+    if args.nisosurfaces:
+        scalars, nisosurfaces = args.nisosurfaces[0], int(args.nisosurfaces[1])
+        mesh = mesh.contour(scalars=scalars, isosurfaces=nisosurfaces, compute_normals=True)
+
+    if args.smooth is not None:
+        mesh = mesh.smooth(n_iter=args.smooth)
+
+    if args.clip:
+        mesh = mesh.clip(normal=args.clip, crinkle=True)
+
+    if args.slice:
+        mesh = mesh.slice(normal=args.slice)
+
+    if args.explode is not None:
+        mesh = mesh.explode(factor=args.explode)
+
+    if args.scalars:
+        mesh.set_active_scalars(args.scalars)
+
+    plot.add_mesh(
+        mesh=mesh,
+        show_edges=args.edges,
+        opacity=args.opacity,
+        cmap=args.cmap,
+        clim=args.clim,
+        smooth_shading=args.shading,
+        show_scalar_bar=not args.hide_scalar_bar,
+    )
+
+    if args.camera is not None:
+        pos = tuple(args.camera[0:3])
+        focal = tuple(args.camera[3:6])
+        up = tuple(args.camera[6:9])
+        plot.camera_position = (pos, focal, up)
+    elif args.view == "xy":
+        plot.view_xy()
+    elif args.view == "xz":
+        plot.view_xz()
+    elif args.view == "yz":
+        plot.view_yz()
+    else:
+        plot.view_isometric()
+
+    if args.keyframes:
+        assert len(args.keyframes) % 9 == 0
+        keyframes = np.array(args.keyframes).reshape((-1, 9))
+        pos = pv.Spline(keyframes[:, 0:3], num).points
+        focal = pv.Spline(keyframes[:, 3:6], num).points
+        up = pv.Spline(keyframes[:, 6:9], num).points
+        plot.camera_position = (pos[idx], focal[idx], up[idx])
+
+    if args.bounds:
+        plot.show_bounds()
+
+    if args.axes:
+        plot.show_axes()
+
+    if args.ssao:
+        plot.enable_ssao()
+        plot.enable_anti_aliasing()
+
+    def print_camera_position():
+        pos, focal, up = plot.camera_position
+        values = (*pos, *focal, *up)
+        print(" ".join(f"{value:.8g}" for value in values), "\\")
+
+    plot.add_key_event("k", print_camera_position)
+
+    plot.show(screenshot=screenshot)
+    plot.close()
+
+
+def main():
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    args = parse_args()
+
+    if args.list:
+        if rank == 0:
+            for fname in args.fnames:
+                mesh = read_mesh(fname)
+                print(fname, ":", mesh.array_names)
+        return
+
+    assert args.repeat > 0
+    fnames = [fname for fname in args.fnames for _ in range(args.repeat)]
+
+    num = len(fnames)
+    if num == 1:
+        if rank == 0:
+            render_file(args.fnames[0], 0, 1, args)
+    else:
+        args.screenshot = True
+        for idx, fname in enumerate(fnames):
+            if idx % size == rank:
+                render_file(fname, idx, num, args)
+
+
+if __name__ == "__main__":
+    main()
