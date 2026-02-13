@@ -231,6 +231,11 @@ def parse_args():
         help="save screenshot (off-screen)",
     )
     output_group.add_argument(
+        "--transparent",
+        action="store_true",
+        help="use transparent background",
+    )
+    output_group.add_argument(
         "--repeat",
         metavar="NUM",
         type=int,
@@ -258,6 +263,7 @@ def read_mesh(fname):
 
 def render_file(fname, idx, num, args):
     pv.set_plot_theme(args.theme)
+    pv.global_theme.transparent_background = args.transparent
 
     screenshot = None
     if args.screenshot:
