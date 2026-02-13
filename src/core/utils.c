@@ -22,6 +22,15 @@ void *copy(void *dst, const void *src, int num, int size)
     return memcpy(dst, src, (size_t)num * size);
 }
 
+void *move(void *dst, const void *src, int num, int size)
+{
+    assert(((dst && src) || num == 0) && num >= 0 && size > 0);
+    if (num == 0) {
+        return 0;
+    }
+    return memmove(dst, src, (size_t)num * size);
+}
+
 void sort(void *base, int num, int size, Compare compare)
 {
     assert((base || num == 0) && num >= 0 && size > 0 && compare);

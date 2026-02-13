@@ -8,6 +8,9 @@ int isclose(double lhs, double rhs);
 // Copy `num * size` bytes from `src` to `dst`.
 void *copy(void *dst, const void *src, int num, int size);
 
+// Move `num * size` bytes from `src` to `dst`.
+void *move(void *dst, const void *src, int num, int size);
+
 // Sort array elements in-place using compare.
 void sort(void *base, int num, int size, Compare compare);
 
