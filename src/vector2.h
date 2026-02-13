@@ -18,17 +18,20 @@ Vector vector2_mul(double lhs, Vector rhs);
 // Return `lhs / rhs`.
 Vector vector2_div(Vector lhs, double rhs);
 
+// Compute `lhs += rhs` in-place.
+void vector2_iadd(Vector *lhs, Vector rhs);
+
+// Compute `lhs -= rhs` in-place.
+void vector2_isub(Vector *lhs, Vector rhs);
+
+// Compute `lhs *= rhs` in-place.
+void vector2_imul(Vector *lhs, double rhs);
+
+// Compute `lhs /= rhs` in-place.
+void vector2_idiv(Vector *lhs, double rhs);
+
 // Return the component-wise absolute value.
 Vector vector2_abs(Vector vec);
-
-// Add `rhs` to `lhs` in-place.
-void vector2_inc(Vector *lhs, Vector rhs);
-
-// Subtract `rhs` from `lhs` in-place.
-void vector2_dec(Vector *lhs, Vector rhs);
-
-// Scale `lhs` by `rhs` in-place.
-void vector2_scale(Vector *lhs, double rhs);
 
 // Return the dot product.
 double vector2_dot(Vector lhs, Vector rhs);

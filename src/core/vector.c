@@ -41,6 +41,38 @@ Vector vector2_div(Vector lhs, double rhs)
     };
 }
 
+void vector2_iadd(Vector *lhs, Vector rhs)
+{
+    assert(lhs);
+    lhs->x += rhs.x;
+    lhs->y += rhs.y;
+    lhs->z += rhs.z;
+}
+
+void vector2_isub(Vector *lhs, Vector rhs)
+{
+    assert(lhs);
+    lhs->x -= rhs.x;
+    lhs->y -= rhs.y;
+    lhs->z -= rhs.z;
+}
+
+void vector2_imul(Vector *lhs, double rhs)
+{
+    assert(lhs);
+    lhs->x *= rhs;
+    lhs->y *= rhs;
+    lhs->z *= rhs;
+}
+
+void vector2_idiv(Vector *lhs, double rhs)
+{
+    assert(lhs && !isclose(rhs, 0));
+    lhs->x /= rhs;
+    lhs->y /= rhs;
+    lhs->z /= rhs;
+}
+
 Vector vector2_abs(Vector vec)
 {
     return (Vector){
@@ -48,27 +80,6 @@ Vector vector2_abs(Vector vec)
         fabs(vec.y),
         fabs(vec.z),
     };
-}
-
-void vector2_inc(Vector *lhs, Vector rhs)
-{
-    lhs->x += rhs.x;
-    lhs->y += rhs.y;
-    lhs->z += rhs.z;
-}
-
-void vector2_dec(Vector *lhs, Vector rhs)
-{
-    lhs->x -= rhs.x;
-    lhs->y -= rhs.y;
-    lhs->z -= rhs.z;
-}
-
-void vector2_scale(Vector *lhs, double rhs)
-{
-    lhs->x *= rhs;
-    lhs->y *= rhs;
-    lhs->z *= rhs;
 }
 
 double vector2_dot(Vector lhs, Vector rhs)
