@@ -97,12 +97,19 @@ def parse_args():
         help="contour with num evenly spaced iso values",
     )
     filter_group.add_argument(
+        "--smooth",
+        nargs="?",
+        type=int,
+        const=20,
+        help="smooth surface with optional iteration count (default: %(const)s)",
+    )
+    filter_group.add_argument(
         "--clip",
         metavar="AXIS",
         choices=("x", "y", "z"),
         nargs="?",
         const="z",
-        help="clip with a plane normal to axis (default %(const)s)",
+        help="clip with a plane normal to axis (default: %(const)s)",
     )
     filter_group.add_argument(
         "--slice",
@@ -110,7 +117,7 @@ def parse_args():
         choices=("x", "y", "z"),
         nargs="?",
         const="z",
-        help="slice with a plane normal to axis (default %(const)s)",
+        help="slice with a plane normal to axis (default: %(const)s)",
     )
     filter_group.add_argument(
         "--explode",
@@ -118,21 +125,14 @@ def parse_args():
         nargs="?",
         type=float,
         const=0.1,
-        help="explode blocks by optional factor (default %(const)s)",
-    )
-    filter_group.add_argument(
-        "--smooth",
-        nargs="?",
-        type=int,
-        const=20,
-        help="smooth surface with optional iteration count (default %(const)s)",
+        help="explode blocks by optional factor (default: %(const)s)",
     )
 
     render_group = parser.add_argument_group("rendering")
     render_group.add_argument(
         "--cmap",
         default="RdYlBu_r",
-        help="set colormap (default %(default)s)",
+        help="set colormap (default: %(default)s)",
     )
     render_group.add_argument(
         "--clim",
@@ -168,6 +168,11 @@ def parse_args():
         help="extract and overlay cavity surfaces",
     )
     render_group.add_argument(
+        "--show-ghost-cells",
+        action="store_true",
+        help="unhide ghost cells and points",
+    )
+    render_group.add_argument(
         "--bounds",
         action="store_true",
         help="show bounding box",
@@ -190,12 +195,12 @@ def parse_args():
     render_group.add_argument(
         "--lighting",
         default="light kit",
-        help="set lighting preset (default %(default)s)",
+        help="set lighting preset (default: %(default)s)",
     )
     render_group.add_argument(
         "--theme",
         default="document" if darkdetect.isLight() else "dark",
-        help="set pyvista theme (default %(default)s)",
+        help="set pyvista theme (default: %(default)s)",
     )
 
     camera_group = parser.add_argument_group("camera")
@@ -204,7 +209,7 @@ def parse_args():
         metavar="PLANE",
         choices=("xy", "xz", "yz", "iso"),
         default="xy",
-        help="set view plane (default %(default)s)",
+        help="set view plane (default: %(default)s)",
     )
     camera_group.add_argument(
         "--camera",
@@ -230,7 +235,7 @@ def parse_args():
         metavar="NUM",
         type=int,
         default=1,
-        help="repeat each input file NUM times (default %(default)s)",
+        help="repeat each input file NUM times (default: %(default)s)",
     )
     output_group.add_argument(
         "--resolution",
@@ -238,7 +243,7 @@ def parse_args():
         nargs=2,
         type=int,
         default=(1600, 1000),
-        help="set window resolution (default %(default)s)",
+        help="set window resolution (default: %(default)s)",
     )
     return parser.parse_args()
 
@@ -253,8 +258,6 @@ def read_mesh(fname):
 
 def render_file(fname, idx, num, args):
     pv.set_plot_theme(args.theme)
-
-    mesh = read_mesh(fname)
 
     screenshot = None
     if args.screenshot:
@@ -274,6 +277,11 @@ def render_file(fname, idx, num, args):
         pos_x = (screen[0] - window[0]) // 2
         pos_y = (screen[1] - window[1]) // 2
         plot.render_window.SetPosition(pos_x, pos_y)
+
+    mesh = read_mesh(fname)
+
+    if args.show_ghost_cells:
+        mesh.cell_data.remove("vtkGhostType")
 
     if args.wireframe:
         plot.add_mesh(mesh, scalars=None, style="wireframe", opacity=0.5)
