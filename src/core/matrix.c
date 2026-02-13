@@ -1,7 +1,6 @@
 #include <assert.h>
 
 #include "matrix2.h"
-#include "utils2.h"
 
 Vector matrix_vector(Matrix mat, Vector vec)
 {
@@ -43,14 +42,10 @@ Matrix matrix_inverse(Matrix mat)
         vector2_cross(mat.z, mat.x),
         vector2_cross(mat.x, mat.y),
     };
-
     double det = vector2_dot(mat.x, adj.x);
-    assert(!isclose(det, 0));
-
-    double inv_det = 1 / det;
     return (Matrix){
-        vector2_mul(inv_det, adj.x),
-        vector2_mul(inv_det, adj.y),
-        vector2_mul(inv_det, adj.z),
+        vector2_div(adj.x, det),
+        vector2_div(adj.y, det),
+        vector2_div(adj.z, det),
     };
 }
