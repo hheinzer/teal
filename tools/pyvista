@@ -159,13 +159,17 @@ def parse_args():
     )
     render_group.add_argument(
         "--wireframe",
-        action="store_true",
-        help="overlay mesh wireframe",
+        metavar="COLOR",
+        nargs="?",
+        const="__default_color__",
+        help="overlay mesh wireframe with optional color",
     )
     render_group.add_argument(
         "--cavities",
-        action="store_true",
-        help="extract and overlay cavity surfaces",
+        metavar="COLOR",
+        nargs="?",
+        const="__default_color__",
+        help="extract and overlay cavity surfaces with optional color",
     )
     render_group.add_argument(
         "--show-ghost-cells",
@@ -286,23 +290,26 @@ def render_file(fname, idx, num, args):
 
     mesh = read_mesh(fname)
 
-    if args.show_ghost_cells:
+    if args.show_ghost_cells and "vtkGhostType" in mesh.cell_data:
         mesh.cell_data.remove("vtkGhostType")
 
-    if args.wireframe:
-        plot.add_mesh(mesh, scalars=None, style="wireframe", opacity=0.5)
+    if args.wireframe is not None:
+        color = args.wireframe if args.wireframe != "__default_color__" else pv.global_theme.color
+        plot.add_mesh(mesh, scalars=None, color=color, style="wireframe", opacity=0.5)
 
-    if args.cavities:
+    if args.cavities is not None:
         cavities = mesh.extract_surface()
         cavities = cavities.connectivity(extraction_mode="all")
         cavities = cavities.compute_cell_sizes(area=True)
-        unique = np.unique(cavities["RegionId"])
-        totals = {rid: cavities["Area"][cavities["RegionId"] == rid].sum() for rid in unique}
+        regions = cavities["RegionId"]
+        unique = np.unique(regions)
+        totals = {rid: cavities["Area"][regions == rid].sum() for rid in unique}
         order = sorted(unique, key=lambda rid: totals[rid], reverse=True)
         remap = {rid: i for i, rid in enumerate(order)}
-        cavities["RegionId"] = np.array([remap[rid] for rid in cavities["RegionId"]], dtype=int)
-        cavities = cavities.threshold(scalars="RegionId", value=[0.5, cavities["RegionId"].max()])
-        plot.add_mesh(cavities, scalars=None)
+        cavities["RegionId"] = np.array([remap[rid] for rid in regions], dtype=int)
+        cavities = cavities.threshold(scalars="RegionId", value=(0.5, regions.max()))
+        color = args.cavities if args.cavities != "__default_color__" else pv.global_theme.color
+        plot.add_mesh(cavities, scalars=None, color=color)
 
     if args.quality:
         mesh = mesh.cell_quality(quality_measure=args.quality, null_value=float("nan"))
@@ -373,6 +380,11 @@ def render_file(fname, idx, num, args):
         clim=args.clim,
         smooth_shading=args.shading,
         show_scalar_bar=not args.hide_scalar_bar,
+        scalar_bar_args=dict(
+            bold=True,
+            shadow=True,
+            vertical=True,
+        ),
     )
 
     if args.camera is not None:
