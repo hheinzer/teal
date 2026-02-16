@@ -36,6 +36,12 @@ def parse_args():
         help="set scalar association preference (default: %(default)s)",
     )
     parser.add_argument(
+        "--component",
+        metavar="INDEX",
+        type=int,
+        help="select scalar component for multi-component arrays",
+    )
+    parser.add_argument(
         "-p",
         "--points",
         action="store_true",
@@ -373,6 +379,7 @@ def render_file(fname, idx, num, args):
         mesh=mesh,
         scalars=args.scalars,
         preference=args.preference,
+        component=args.component,
         show_edges=args.edges,
         opacity=args.opacity,
         cmap=args.cmap,
