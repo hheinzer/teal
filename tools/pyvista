@@ -30,10 +30,10 @@ def parse_args():
         help="name of the array to visualize",
     )
     parser.add_argument(
-        "--preference",
-        choices=("cell", "point"),
-        default="cell",
-        help="set scalar association preference (default: %(default)s)",
+        "-p",
+        "--points",
+        action="store_true",
+        help="convert cell data to point data before processing",
     )
     parser.add_argument(
         "--component",
@@ -42,10 +42,10 @@ def parse_args():
         help="select scalar component for multi-component arrays",
     )
     parser.add_argument(
-        "-p",
-        "--points",
-        action="store_true",
-        help="convert cell data to point data before processing",
+        "--preference",
+        choices=("cell", "point"),
+        default="cell",
+        help="set scalar association preference (default: %(default)s)",
     )
 
     field_group = parser.add_argument_group("fields")
@@ -236,8 +236,8 @@ def parse_args():
     )
     camera_group.add_argument(
         "--camera",
-        type=float,
         nargs=9,
+        type=float,
         help="set camera position, focal point, and view up",
     )
     camera_group.add_argument(
@@ -337,12 +337,12 @@ def render_file(fname, idx, num, args):
         mesh = mesh.cell_data_to_point_data()
 
     if args.zip:
-        assert len(args.zip) >= 2
+        assert len(args.zip) >= 3
         name, keys = args.zip[0], args.zip[1:]
         mesh[name] = np.column_stack([mesh[key] for key in keys])
 
     if args.unzip:
-        assert len(args.unzip) >= 2
+        assert len(args.unzip) >= 3
         key, names = args.unzip[0], args.unzip[1:]
         for i, name in enumerate(names):
             mesh[name] = mesh[key][:, i]
@@ -414,11 +414,7 @@ def render_file(fname, idx, num, args):
         clim=args.clim,
         smooth_shading=(args.shading or args.isosurfaces or args.nisosurfaces),
         show_scalar_bar=not args.hide_scalar_bar,
-        scalar_bar_args=dict(
-            bold=True,
-            shadow=True,
-            vertical=True,
-        ),
+        scalar_bar_args=dict(bold=True, shadow=True, vertical=True),
     )
 
     if args.camera is not None:
