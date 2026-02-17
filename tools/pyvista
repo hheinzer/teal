@@ -57,6 +57,13 @@ def parse_args():
         help="zip scalar arrays into a new multi-component array",
     )
     field_group.add_argument(
+        "-u",
+        "--unzip",
+        metavar=("VECTORS", "SCALARS"),
+        nargs="+",
+        help="unzip a multi-component array into scalar arrays",
+    )
+    field_group.add_argument(
         "-g",
         "--gradient",
         metavar="SCALARS",
@@ -326,13 +333,19 @@ def render_file(fname, idx, num, args):
     if args.quality:
         mesh = mesh.cell_quality(quality_measure=args.quality, null_value=float("nan"))
 
-    if args.points:
+    if args.points or args.isosurfaces or args.nisosurfaces:
         mesh = mesh.cell_data_to_point_data()
 
     if args.zip:
         assert len(args.zip) >= 2
         name, keys = args.zip[0], args.zip[1:]
         mesh[name] = np.column_stack([mesh[key] for key in keys])
+
+    if args.unzip:
+        assert len(args.unzip) >= 2
+        key, names = args.unzip[0], args.unzip[1:]
+        for i, name in enumerate(names):
+            mesh[name] = mesh[key][:, i]
 
     if args.gradient:
         mesh = mesh.compute_derivative(scalars=args.gradient, gradient=True)
@@ -352,6 +365,10 @@ def render_file(fname, idx, num, args):
 
     if args.isosurfaces:
         scalars = args.isosurfaces[0]
+        if mesh[scalars].ndim >= 2 and mesh[scalars].shape[1] > 1:
+            norm = f"{scalars}_norm"
+            mesh[norm] = np.linalg.norm(mesh[scalars], axis=1)
+            scalars = norm
         if len(args.isosurfaces) == 1:
             isosurfaces = (mesh[scalars].min() + mesh[scalars].max()) / 2
             mesh = mesh.contour(scalars=scalars, isosurfaces=isosurfaces, compute_normals=True)
@@ -361,10 +378,16 @@ def render_file(fname, idx, num, args):
 
     if args.nisosurfaces:
         scalars, nisosurfaces = args.nisosurfaces[0], int(args.nisosurfaces[1])
+        if mesh[scalars].ndim >= 2 and mesh[scalars].shape[1] > 1:
+            norm = f"{scalars}_norm"
+            mesh[norm] = np.linalg.norm(mesh[scalars], axis=1)
+            scalars = norm
         mesh = mesh.contour(scalars=scalars, isosurfaces=nisosurfaces, compute_normals=True)
 
     if args.smooth is not None:
         mesh = mesh.smooth(n_iter=args.smooth)
+    elif args.isosurfaces or args.nisosurfaces:
+        mesh = mesh.smooth(n_iter=20)
 
     if args.clip:
         mesh = mesh.clip(normal=args.clip, crinkle=True)
@@ -375,16 +398,21 @@ def render_file(fname, idx, num, args):
     if args.explode is not None:
         mesh = mesh.explode(factor=args.explode)
 
+    mesh.set_active_scalars(
+        name=args.scalars,
+        preference=(
+            "point" if (args.points or args.isosurfaces or args.nisosurfaces) else args.preference
+        ),
+    )
+
     plot.add_mesh(
         mesh=mesh,
-        scalars=args.scalars,
-        preference=args.preference,
         component=args.component,
         show_edges=args.edges,
         opacity=args.opacity,
         cmap=args.cmap,
         clim=args.clim,
-        smooth_shading=args.shading,
+        smooth_shading=(args.shading or args.isosurfaces or args.nisosurfaces),
         show_scalar_bar=not args.hide_scalar_bar,
         scalar_bar_args=dict(
             bold=True,
