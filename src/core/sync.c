@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "sync2.h"
+#include "teal2.h"
 
 struct sync sync2 = {0};
 
@@ -27,10 +28,17 @@ void sync2_deinit(void)
 
 void sync2_reinit(MPI_Comm comm)
 {
+    int rank = sync2.rank;
+
     MPI_Comm_free(&sync2.comm);
     sync2.comm = comm;
+
     MPI_Comm_rank(sync2.comm, &sync2.rank);
     MPI_Comm_size(sync2.comm, &sync2.size);
+
+    if (rank != sync2.rank) {
+        teal2_verbose("rank remapped (%d -> %d)", rank, sync2.rank);
+    }
 }
 
 void sync2_min(void *buf, int num, MPI_Datatype type)
