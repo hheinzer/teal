@@ -1,5 +1,8 @@
 #pragma once
 
+#define sq(val) ((val) * (val))
+#define cb(val) ((val) * (val) * (val))
+
 typedef int Compare(const void *, const void *);
 
 // Return true if `lhs == rhs` with tolerance.
