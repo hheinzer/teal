@@ -89,14 +89,6 @@ void sync2_offsets(const void *val, void *buf_, int num, MPI_Datatype type)
     MPI_Allgather(MPI_IN_PLACE, num, type, buf[1], num, type, sync2.comm);
 }
 
-void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, int dst, int src,
-                    MPI_Datatype type)
-{
-    assert(send && recv && num_send > 0 && num_recv > 0);
-    MPI_Sendrecv(send, num_send, type, dst, 0, recv, num_recv, type, src, 0, sync2.comm,
-                 MPI_STATUS_IGNORE);
-}
-
 void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type)
 {
     assert(buf && num && cap > 0);
@@ -104,6 +96,14 @@ void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type)
     int prev = (sync2.rank - 1 + sync2.size) % sync2.size;
     MPI_Sendrecv_replace(num, 1, MPI_INT, next, 0, prev, 0, sync2.comm, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(buf, cap, type, next, 1, prev, 1, sync2.comm, MPI_STATUS_IGNORE);
+}
+
+void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, int dst, int src,
+                    MPI_Datatype type)
+{
+    assert(send && recv && num_send > 0 && num_recv > 0);
+    MPI_Sendrecv(send, num_send, type, dst, 0, recv, num_recv, type, src, 0, sync2.comm,
+                 MPI_STATUS_IGNORE);
 }
 
 MPI_Datatype sync2_resized(MPI_Datatype type, MPI_Aint extent)

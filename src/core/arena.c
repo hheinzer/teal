@@ -113,19 +113,6 @@ void *arena2_calloc(Arena2 *self, int num, int size)
     return memset(ptr, 0, (size_t)num * size);
 }
 
-void *arena2_memdup(Arena2 *self, const void *ptr, int num, int size)
-{
-    assert(self && (ptr || num == 0) && num >= 0 && size > 0);
-
-    if (num == 0) {
-        return 0;
-    }
-
-    void *dup = arena2_malloc(self, num, size);
-
-    return memcpy(dup, ptr, (size_t)num * size);
-}
-
 Save2 *arena2_save(Arena2 *self)
 {
     assert(self);

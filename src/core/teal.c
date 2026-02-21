@@ -163,24 +163,6 @@ void *teal2_calloc(int num, int size)
     return memset(ptr, 0, bytes);
 }
 
-void *teal2_memdup(const void *ptr, int num, int size)
-{
-    assert((ptr || num == 0) && num >= 0 && size > 0);
-
-    if (num == 0) {
-        return 0;
-    }
-
-    if ((size_t)num > SIZE_MAX / size) {
-        teal2_error("overflow (%d, %d)", num, size);
-    }
-
-    size_t bytes = (size_t)num * size;
-    void *dup = teal2_malloc(bytes);
-
-    return memcpy(dup, ptr, bytes);
-}
-
 void *teal2_realloc(void *ptr, int num, int size)
 {
     assert(num >= 0 && size > 0);
