@@ -6,8 +6,6 @@ typedef struct {
     Vector x, y, z;  // rows
 } Matrix;
 
-_Static_assert(sizeof(Matrix) == sizeof(Vector[3]), "Matrix must be packed");
-
 // Return matrix-Vector multiplication.
 Vector matrix_vector(Matrix mat, Vector vec);
 

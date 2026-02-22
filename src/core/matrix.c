@@ -2,6 +2,8 @@
 
 #include "matrix2.h"
 
+_Static_assert(sizeof(Matrix) == sizeof(Vector[3]), "Matrix must be packed");
+
 Vector matrix_vector(Matrix mat, Vector vec)
 {
     return (Vector){

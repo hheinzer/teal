@@ -2,10 +2,6 @@
 
 #include <stddef.h>
 
-_Static_assert(sizeof(int) == 4, "teal requires 32-bit int");
-_Static_assert(sizeof(long) == 8, "teal requires 64-bit long");
-_Static_assert(sizeof(double) == 8, "teal requires 64-bit double");
-
 extern struct teal {
     int quiet;
     int verbose;

@@ -10,6 +10,10 @@
 #include "sync2.h"
 #include "teal2.h"
 
+_Static_assert(sizeof(int) == 4, "teal requires 32-bit int");
+_Static_assert(sizeof(long) == 8, "teal requires 64-bit long");
+_Static_assert(sizeof(double) == 8, "teal requires 64-bit double");
+
 enum { ALIGN = 64 };
 
 struct teal teal2 = {0};
