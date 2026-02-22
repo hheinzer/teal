@@ -4,8 +4,6 @@
 #include "utils2.h"
 #include "vector2.h"
 
-_Static_assert(sizeof(Vector) == sizeof(double[3]), "Vector must be packed");
-
 Vector vector2_add(Vector lhs, Vector rhs)
 {
     return (Vector){

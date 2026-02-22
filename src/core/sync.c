@@ -108,27 +108,20 @@ void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, in
                  MPI_STATUS_IGNORE);
 }
 
-static int compare_aint(const void *lhs_, const void *rhs_)
-{
-    const MPI_Aint *lhs = lhs_;
-    const MPI_Aint *rhs = rhs_;
-    return (*lhs > *rhs) - (*lhs < *rhs);
-}
-
-void sync2_collect(const void *send_, void *recv_, const MPI_Aint *idx_recv_, int num_send_,
+void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int num_send_,
                    int num_recv_, MPI_Datatype type)
 {
     assert(idx_recv_ && send_ && recv_ && num_send_ > 0 && num_recv_ > 0);
 
-    MPI_Aint *offset = teal2_calloc(sync2.size + 1, sizeof(*offset));
-    MPI_Allgather(&(MPI_Aint){num_send_}, 1, MPI_AINT, &offset[1], 1, MPI_AINT, sync2.comm);
+    long *offset = teal2_calloc(sync2.size + 1, sizeof(*offset));
+    MPI_Allgather(&(long){num_send_}, 1, MPI_LONG, &offset[1], 1, MPI_LONG, sync2.comm);
     for (int i = 0; i < sync2.size; i++) {
         offset[i + 1] += offset[i];
     }
 
     int *rank = teal2_calloc(num_recv_, sizeof(*rank));
     for (int i = 0; i < num_recv_; i++) {
-        rank[i] = digitize(&idx_recv_[i], offset, sync2.size, sizeof(*offset), compare_aint);
+        rank[i] = digitize(&idx_recv_[i], offset, sync2.size, sizeof(*offset), compare_long);
         assert(0 <= rank[i] && rank[i] < sync2.size);
     }
 
@@ -147,7 +140,7 @@ void sync2_collect(const void *send_, void *recv_, const MPI_Aint *idx_recv_, in
 
     int *idx_recv = teal2_calloc(num_recv_, sizeof(*idx_recv));
     for (int i = 0; i < num_recv_; i++) {
-        MPI_Aint idx_local = idx_recv_[i] - offset[rank[i]];
+        long idx_local = idx_recv_[i] - offset[rank[i]];
         assert(idx_local <= INT_MAX);
         idx_recv[cur_recv[rank[i]]++] = (int)idx_local;
     }

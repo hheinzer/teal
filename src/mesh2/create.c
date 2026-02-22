@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include "private.h"
@@ -9,13 +8,13 @@
 
 static int compute_dims(int *dims, Triple num_cells)
 {
-    int64_t count[3] = {1, 1, 1};
+    long count[3] = {1, 1, 1};
     count[0] = (count[0] > num_cells.x) ? count[0] : num_cells.x;
     count[1] = (count[1] > num_cells.y) ? count[1] : num_cells.y;
     count[2] = (count[2] > num_cells.z) ? count[2] : num_cells.z;
 
     if (sync2.size > count[0] * count[1] * count[2]) {
-        teal2_error("using more rank (%d) than cells (%" PRIi64 ") is not supported", sync2.size,
+        teal2_error("using more rank (%d) than cells (%ld) is not supported", sync2.size,
                     count[0] * count[1] * count[2]);
     }
 
@@ -51,13 +50,13 @@ static int compute_dims(int *dims, Triple num_cells)
         }
 
         int best_axis = -1;
-        int64_t best_score = -1;
+        long best_score = -1;
         for (int i = 0; i < ndims; i++) {
             int axis = perm[i];
             if (dims[axis] > count[axis] / factor) {
                 continue;
             }
-            int64_t score = count[axis] / dims[axis];
+            long score = count[axis] / dims[axis];
             if (score > best_score) {
                 best_axis = axis;
                 best_score = score;
@@ -93,13 +92,13 @@ static void split_bounds(double *min_coord, double *max_coord, int *num_cells, i
     }
 }
 
-static int64_t *compute_globals(Mesh2 *mesh, Triple num_cells, const int *dims, const int *coords,
-                                const int *neighbor)
+static long *compute_globals(Mesh2 *mesh, Triple num_cells, const int *dims, const int *coords,
+                             const int *neighbor)
 {
-    int64_t *global = teal2_calloc(mesh->nodes.num, sizeof(*global));
+    long *global = teal2_calloc(mesh->nodes.num, sizeof(*global));
 
-    int64_t prefix = mesh->nodes.num_inner;
-    sync2_prefix(&prefix, 1, MPI_INT64_T);
+    long prefix = mesh->nodes.num_inner;
+    sync2_prefix(&prefix, 1, MPI_LONG);
 
     int num = 0;
     int num_inner = 0;
@@ -110,25 +109,25 @@ static int64_t *compute_globals(Mesh2 *mesh, Triple num_cells, const int *dims, 
                     global[num] = prefix + num_inner++;
                 }
                 if (i == 0 && coords[0]) {
-                    MPI_Recv(&global[num], 1, MPI_INT64_T, neighbor[0], 0, sync2.comm,
+                    MPI_Recv(&global[num], 1, MPI_LONG, neighbor[0], 0, sync2.comm,
                              MPI_STATUS_IGNORE);
                 }
                 if (j == 0 && coords[1]) {
-                    MPI_Recv(&global[num], 1, MPI_INT64_T, neighbor[2], 1, sync2.comm,
+                    MPI_Recv(&global[num], 1, MPI_LONG, neighbor[2], 1, sync2.comm,
                              MPI_STATUS_IGNORE);
                 }
                 if (k == 0 && coords[2]) {
-                    MPI_Recv(&global[num], 1, MPI_INT64_T, neighbor[4], 2, sync2.comm,
+                    MPI_Recv(&global[num], 1, MPI_LONG, neighbor[4], 2, sync2.comm,
                              MPI_STATUS_IGNORE);
                 }
                 if (i == num_cells.x && coords[0] < dims[0] - 1) {
-                    MPI_Send(&global[num], 1, MPI_INT64_T, neighbor[1], 0, sync2.comm);
+                    MPI_Send(&global[num], 1, MPI_LONG, neighbor[1], 0, sync2.comm);
                 }
                 if (j == num_cells.y && coords[1] < dims[1] - 1) {
-                    MPI_Send(&global[num], 1, MPI_INT64_T, neighbor[3], 1, sync2.comm);
+                    MPI_Send(&global[num], 1, MPI_LONG, neighbor[3], 1, sync2.comm);
                 }
                 if (k == num_cells.z && coords[2] < dims[2] - 1) {
-                    MPI_Send(&global[num], 1, MPI_INT64_T, neighbor[5], 2, sync2.comm);
+                    MPI_Send(&global[num], 1, MPI_LONG, neighbor[5], 2, sync2.comm);
                 }
                 num += 1;
             }

@@ -117,24 +117,17 @@ static void reorder_cells(Mesh2 *mesh)
     teal2_free(queue);
 }
 
-static int compare_int64(const void *lhs_, const void *rhs_)
-{
-    const int64_t *lhs = lhs_;
-    const int64_t *rhs = rhs_;
-    return (*lhs > *rhs) - (*lhs < *rhs);
-}
-
 static void collect_globals(Mesh2 *mesh, const int *map)
 {
-    int64_t prefix = mesh->nodes.num_inner;
-    sync2_prefix(&prefix, 1, MPI_INT64_T);
+    long prefix = mesh->nodes.num_inner;
+    sync2_prefix(&prefix, 1, MPI_LONG);
 
     for (int i = 0; i < mesh->nodes.num_inner; i++) {
         mesh->nodes.global[i] = prefix + i;
     }
 
-    int64_t *off_nodes = teal2_calloc(sync2.size + 1, sizeof(*off_nodes));
-    sync2_offsets(&(int64_t){mesh->nodes.num_inner}, off_nodes, 1, MPI_INT64_T);
+    long *off_nodes = teal2_calloc(sync2.size + 1, sizeof(*off_nodes));
+    sync2_offsets(&(long){mesh->nodes.num_inner}, off_nodes, 1, MPI_LONG);
 
     int num_nodes = mesh->nodes.num - mesh->nodes.num_inner;
     int *rank = teal2_calloc(num_nodes, sizeof(*rank));
@@ -142,7 +135,7 @@ static void collect_globals(Mesh2 *mesh, const int *map)
     int num = 0;
     for (int i = mesh->nodes.num_inner; i < mesh->nodes.num; i++) {
         rank[num] = digitize(&mesh->nodes.global[i], off_nodes, sync2.size, sizeof(*off_nodes),
-                             compare_int64);
+                             compare_long);
         assert(0 <= rank[num] && rank[num] < sync2.size);
         num += 1;
     }
@@ -164,7 +157,7 @@ static void collect_globals(Mesh2 *mesh, const int *map)
     int *idx_recv = teal2_calloc(num_nodes, sizeof(*idx_recv));
     num = 0;
     for (int i = mesh->nodes.num_inner; i < mesh->nodes.num; i++) {
-        int64_t idx_local = mesh->nodes.global[i] - off_nodes[rank[num]];
+        long idx_local = mesh->nodes.global[i] - off_nodes[rank[num]];
         assert(idx_local <= INT_MAX);
         idx_recv[cur_recv[rank[num]]++] = (int)idx_local;
         num += 1;
@@ -187,13 +180,13 @@ static void collect_globals(Mesh2 *mesh, const int *map)
     MPI_Alltoallv(idx_recv, num_recv, off_recv, MPI_INT, idx_send, num_send, off_send, MPI_INT,
                   sync2.comm);
 
-    int64_t *send = teal2_calloc(tot_send, sizeof(*send));
+    long *send = teal2_calloc(tot_send, sizeof(*send));
     for (int i = 0; i < tot_send; i++) {
         send[i] = mesh->nodes.global[map[idx_send[i]]];
     }
 
-    int64_t *recv = teal2_calloc(num_nodes, sizeof(*recv));
-    MPI_Alltoallv(send, num_send, off_send, MPI_INT64_T, recv, num_recv, off_recv, MPI_INT64_T,
+    long *recv = teal2_calloc(num_nodes, sizeof(*recv));
+    MPI_Alltoallv(send, num_send, off_send, MPI_LONG, recv, num_recv, off_recv, MPI_LONG,
                   sync2.comm);
 
     copy(cur_recv, off_recv, sync2.size, sizeof(*cur_recv));
@@ -852,14 +845,14 @@ void mesh2_generate(Mesh2 *mesh)
     compute_face_offsets(mesh);
     compute_face_corrections(mesh);
 
-    int64_t tot_nodes = mesh->nodes.num;
-    sync2_sum(&tot_nodes, 1, MPI_INT64_T);
+    long tot_nodes = mesh->nodes.num;
+    sync2_sum(&tot_nodes, 1, MPI_LONG);
 
-    int64_t tot_cells = mesh->cells.num;
-    sync2_sum(&tot_cells, 1, MPI_INT64_T);
+    long tot_cells = mesh->cells.num;
+    sync2_sum(&tot_cells, 1, MPI_LONG);
 
-    int64_t tot_indices = mesh->cells.node.off[mesh->cells.num];
-    sync2_sum(&tot_indices, 1, MPI_INT64_T);
+    long tot_indices = mesh->cells.node.off[mesh->cells.num];
+    sync2_sum(&tot_indices, 1, MPI_LONG);
 
     if (tot_nodes > INT_MAX || tot_cells > INT_MAX || tot_indices > INT_MAX) {
         teal2.partitioned = 1;

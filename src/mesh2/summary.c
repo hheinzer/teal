@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <inttypes.h>
 
 #include "private.h"
 #include "sync2.h"
@@ -9,22 +8,22 @@ void mesh2_summary(const Mesh2 *mesh)
 {
     assert(mesh && mesh->generated);
 
-    int64_t inner_nodes = mesh->nodes.num_inner;
-    sync2_sum(&inner_nodes, 1, MPI_INT64_T);
+    long inner_nodes = mesh->nodes.num_inner;
+    sync2_sum(&inner_nodes, 1, MPI_LONG);
 
-    int64_t inner_cells = mesh->cells.num_inner;
-    sync2_sum(&inner_cells, 1, MPI_INT64_T);
+    long inner_cells = mesh->cells.num_inner;
+    sync2_sum(&inner_cells, 1, MPI_LONG);
 
-    int64_t sync_cells = 0;
+    long sync_cells = 0;
     for (int i = 0; i < mesh->neighbors.num; i++) {
         if (mesh->neighbors.rank[i] != sync2.rank) {
             sync_cells += mesh->neighbors.recv_off[i + 1] - mesh->neighbors.recv_off[i];
         }
     }
-    sync2_sum(&sync_cells, 1, MPI_INT64_T);
+    sync2_sum(&sync_cells, 1, MPI_LONG);
 
     teal2_print("Mesh summary");
-    teal2_print("\t number of inner nodes : %" PRIi64, inner_nodes);
-    teal2_print("\t number of inner cells : %" PRIi64, inner_cells);
-    teal2_print("\t number of sync cells  : %" PRIi64, sync_cells);
+    teal2_print("\t number of inner nodes : %ld", inner_nodes);
+    teal2_print("\t number of inner cells : %ld", inner_cells);
+    teal2_print("\t number of sync cells  : %ld", sync_cells);
 }

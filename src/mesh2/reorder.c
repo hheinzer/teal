@@ -27,7 +27,7 @@ static int is_valid(const int *map, int num)
 }
 
 typedef struct {
-    int64_t global;
+    long global;
     Vector coord;
 } Node;
 

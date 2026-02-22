@@ -5,6 +5,28 @@
 
 #include "utils2.h"
 
+int compare_int(const void *lhs_, const void *rhs_)
+{
+    const int *lhs = lhs_;
+    const int *rhs = rhs_;
+    return (*lhs > *rhs) - (*lhs < *rhs);
+}
+
+int compare_long(const void *lhs_, const void *rhs_)
+{
+    const long *lhs = lhs_;
+    const long *rhs = rhs_;
+    return (*lhs > *rhs) - (*lhs < *rhs);
+}
+
+int compare_double(const void *lhs_, const void *rhs_)
+{
+    const double *lhs = lhs_;
+    const double *rhs = rhs_;
+    assert(isfinite(*lhs) && isfinite(*rhs));
+    return (*lhs > *rhs) - (*lhs < *rhs);
+}
+
 int isclose(double lhs, double rhs)
 {
     assert(isfinite(lhs) && isfinite(rhs));

@@ -43,8 +43,8 @@ void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, in
                     MPI_Datatype type);
 
 // Collect global values at `idx_recv` from all ranks into `recv`.
-void sync2_collect(const void *send, void *recv, const MPI_Aint *idx_recv, int num_send,
-                   int num_recv, MPI_Datatype type);
+void sync2_collect(const void *send, void *recv, const long *idx_recv, int num_send, int num_recv,
+                   MPI_Datatype type);
 
 // Resize a derived datatype to `extent` bytes.
 MPI_Datatype sync2_resized(MPI_Datatype type, MPI_Aint extent);

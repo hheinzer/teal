@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-
 #include "matrix2.h"
 #include "mesh2.h"
 #include "vector2.h"
@@ -15,7 +13,7 @@ enum MeshLimits {
 typedef struct {
     int num;
     int num_inner;
-    int64_t *global;
+    long *global;
     Vector *coord;
 } MeshNodes;
 

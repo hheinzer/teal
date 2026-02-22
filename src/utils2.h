@@ -5,6 +5,8 @@
 
 typedef int Compare(const void *, const void *);
 
+Compare compare_int, compare_long, compare_double;
+
 // Return true if `lhs == rhs` with tolerance.
 int isclose(double lhs, double rhs);
 

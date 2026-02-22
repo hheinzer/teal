@@ -991,7 +991,7 @@ static int partition_nodes(Grid *grid)
 
 static void create_nodes(Mesh2 *mesh, Grid *grid, int num_inner)
 {
-    int64_t *global = teal2_calloc(grid->nodes.num, sizeof(*global));
+    long *global = teal2_calloc(grid->nodes.num, sizeof(*global));
     for (int i = 0; i < grid->nodes.num; i++) {
         global[i] = grid->nodes.tag[i];
     }
