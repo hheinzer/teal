@@ -4,11 +4,14 @@
 
 #include "grid.h"
 
+_Static_assert(sizeof(idx_t) == sizeof(long), "idx_t must match long");
+_Static_assert(sizeof(real_t) == sizeof(double), "real_t must match double");
+
 typedef struct {
-    idx_t *dist;
-    idx_t *xadj;
-    idx_t *adjncy;
-    idx_t *part;
+    long *dist;
+    long *xadj;
+    long *adjncy;
+    long *part;
 } Dual;
 
 Dual *dual_init(const Grid *grid);

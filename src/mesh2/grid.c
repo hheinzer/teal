@@ -42,7 +42,7 @@ void grid_deinit(Grid *grid)
 }
 
 typedef struct {
-    idx_t tag, idx;
+    long tag, idx;
 } Map;
 
 static MPI_Datatype datatype_map(void)
@@ -50,7 +50,7 @@ static MPI_Datatype datatype_map(void)
     MPI_Datatype datatype;
     int len[2] = {1, 1};
     MPI_Aint off[2] = {offsetof(Map, tag), offsetof(Map, idx)};
-    MPI_Datatype type[2] = {IDX_T, IDX_T};
+    MPI_Datatype type[2] = {MPI_LONG, MPI_LONG};
     MPI_Type_create_struct(2, len, off, type, &datatype);
     return sync2_resized(datatype, sizeof(Map));
 }
@@ -62,13 +62,13 @@ static int compare_map(const void *lhs_, const void *rhs_)
     return (lhs->tag > rhs->tag) - (lhs->tag < rhs->tag);
 }
 
-idx_t *grid_tag_to_idx(const Grid *grid, const idx_t *node_tag, int num_tags)
+long *grid_tag_to_idx(const Grid *grid, const long *node_tag, int num_tags)
 {
     int cap = grid->nodes.num;
     sync2_max(&cap, 1, MPI_INT);
 
-    idx_t prefix = grid->nodes.num;
-    sync2_prefix(&prefix, 1, IDX_T);
+    long prefix = grid->nodes.num;
+    sync2_prefix(&prefix, 1, MPI_LONG);
 
     Map *map = teal2_calloc(cap, sizeof(*map));
     for (int i = 0; i < grid->nodes.num; i++) {
@@ -78,7 +78,7 @@ idx_t *grid_tag_to_idx(const Grid *grid, const idx_t *node_tag, int num_tags)
     sort(map, grid->nodes.num, sizeof(*map), compare_map);
 
     int *converted = teal2_calloc(num_tags, sizeof(*converted));
-    idx_t *node_idx = teal2_calloc(num_tags, sizeof(*node_idx));
+    long *node_idx = teal2_calloc(num_tags, sizeof(*node_idx));
 
     MPI_Datatype type = datatype_map();
     int num = grid->nodes.num;
@@ -100,7 +100,7 @@ idx_t *grid_tag_to_idx(const Grid *grid, const idx_t *node_tag, int num_tags)
 
     for (int i = 0; i < num_tags; i++) {
         if (!converted[i]) {
-            teal2_error("node tag (%" PRIDX ") was not converted to index", node_tag[i]);
+            teal2_error("node tag (%ld) was not converted to index", node_tag[i]);
         }
     }
 

@@ -11,11 +11,11 @@
 
 static void connect_cells(Mesh2 *mesh)
 {
-    idx_t ne = mesh->cells.num;  // NOLINT(readability-identifier-length)
-    idx_t nn = mesh->nodes.num;  // NOLINT(readability-identifier-length)
+    long num_cells = mesh->cells.num;
+    long num_nodes = mesh->nodes.num;
 
-    idx_t *eptr = teal2_calloc(mesh->cells.num + 1, sizeof(*eptr));
-    idx_t *eind = teal2_calloc(mesh->cells.num * (MAX_CELL_NODES + 1), sizeof(*eind));
+    long *eptr = teal2_calloc(mesh->cells.num + 1, sizeof(*eptr));
+    long *eind = teal2_calloc(mesh->cells.num * (MAX_CELL_NODES + 1), sizeof(*eind));
 
     for (int i = 0; i < mesh->cells.num; i++) {
         eptr[i + 1] = eptr[i];
@@ -25,15 +25,16 @@ static void connect_cells(Mesh2 *mesh)
         }
         if (i >= mesh->cells.num_inner) {
             assert(eptr[i + 1] - eptr[i] < MAX_CELL_NODES + 1);
-            eind[eptr[i + 1]++] = nn++;  // add dummy node to enforce ncommon=3
+            eind[eptr[i + 1]++] = num_nodes++;  // add dummy node to enforce ncommon=3
         }
     }
 
-    idx_t ncommon = 3;
-    idx_t numflag = 0;
-    idx_t *xadj;
-    idx_t *adjncy;
-    int ret = METIS_MeshToDual(&ne, &nn, eptr, eind, &ncommon, &numflag, &xadj, &adjncy);
+    long ncommon = 3;
+    long numflag = 0;
+    long *xadj;
+    long *adjncy;
+    int ret =
+        METIS_MeshToDual(&num_cells, &num_nodes, eptr, eind, &ncommon, &numflag, &xadj, &adjncy);
     if (ret != METIS_OK) {
         teal2_error("METIS_MeshToDual failed (%d)", ret);
     }
@@ -43,7 +44,7 @@ static void connect_cells(Mesh2 *mesh)
 
     for (int i = 0; i < mesh->cells.num; i++) {
         cell_off[i + 1] = cell_off[i];
-        for (idx_t j = xadj[i]; j < xadj[i + 1]; j++) {
+        for (long j = xadj[i]; j < xadj[i + 1]; j++) {
             if (i < mesh->cells.num_inner || adjncy[j] < mesh->cells.num_inner) {
                 assert(cell_off[i + 1] - cell_off[i] < MAX_CELL_FACES);
                 assert(adjncy[j] <= INT_MAX);

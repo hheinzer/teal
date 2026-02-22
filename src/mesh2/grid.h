@@ -6,7 +6,7 @@
 
 typedef struct {
     int num;
-    idx_t *tag;
+    long *tag;
     Vector *coord;
 } GridNodes;
 
@@ -15,8 +15,8 @@ typedef struct {
     int num_inner;
     int off_boundary;
     int off_periodic;
-    idx_t *node_off;
-    idx_t *node_idx;
+    long *node_off;
+    long *node_idx;
 } GridCells;
 
 typedef struct {
@@ -28,8 +28,8 @@ typedef struct {
     int *periodic;
     Matrix *rotation;
     Vector *translation;
-    idx_t *node_off;
-    idx_t *node_idx;
+    long *node_off;
+    long *node_idx;
 } GridEntities;
 
 typedef struct {
@@ -42,6 +42,6 @@ Grid *grid_init(const char *fname);
 
 void grid_deinit(Grid *grid);
 
-idx_t *grid_tag_to_idx(const Grid *grid, const idx_t *node_tag, int num_tags);
+long *grid_tag_to_idx(const Grid *grid, const long *node_tag, int num_tags);
 
 Grid *grid_gmsh(const char *fname);

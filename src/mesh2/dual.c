@@ -12,10 +12,10 @@ Dual *dual_init(const Grid *grid)
     Dual *dual = teal2_calloc(1, sizeof(*dual));
 
     dual->dist = teal2_calloc(sync2.size + 1, sizeof(*dual->dist));
-    sync2_offsets(&(idx_t){grid->cells.off_periodic}, dual->dist, 1, IDX_T);
+    sync2_offsets(&(long){grid->cells.off_periodic}, dual->dist, 1, MPI_LONG);
 
-    idx_t numflag = 0;
-    idx_t ncommon = 3;
+    long numflag = 0;
+    long ncommon = 3;
     int ret = ParMETIS_V3_Mesh2Dual(dual->dist, grid->cells.node_off, grid->cells.node_idx,
                                     &numflag, &ncommon, &dual->xadj, &dual->adjncy, &sync2.comm);
     if (ret != METIS_OK) {
@@ -34,7 +34,7 @@ void dual_deinit(Dual *dual)
     teal2_free(dual);
 }
 
-static void collect_outer(idx_t *part, const Dual *dual, const Grid *grid)
+static void collect_outer(long *part, const Dual *dual, const Grid *grid)
 {
     int num_cells = grid->cells.num - grid->cells.num_inner;
     int *rank = teal2_calloc(num_cells, sizeof(*rank));
@@ -66,7 +66,7 @@ static void collect_outer(idx_t *part, const Dual *dual, const Grid *grid)
     num = 0;
     for (int i = grid->cells.num_inner; i < grid->cells.num; i++) {
         assert(dual->xadj[i + 1] - dual->xadj[i] == 1);
-        idx_t idx_local = dual->adjncy[dual->xadj[i]] - dual->dist[rank[num]];
+        long idx_local = dual->adjncy[dual->xadj[i]] - dual->dist[rank[num]];
         assert(idx_local <= INT_MAX);
         idx_recv[cur_recv[rank[num]]++] = (int)idx_local;
         num += 1;
@@ -89,13 +89,14 @@ static void collect_outer(idx_t *part, const Dual *dual, const Grid *grid)
     MPI_Alltoallv(idx_recv, num_recv, off_recv, MPI_INT, idx_send, num_send, off_send, MPI_INT,
                   sync2.comm);
 
-    idx_t *send = teal2_calloc(tot_send, sizeof(*send));
+    long *send = teal2_calloc(tot_send, sizeof(*send));
     for (int i = 0; i < tot_send; i++) {
         send[i] = part[idx_send[i]];
     }
 
-    idx_t *recv = teal2_calloc(num_cells, sizeof(*recv));
-    MPI_Alltoallv(send, num_send, off_send, IDX_T, recv, num_recv, off_recv, IDX_T, sync2.comm);
+    long *recv = teal2_calloc(num_cells, sizeof(*recv));
+    MPI_Alltoallv(send, num_send, off_send, MPI_LONG, recv, num_recv, off_recv, MPI_LONG,
+                  sync2.comm);
 
     copy(cur_recv, off_recv, sync2.size, sizeof(*cur_recv));
 
@@ -123,31 +124,31 @@ static void collect_outer(idx_t *part, const Dual *dual, const Grid *grid)
 
 void dual_partition(Dual *dual, const Grid *grid)
 {
-    idx_t *vwgt = teal2_calloc(grid->cells.off_periodic, sizeof(*vwgt));
+    long *vwgt = teal2_calloc(grid->cells.off_periodic, sizeof(*vwgt));
     for (int i = 0; i < grid->cells.num_inner; i++) {
         vwgt[i] = 1;
     }
 
-    idx_t wgtflag = 2;
-    idx_t numflag = 0;
-    idx_t ncon = 1;
-    idx_t nparts = sync2.size;
+    long wgtflag = 2;
+    long numflag = 0;
+    long ncon = 1;
+    long nparts = sync2.size;
 
     assert(ncon <= INT_MAX / nparts);
-    real_t *tpwgts = teal2_calloc((int)(ncon * nparts), sizeof(*tpwgts));
+    double *tpwgts = teal2_calloc((int)(ncon * nparts), sizeof(*tpwgts));
     for (int i = 0; i < (int)(ncon * nparts); i++) {
-        tpwgts[i] = 1 / (real_t)nparts;
+        tpwgts[i] = 1 / (double)nparts;
     }
 
-    real_t *ubvec = teal2_calloc((int)ncon, sizeof(*ubvec));
+    double *ubvec = teal2_calloc((int)ncon, sizeof(*ubvec));
     for (int i = 0; i < ncon; i++) {
         ubvec[i] = 1.05;
     }
 
-    idx_t *part = teal2_calloc(grid->cells.off_periodic, sizeof(*part));
+    long *part = teal2_calloc(grid->cells.off_periodic, sizeof(*part));
 
-    idx_t options[3] = {0};
-    idx_t edgecut;
+    long options[3] = {0};
+    long edgecut;
     int ret =
         ParMETIS_V3_PartKway(dual->dist, dual->xadj, dual->adjncy, vwgt, 0, &wgtflag, &numflag,
                              &ncon, &nparts, tpwgts, ubvec, options, &edgecut, part, &sync2.comm);
@@ -156,14 +157,14 @@ void dual_partition(Dual *dual, const Grid *grid)
     }
 
     if (sync2.rank == 0) {
-        teal2_verbose("ParMETIS_V3_PartKway edgecut = %" PRIDX, edgecut);
+        teal2_verbose("ParMETIS_V3_PartKway edgecut = %ld", edgecut);
     }
 
-    idx_t *num_inner = teal2_calloc(sync2.size, sizeof(*num_inner));
+    long *num_inner = teal2_calloc(sync2.size, sizeof(*num_inner));
     for (int i = 0; i < grid->cells.num_inner; i++) {
         num_inner[part[i]] += 1;
     }
-    sync2_sum(num_inner, sync2.size, IDX_T);
+    sync2_sum(num_inner, sync2.size, MPI_LONG);
 
     if (num_inner[sync2.rank] <= 0 || INT_MAX < num_inner[sync2.rank]) {
         teal2_error("invalid partition size (%ld)", num_inner[sync2.rank]);
@@ -183,8 +184,8 @@ void dual_partition(Dual *dual, const Grid *grid)
 
 typedef struct {
     int entity;
-    idx_t node;
-    idx_t peer;
+    long node;
+    long peer;
 } Map;
 
 static MPI_Datatype datatype_map(void)
@@ -192,7 +193,7 @@ static MPI_Datatype datatype_map(void)
     MPI_Datatype datatype;
     int len[3] = {1, 1, 1};
     MPI_Aint off[3] = {offsetof(Map, entity), offsetof(Map, node), offsetof(Map, peer)};
-    MPI_Datatype type[3] = {MPI_INT, IDX_T, IDX_T};
+    MPI_Datatype type[3] = {MPI_INT, MPI_LONG, MPI_LONG};
     MPI_Type_create_struct(3, len, off, type, &datatype);
     return sync2_resized(datatype, sizeof(Map));
 }
@@ -209,15 +210,15 @@ static int compare_map(const void *lhs_, const void *rhs_)
 
 static Map *compute_node_map(const Grid *grid, int *num_nodes)
 {
-    idx_t max_nodes = grid->cells.node_off[grid->cells.off_periodic] -
-                      grid->cells.node_off[grid->cells.off_boundary];
+    long max_nodes = grid->cells.node_off[grid->cells.off_periodic] -
+                     grid->cells.node_off[grid->cells.off_boundary];
 
     assert(max_nodes <= INT_MAX);
     Map *map = teal2_calloc((int)max_nodes, sizeof(*map));
     int num = 0;
     for (int i = grid->entities.off_boundary; i < grid->entities.num; i++) {
         for (int j = grid->entities.cell_off[i]; j < grid->entities.cell_off[i + 1]; j++) {
-            for (idx_t k = grid->cells.node_off[j]; k < grid->cells.node_off[j + 1]; k++) {
+            for (long k = grid->cells.node_off[j]; k < grid->cells.node_off[j + 1]; k++) {
                 map[num].entity = i;
                 map[num].node = grid->cells.node_idx[k];
                 map[num].peer = -1;
@@ -236,8 +237,8 @@ static Map *compute_node_map(const Grid *grid, int *num_nodes)
     num = 0;
     for (int i = grid->entities.off_boundary; i < grid->entities.num; i++) {
         assert(grid->entities.periodic[i] >= grid->entities.off_boundary);
-        idx_t *off_node = &grid->entities.node_off[i];
-        idx_t *off_peer = &grid->entities.node_off[grid->entities.periodic[i]];
+        long *off_node = &grid->entities.node_off[i];
+        long *off_peer = &grid->entities.node_off[grid->entities.periodic[i]];
         assert(off_node[1] - off_node[0] == off_peer[1] - off_peer[0]);
         for (int j = 0; j < off_node[1] - off_node[0]; j++) {
             periodic[num].entity = i;
@@ -278,8 +279,8 @@ static Map *compute_node_map(const Grid *grid, int *num_nodes)
 typedef struct {
     int entity;
     int num_nodes;
-    idx_t node[MAX_CELL_NODES];
-    idx_t inner;
+    long node[MAX_CELL_NODES];
+    long inner;
     int idx;
 } Cell;
 
@@ -289,7 +290,7 @@ static MPI_Datatype datatype_cell(void)
     int len[5] = {1, 1, MAX_CELL_NODES, 1, 1};
     MPI_Aint off[5] = {offsetof(Cell, entity), offsetof(Cell, num_nodes), offsetof(Cell, node),
                        offsetof(Cell, inner), offsetof(Cell, idx)};
-    MPI_Datatype type[5] = {MPI_INT, MPI_INT, IDX_T, IDX_T, MPI_INT};
+    MPI_Datatype type[5] = {MPI_INT, MPI_INT, MPI_LONG, MPI_LONG, MPI_INT};
     MPI_Type_create_struct(5, len, off, type, &datatype);
     return sync2_resized(datatype, sizeof(Cell));
 }
@@ -312,7 +313,7 @@ static int compare_cell(const void *lhs_, const void *rhs_)
     return 0;
 }
 
-static idx_t *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
+static long *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
 {
     int num_nodes;
     Map *map = compute_node_map(grid, &num_nodes);
@@ -323,7 +324,7 @@ static idx_t *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
         for (int j = grid->entities.cell_off[i]; j < grid->entities.cell_off[i + 1]; j++) {
             cell[num].entity = i;
             cell[num].num_nodes = 0;
-            for (idx_t k = grid->cells.node_off[j]; k < grid->cells.node_off[j + 1]; k++) {
+            for (long k = grid->cells.node_off[j]; k < grid->cells.node_off[j + 1]; k++) {
                 assert(cell[num].num_nodes < MAX_CELL_NODES);
                 cell[num].node[cell[num].num_nodes++] = grid->cells.node_idx[k];
             }
@@ -370,11 +371,10 @@ static idx_t *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
     assert(num == num_edges);
     MPI_Type_free(&type);
 
-    idx_t *edge = teal2_calloc(num_edges, sizeof(*edge));
+    long *edge = teal2_calloc(num_edges, sizeof(*edge));
     for (int i = 0; i < num_edges; i++) {
         if (peer[i].inner == -1) {
-            teal2_error("missing periodic peer cell (%d, %" PRIDX ")", peer[i].entity,
-                        cell[i].inner);
+            teal2_error("missing periodic peer cell (%d, %ld)", peer[i].entity, cell[i].inner);
         }
         edge[cell[i].idx] = peer[i].inner;
     }
@@ -388,18 +388,18 @@ static idx_t *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
 void dual_periodic(Dual *dual, const Grid *grid)
 {
     int num_edges = grid->cells.off_periodic - grid->cells.off_boundary;
-    idx_t *edge = collect_edges(dual, grid, num_edges);
+    long *edge = collect_edges(dual, grid, num_edges);
 
     assert(dual->xadj[grid->cells.off_periodic] <= INT_MAX - num_edges);
     int num_adjncys = (int)dual->xadj[grid->cells.off_periodic] + num_edges;
 
-    idx_t *xadj = teal2_calloc(grid->cells.off_periodic + 1, sizeof(*xadj));
-    idx_t *adjncy = teal2_calloc(num_adjncys, sizeof(*adjncy));
+    long *xadj = teal2_calloc(grid->cells.off_periodic + 1, sizeof(*xadj));
+    long *adjncy = teal2_calloc(num_adjncys, sizeof(*adjncy));
 
     int num = 0;
     for (int i = 0; i < grid->cells.off_periodic; i++) {
         xadj[i + 1] = xadj[i];
-        for (idx_t j = dual->xadj[i]; j < dual->xadj[i + 1]; j++) {
+        for (long j = dual->xadj[i]; j < dual->xadj[i + 1]; j++) {
             adjncy[xadj[i + 1]++] = dual->adjncy[j];
         }
         if (i >= grid->cells.off_boundary) {
@@ -419,7 +419,7 @@ void dual_periodic(Dual *dual, const Grid *grid)
 
 int compare_idx(const void *lhs_, const void *rhs_)
 {
-    const idx_t *lhs = lhs_;
-    const idx_t *rhs = rhs_;
+    const long *lhs = lhs_;
+    const long *rhs = rhs_;
     return (*lhs > *rhs) - (*lhs < *rhs);
 }

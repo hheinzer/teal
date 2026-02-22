@@ -618,15 +618,15 @@ static void create_nodes(Grid *grid, const Gmsh *gmsh)
     assert(gmsh->nodes.num_nodes <= INT_MAX);
     int num_nodes = (int)gmsh->nodes.num_nodes;
 
-    idx_t *tag = teal2_calloc(num_nodes, sizeof(*tag));
+    long *tag = teal2_calloc(num_nodes, sizeof(*tag));
     Vector *coord = teal2_calloc(num_nodes, sizeof(*coord));
 
     int num = 0;
     for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
         int len = len_coord(&gmsh->nodes.block[i]);
         for (uint64_t j = 0; j < gmsh->nodes.block[i].num_nodes; j++) {
-            assert(gmsh->nodes.block[i].tag[j] <= IDX_MAX);
-            tag[num] = (idx_t)gmsh->nodes.block[i].tag[j];
+            assert(gmsh->nodes.block[i].tag[j] <= LONG_MAX);
+            tag[num] = (long)gmsh->nodes.block[i].tag[j];
             coord[num].x = gmsh->nodes.block[i].coord[(j * len) + 0];
             coord[num].y = gmsh->nodes.block[i].coord[(j * len) + 1];
             coord[num].z = gmsh->nodes.block[i].coord[(j * len) + 2];
@@ -649,8 +649,8 @@ static void create_cells(Grid *grid, const Entity *entity, const Gmsh *gmsh)
     assert(gmsh->elements.num_elements <= INT_MAX);
     int num_cells = (int)gmsh->elements.num_elements;
 
-    idx_t *node_off = teal2_calloc(num_cells + 1, sizeof(*node_off));
-    idx_t *node_tag = teal2_calloc(num_cells * MAX_CELL_NODES, sizeof(*node_tag));
+    long *node_off = teal2_calloc(num_cells + 1, sizeof(*node_off));
+    long *node_tag = teal2_calloc(num_cells * MAX_CELL_NODES, sizeof(*node_tag));
 
     int num = 0;
     for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
@@ -659,8 +659,8 @@ static void create_cells(Grid *grid, const Entity *entity, const Gmsh *gmsh)
             node_off[num + 1] = node_off[num];
             for (int k = 0; k < len; k++) {
                 assert(node_off[num + 1] - node_off[num] < MAX_CELL_NODES);
-                assert(entity[i].block->node_tag[(j * len) + k] <= IDX_MAX);
-                node_tag[node_off[num + 1]++] = (idx_t)entity[i].block->node_tag[(j * len) + k];
+                assert(entity[i].block->node_tag[(j * len) + k] <= LONG_MAX);
+                node_tag[node_off[num + 1]++] = (long)entity[i].block->node_tag[(j * len) + k];
             }
             num += 1;
         }
@@ -775,20 +775,20 @@ static void get_affine_transformation(Matrix *rotation, Vector *translation, con
     }
 }
 
-static void get_node_mapping(idx_t *node_off, idx_t *node_tag, const Entity *entity)
+static void get_node_mapping(long *node_off, long *node_tag, const Entity *entity)
 {
-    assert(entity->link->num_nodes <= IDX_MAX);
-    *node_off += (idx_t)entity->link->num_nodes;
+    assert(entity->link->num_nodes <= LONG_MAX);
+    *node_off += (long)entity->link->num_nodes;
     if (entity->block->entity_tag == entity->link->entity_tag) {
         for (uint64_t i = 0; i < entity->link->num_nodes; i++) {
-            assert(entity->link->node_tag[i] <= IDX_MAX);
-            node_tag[i] = (idx_t)entity->link->node_tag[i];
+            assert(entity->link->node_tag[i] <= LONG_MAX);
+            node_tag[i] = (long)entity->link->node_tag[i];
         }
     }
     else {
         for (uint64_t i = 0; i < entity->link->num_nodes; i++) {
-            assert(entity->link->node_tag_master[i] <= IDX_MAX);
-            node_tag[i] = (idx_t)entity->link->node_tag_master[i];
+            assert(entity->link->node_tag_master[i] <= LONG_MAX);
+            node_tag[i] = (long)entity->link->node_tag_master[i];
         }
     }
 }
@@ -805,8 +805,8 @@ static void create_entities(Grid *grid, const Entity *entity, const Gmsh *gmsh)
     int *periodic = teal2_calloc(grid->entities.num, sizeof(*periodic));
     Matrix *rotation = teal2_calloc(grid->entities.num, sizeof(*rotation));
     Vector *translation = teal2_calloc(grid->entities.num, sizeof(*translation));
-    idx_t *node_off = teal2_calloc(grid->entities.num + 1, sizeof(*node_off));
-    idx_t *node_tag = teal2_calloc(num_nodes, sizeof(*node_tag));
+    long *node_off = teal2_calloc(grid->entities.num + 1, sizeof(*node_off));
+    long *node_tag = teal2_calloc(num_nodes, sizeof(*node_tag));
 
     int num = 0;
     for (int i = 0; i < grid->entities.num; i++) {
