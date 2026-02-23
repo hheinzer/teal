@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "arena2.h"

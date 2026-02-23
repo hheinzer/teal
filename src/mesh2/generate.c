@@ -75,43 +75,54 @@ static void reorder_cells(Mesh2 *mesh)
     }
 
     int *queue = teal2_calloc(mesh->cells.num_inner, sizeof(*queue));
-    int beg = 0;
-    int end = 0;
 
     assert(mesh->cells.num_inner > 0);
     int seed = rand() % mesh->cells.num_inner;
 
+    int num_components = 0;
     int num = 0;
-    map[seed] = num++;
-    queue[end++] = seed;
-    while (beg < end) {
-        int cur = queue[beg++];
-        int cell[MAX_CELL_FACES];
-        int num_cells = 0;
-        for (int i = mesh->cells.cell.off[cur]; i < mesh->cells.cell.off[cur + 1]; i++) {
-            int idx = mesh->cells.cell.idx[i];
-            if (idx < mesh->cells.num_inner && map[idx] == -1) {
-                assert(num_cells < MAX_CELL_FACES);
-                cell[num_cells++] = idx;
-                map[idx] = -2;
-            }
+    while (num < mesh->cells.num_inner) {
+        num_components += 1;
+        while (map[seed] != -1) {
+            seed = (seed + 1) % mesh->cells.num_inner;
         }
-        for (int i = 1; i < num_cells; i++) {
-            int idx = cell[i];
-            int deg = degree[idx];
-            int j = i - 1;  // NOLINT(readability-identifier-length)
-            while (j >= 0 && degree[cell[j]] < deg) {
-                cell[j + 1] = cell[j];
-                j -= 1;
+        int beg = 0;
+        int end = 0;
+        map[seed] = num++;
+        queue[end++] = seed;
+        while (beg < end) {
+            int cur = queue[beg++];
+            int cell[MAX_CELL_FACES];
+            int num_cells = 0;
+            for (int i = mesh->cells.cell.off[cur]; i < mesh->cells.cell.off[cur + 1]; i++) {
+                int idx = mesh->cells.cell.idx[i];
+                if (idx < mesh->cells.num_inner && map[idx] == -1) {
+                    assert(num_cells < MAX_CELL_FACES);
+                    cell[num_cells++] = idx;
+                    map[idx] = -2;
+                }
             }
-            cell[j + 1] = idx;
-        }
-        for (int i = 0; i < num_cells; i++) {
-            map[cell[i]] = num++;
-            queue[end++] = cell[i];
+            for (int i = 1; i < num_cells; i++) {
+                int idx = cell[i];
+                int deg = degree[idx];
+                int j = i - 1;  // NOLINT(readability-identifier-length)
+                while (j >= 0 && degree[cell[j]] < deg) {
+                    cell[j + 1] = cell[j];
+                    j -= 1;
+                }
+                cell[j + 1] = idx;
+            }
+            for (int i = 0; i < num_cells; i++) {
+                map[cell[i]] = num++;
+                queue[end++] = cell[i];
+            }
         }
     }
     assert(num == mesh->cells.num_inner);
+
+    if (num_components > 1) {
+        teal2_verbose("disconnected domain (%d)", num_components);
+    }
 
     mesh2_reorder_cells(mesh, map, 0, mesh->cells.num_inner);
 
