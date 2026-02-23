@@ -8,13 +8,13 @@
 #include "teal2.h"
 #include "utils2.h"
 
-static long *collect_adjncys(const Dual *dual, const Grid *grid, int *num_adjncys)
+static long *collect_adjncys(const Dual *dual, const long *part, const Grid *grid, int *num_adjncys)
 {
     int *num_send = teal2_calloc(sync2.size, sizeof(*num_send));
     for (int i = 0; i < grid->cells.off_periodic; i++) {
         long num_cells = dual->xadj[i + 1] - dual->xadj[i];
         assert(num_cells <= INT_MAX);
-        num_send[dual->part[i]] += (int)num_cells;
+        num_send[part[i]] += (int)num_cells;
     }
 
     int *off_send = teal2_calloc(sync2.size + 1, sizeof(*off_send));
@@ -29,7 +29,7 @@ static long *collect_adjncys(const Dual *dual, const Grid *grid, int *num_adjncy
     long *send = teal2_calloc(tot_send, sizeof(*send));
     for (int i = 0; i < grid->cells.off_periodic; i++) {
         for (long j = dual->xadj[i]; j < dual->xadj[i + 1]; j++) {
-            send[cur_send[dual->part[i]]++] = dual->adjncy[j];
+            send[cur_send[part[i]]++] = dual->adjncy[j];
         }
     }
     for (int i = 0; i < sync2.size; i++) {
@@ -49,7 +49,7 @@ static long *collect_adjncys(const Dual *dual, const Grid *grid, int *num_adjncy
     MPI_Alltoallv(send, num_send, off_send, MPI_LONG, recv, num_recv, off_recv, MPI_LONG,
                   sync2.comm);
 
-    *num_adjncys = unique(recv, tot_recv, sizeof(*recv), compare_idx);
+    *num_adjncys = unique(recv, tot_recv, sizeof(*recv), compare_long);
 
     teal2_free(num_send);
     teal2_free(off_send);
@@ -60,22 +60,22 @@ static long *collect_adjncys(const Dual *dual, const Grid *grid, int *num_adjncy
     return recv;
 }
 
-static long *collect_parts(const long *adjncy, const Dual *dual, int num_adjncys)
+static long *collect_parts(const long *adjncy, const Dual *dual, const long *part, int num_adjncys)
 {
     long num_send = dual->dist[sync2.rank + 1] - dual->dist[sync2.rank];
     assert(0 <= num_send && num_send <= INT_MAX);
 
     long *recv = teal2_calloc(num_adjncys, sizeof(*recv));
-    sync2_collect(dual->part, recv, adjncy, (int)num_send, num_adjncys, MPI_LONG);
+    sync2_collect(part, recv, adjncy, (int)num_send, num_adjncys, MPI_LONG);
 
     return recv;
 }
 
-static void decompose_comm(const Dual *dual, const Grid *grid)
+static void decompose_comm(const Dual *dual, const long *part_, const Grid *grid)
 {
     int num_adjncys;
-    long *adjncy = collect_adjncys(dual, grid, &num_adjncys);
-    long *part = collect_parts(adjncy, dual, num_adjncys);
+    long *adjncy = collect_adjncys(dual, part_, grid, &num_adjncys);
+    long *part = collect_parts(adjncy, dual, part_, num_adjncys);
 
     int *count = teal2_calloc(sync2.size, sizeof(*count));
     for (int i = 0; i < num_adjncys; i++) {
@@ -149,11 +149,11 @@ static int compare_cell(const void *lhs_, const void *rhs_)
     return (lhs->rank > rhs->rank) - (lhs->rank < rhs->rank);
 }
 
-static void redistribute_cells(Grid *grid, const Dual *dual)
+static void redistribute_cells(Grid *grid, const long *part)
 {
     int *num_send = teal2_calloc(sync2.size, sizeof(*num_send));
     for (int i = 0; i < grid->cells.off_periodic; i++) {
-        num_send[dual->part[i]] += 1;
+        num_send[part[i]] += 1;
     }
 
     int *off_send = teal2_calloc(sync2.size + 1, sizeof(*off_send));
@@ -167,7 +167,7 @@ static void redistribute_cells(Grid *grid, const Dual *dual)
     Cell *send = teal2_calloc(grid->cells.off_periodic, sizeof(*send));
     for (int i = 0; i < grid->entities.num; i++) {
         for (int j = grid->entities.cell_off[i]; j < grid->entities.cell_off[i + 1]; j++) {
-            Cell *cell = &send[cur_send[dual->part[j]]++];
+            Cell *cell = &send[cur_send[part[j]]++];
             cell->entity = i;
             cell->num_nodes = 0;
             for (long k = grid->cells.node_off[j]; k < grid->cells.node_off[j + 1]; k++) {
@@ -280,18 +280,19 @@ static void redistribute_nodes(Grid *grid, int dst)
 static void partition_cells(Grid *grid)
 {
     Dual *dual = dual_init(grid);
-    dual_partition(dual, grid);
+    long *part = dual_partition(dual, grid);
 
     if (grid->entities.num > grid->entities.off_boundary) {
         dual_periodic(dual, grid);
     }
 
     int rank = sync2.rank;
-    decompose_comm(dual, grid);
+    decompose_comm(dual, part, grid);
 
-    redistribute_cells(grid, dual);
+    redistribute_cells(grid, part);
     redistribute_nodes(grid, rank);
 
+    teal2_free(part);
     dual_deinit(dual);
 }
 
@@ -392,7 +393,7 @@ static void collect_periodic(Mesh2 *mesh, Grid *grid)
         for (int j = grid->entities.cell_off[i]; j < grid->entities.cell_off[i + 1]; j++) {
             assert(dual->xadj[j + 1] - dual->xadj[j] == 2);
             long adjncy = dual->adjncy[dual->xadj[j] + 1];
-            int rank = digitize(&adjncy, dual->dist, sync2.size, sizeof(*dual->dist), compare_idx);
+            int rank = digitize(&adjncy, dual->dist, sync2.size, sizeof(*dual->dist), compare_long);
             assert(0 <= rank && rank < sync2.size);
             long idx = adjncy - dual->dist[rank];
             assert(idx <= INT_MAX);
@@ -425,7 +426,7 @@ static void append_neighbor_cells(Grid *grid, const Cell *recv, int tot_recv)
     int num_inner = (int)grid->cells.node_off[grid->cells.num_inner];
     long *inner = teal2_calloc(num_inner, sizeof(*inner));
     copy(inner, grid->cells.node_idx, num_inner, sizeof(*inner));
-    unique(inner, num_inner, sizeof(*inner), compare_idx);
+    unique(inner, num_inner, sizeof(*inner), compare_long);
 
     int num_cells = grid->cells.off_periodic + tot_recv;
     int max_indices = num_cells * MAX_CELL_NODES;
@@ -437,7 +438,7 @@ static void append_neighbor_cells(Grid *grid, const Cell *recv, int tot_recv)
     for (int i = 0; i < tot_recv; i++) {
         node_off[num + 1] = node_off[num];
         for (int j = 0; j < recv[i].num_nodes; j++) {
-            if (search(&recv[i].node[j], inner, num_inner, sizeof(*inner), compare_idx)) {
+            if (search(&recv[i].node[j], inner, num_inner, sizeof(*inner), compare_long)) {
                 assert(node_off[num + 1] - node_off[num] < MAX_CELL_NODES);
                 node_idx[node_off[num + 1]++] = recv[i].node[j];
             }
@@ -515,14 +516,15 @@ static void create_neighbors(Mesh2 *mesh, Grid *grid)
 
     long *adjncy = teal2_calloc(num_adjncys, sizeof(*adjncy));
     copy(adjncy, dual->adjncy, num_adjncys, sizeof(*adjncy));
-    num_adjncys = unique(adjncy, num_adjncys, sizeof(*adjncy), compare_idx);
+    num_adjncys = unique(adjncy, num_adjncys, sizeof(*adjncy), compare_long);
 
     int *num_inner = teal2_calloc(sync2.size, sizeof(*num_inner));
     sync2_gather(&grid->cells.num_inner, num_inner, 1, MPI_INT);
 
     int num = 0;
     while (num < num_adjncys) {
-        int rank = digitize(&adjncy[num], dual->dist, sync2.size, sizeof(*dual->dist), compare_idx);
+        int rank =
+            digitize(&adjncy[num], dual->dist, sync2.size, sizeof(*dual->dist), compare_long);
         long beg_inner = dual->dist[rank];
         long end_inner = dual->dist[rank] + num_inner[rank];
         if (rank == sync2.rank || adjncy[num] < beg_inner || end_inner <= adjncy[num]) {
@@ -532,11 +534,11 @@ static void create_neighbors(Mesh2 *mesh, Grid *grid)
             num += 1;
         }
     }
-    sort(adjncy, num_adjncys, sizeof(*adjncy), compare_idx);
+    sort(adjncy, num_adjncys, sizeof(*adjncy), compare_long);
 
     int *rank = teal2_calloc(num_adjncys, sizeof(*rank));
     for (int i = 0; i < num_adjncys; i++) {
-        rank[i] = digitize(&adjncy[i], dual->dist, sync2.size, sizeof(*dual->dist), compare_idx);
+        rank[i] = digitize(&adjncy[i], dual->dist, sync2.size, sizeof(*dual->dist), compare_long);
         assert(0 <= rank[i] && rank[i] < sync2.size);
     }
 
@@ -641,7 +643,7 @@ static void determine_owners(Node *node, const long *node_idx, int num_nodes, in
     for (int rank = 0; rank < sync2.size; rank++) {
         for (int i = 0; i < num; i++) {
             long key = node[i].old;
-            if (search(&key, node_idx, num_nodes, sizeof(*node_idx), compare_idx)) {
+            if (search(&key, node_idx, num_nodes, sizeof(*node_idx), compare_long)) {
                 if (sync2.rank < node[i].rank) {
                     node[i].rank = sync2.rank;
                 }
@@ -788,7 +790,7 @@ static int partition_nodes(Grid *grid)
             node_idx[num++] = grid->cells.node_idx[j];
         }
     }
-    int num_nodes = unique(node_idx, num, sizeof(*node_idx), compare_idx);
+    int num_nodes = unique(node_idx, num, sizeof(*node_idx), compare_long);
 
     int cap = num_nodes;
     sync2_max(&cap, 1, MPI_INT);

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <parmetis.h>
-
 #include "private.h"
 
 typedef struct {

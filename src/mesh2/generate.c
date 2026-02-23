@@ -9,6 +9,8 @@
 #include "teal2.h"
 #include "utils2.h"
 
+_Static_assert(sizeof(idx_t) == sizeof(long), "idx_t must match long");
+
 static void connect_cells(Mesh2 *mesh)
 {
     long num_cells = mesh->cells.num;

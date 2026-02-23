@@ -2,10 +2,14 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <parmetis.h>
 
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"
+
+_Static_assert(sizeof(idx_t) == sizeof(long), "idx_t must match long");
+_Static_assert(sizeof(real_t) == sizeof(double), "real_t must match double");
 
 Dual *dual_init(const Grid *grid)
 {
@@ -30,7 +34,6 @@ void dual_deinit(Dual *dual)
     teal2_free(dual->dist);
     teal2_free(dual->xadj);
     teal2_free(dual->adjncy);
-    teal2_free(dual->part);
     teal2_free(dual);
 }
 
@@ -58,7 +61,7 @@ static void collect_outer(long *part, const Dual *dual, const Grid *grid)
     teal2_free(recv);
 }
 
-void dual_partition(Dual *dual, const Grid *grid)
+long *dual_partition(Dual *dual, const Grid *grid)
 {
     long *vwgt = teal2_calloc(grid->cells.off_periodic, sizeof(*vwgt));
     for (int i = 0; i < grid->cells.num_inner; i++) {
@@ -110,12 +113,11 @@ void dual_partition(Dual *dual, const Grid *grid)
     // assigned to same partition as their connected inner cells; do it anyways to be safe
     collect_outer(part, dual, grid);
 
-    dual->part = part;
-
     teal2_free(vwgt);
     teal2_free(tpwgts);
     teal2_free(ubvec);
     teal2_free(num_inner);
+    return part;
 }
 
 typedef struct {
@@ -264,7 +266,7 @@ static long *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
                 assert(cell[num].num_nodes < MAX_CELL_NODES);
                 cell[num].node[cell[num].num_nodes++] = grid->cells.node_idx[k];
             }
-            sort(cell[num].node, cell[num].num_nodes, sizeof(*cell[num].node), compare_idx);
+            sort(cell[num].node, cell[num].num_nodes, sizeof(*cell[num].node), compare_long);
             assert(dual->xadj[j + 1] - dual->xadj[j] == 1);
             cell[num].inner = dual->adjncy[dual->xadj[j]];
             cell[num].idx = num;
@@ -287,7 +289,7 @@ static long *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
             assert(val);
             peer[i].node[j] = val->peer;
         }
-        sort(peer[i].node, peer[i].num_nodes, sizeof(*peer[i].node), compare_idx);
+        sort(peer[i].node, peer[i].num_nodes, sizeof(*peer[i].node), compare_long);
         peer[i].inner = -1;
     }
 
@@ -351,11 +353,4 @@ void dual_periodic(Dual *dual, const Grid *grid)
     dual->adjncy = adjncy;
 
     teal2_free(edge);
-}
-
-int compare_idx(const void *lhs_, const void *rhs_)
-{
-    const long *lhs = lhs_;
-    const long *rhs = rhs_;
-    return (*lhs > *rhs) - (*lhs < *rhs);
 }
