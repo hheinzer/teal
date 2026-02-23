@@ -37,88 +37,24 @@ void dual_deinit(Dual *dual)
 static void collect_outer(long *part, const Dual *dual, const Grid *grid)
 {
     int num_cells = grid->cells.num - grid->cells.num_inner;
-    int *rank = teal2_calloc(num_cells, sizeof(*rank));
-
+    long *adjncy = teal2_calloc(num_cells, sizeof(*adjncy));
     int num = 0;
     for (int i = grid->cells.num_inner; i < grid->cells.num; i++) {
         assert(dual->xadj[i + 1] - dual->xadj[i] == 1);
-        rank[num] = digitize(&dual->adjncy[dual->xadj[i]], dual->dist, sync2.size,
-                             sizeof(*dual->dist), compare_idx);
-        assert(0 <= rank[num] && rank[num] < sync2.size);
-        num += 1;
+        adjncy[num++] = dual->adjncy[dual->xadj[i]];
     }
     assert(num == num_cells);
-
-    int *num_recv = teal2_calloc(sync2.size, sizeof(*num_recv));
-    for (int i = 0; i < num_cells; i++) {
-        num_recv[rank[i]] += 1;
-    }
-
-    int *off_recv = teal2_calloc(sync2.size + 1, sizeof(*off_recv));
-    for (int i = 0; i < sync2.size; i++) {
-        off_recv[i + 1] = off_recv[i] + num_recv[i];
-    }
-
-    int *cur_recv = teal2_calloc(sync2.size, sizeof(*cur_recv));
-    copy(cur_recv, off_recv, sync2.size, sizeof(*cur_recv));
-
-    int *idx_recv = teal2_calloc(num_cells, sizeof(*idx_recv));
-    num = 0;
-    for (int i = grid->cells.num_inner; i < grid->cells.num; i++) {
-        assert(dual->xadj[i + 1] - dual->xadj[i] == 1);
-        long idx_local = dual->adjncy[dual->xadj[i]] - dual->dist[rank[num]];
-        assert(idx_local <= INT_MAX);
-        idx_recv[cur_recv[rank[num]]++] = (int)idx_local;
-        num += 1;
-    }
-    for (int i = 0; i < sync2.size; i++) {
-        assert(cur_recv[i] == off_recv[i + 1]);
-    }
-    assert(num == num_cells);
-
-    int *num_send = teal2_calloc(sync2.size, sizeof(*num_send));
-    MPI_Alltoall(num_recv, 1, MPI_INT, num_send, 1, MPI_INT, sync2.comm);
-
-    int *off_send = teal2_calloc(sync2.size + 1, sizeof(*off_send));
-    for (int i = 0; i < sync2.size; i++) {
-        off_send[i + 1] = off_send[i] + num_send[i];
-    }
-
-    int tot_send = off_send[sync2.size];
-    int *idx_send = teal2_calloc(tot_send, sizeof(*idx_send));
-    MPI_Alltoallv(idx_recv, num_recv, off_recv, MPI_INT, idx_send, num_send, off_send, MPI_INT,
-                  sync2.comm);
-
-    long *send = teal2_calloc(tot_send, sizeof(*send));
-    for (int i = 0; i < tot_send; i++) {
-        send[i] = part[idx_send[i]];
-    }
 
     long *recv = teal2_calloc(num_cells, sizeof(*recv));
-    MPI_Alltoallv(send, num_send, off_send, MPI_LONG, recv, num_recv, off_recv, MPI_LONG,
-                  sync2.comm);
-
-    copy(cur_recv, off_recv, sync2.size, sizeof(*cur_recv));
+    sync2_collect(part, recv, adjncy, grid->cells.off_periodic, num_cells, MPI_LONG);
 
     num = 0;
     for (int i = grid->cells.num_inner; i < grid->cells.num; i++) {
-        part[i] = recv[cur_recv[rank[num]]++];
-        num += 1;
-    }
-    for (int i = 0; i < sync2.size; i++) {
-        assert(cur_recv[i] == off_recv[i + 1]);
+        part[i] = recv[num++];
     }
     assert(num == num_cells);
 
-    teal2_free(rank);
-    teal2_free(num_recv);
-    teal2_free(off_recv);
-    teal2_free(cur_recv);
-    teal2_free(idx_recv);
-    teal2_free(num_send);
-    teal2_free(off_send);
-    teal2_free(idx_send);
-    teal2_free(send);
+    teal2_free(adjncy);
     teal2_free(recv);
 }
 

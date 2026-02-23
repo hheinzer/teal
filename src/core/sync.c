@@ -111,7 +111,8 @@ void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, in
 void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int num_send_,
                    int num_recv_, MPI_Datatype type)
 {
-    assert(idx_recv_ && send_ && recv_ && num_send_ > 0 && num_recv_ > 0);
+    assert((send_ || num_send_ == 0) && num_send_ >= 0);
+    assert(((recv_ && idx_recv_) || num_recv_ == 0) && num_recv_ >= 0);
 
     long *offset = teal2_calloc(sync2.size + 1, sizeof(*offset));
     MPI_Allgather(&(long){num_send_}, 1, MPI_LONG, &offset[1], 1, MPI_LONG, sync2.comm);
