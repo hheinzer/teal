@@ -51,7 +51,7 @@ format:
 	@clang-format -i $(shell find . -type f -name '*.[ch]')
 
 test: $(filter bin/test/%, $(BIN))
-	@for exe in $^; do echo $$exe; mpirun -n 2 $$exe -q; done
+	@for bin in $^; do echo $$bin; mpirun --oversubscribe -n 8 $$bin -q; done
 
 # dependencies
 CFLAGS += -MMD -MP
