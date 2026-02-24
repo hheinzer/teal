@@ -23,6 +23,9 @@ void mesh2_split(Mesh2 *mesh, const char *entity, Vector root, Vector normal);
 // Generate derived connectivity/geometry fields.
 void mesh2_generate(Mesh2 *mesh);
 
+// Validate mesh consistency.
+void mesh2_validate(const Mesh2 *mesh);
+
 // Print a global mesh summary.
 void mesh2_summary(const Mesh2 *mesh);
 

@@ -26,6 +26,8 @@ int main(int argc, char **argv)
     mesh2_split(mesh, "bottom", root, normal);
 
     mesh2_generate(mesh);
+    mesh2_validate(mesh);
+
     mesh2_summary(mesh);
     mesh2_write(mesh, argv[0]);
 
