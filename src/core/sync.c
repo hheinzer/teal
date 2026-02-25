@@ -91,28 +91,54 @@ void sync2_offsets(const void *val, void *buf_, int num, MPI_Datatype type)
     MPI_Allgather(MPI_IN_PLACE, num, type, buf[1], num, type, sync2.comm);
 }
 
-void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type)
+void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len)
 {
-    assert(buf && num && cap > 0);
+    assert(buf && num && cap > 0 && len > 0);
+
+    if (len > 1) {
+        MPI_Type_contiguous(len, type, &type);
+        MPI_Type_commit(&type);
+    }
+
     int next = (sync2.rank + 1) % sync2.size;
     int prev = (sync2.rank - 1 + sync2.size) % sync2.size;
     MPI_Sendrecv_replace(num, 1, MPI_INT, next, 0, prev, 0, sync2.comm, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(buf, cap, type, next, 1, prev, 1, sync2.comm, MPI_STATUS_IGNORE);
+
+    if (len > 1) {
+        MPI_Type_free(&type);
+    }
 }
 
 void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, int dst, int src,
-                    MPI_Datatype type)
+                    MPI_Datatype type, int len)
 {
-    assert(send && recv && num_send > 0 && num_recv > 0);
+    assert(send && recv && num_send > 0 && num_recv > 0 && len > 0);
+
+    if (len > 1) {
+        MPI_Type_contiguous(len, type, &type);
+        MPI_Type_commit(&type);
+    }
+
     MPI_Sendrecv(send, num_send, type, dst, 0, recv, num_recv, type, src, 0, sync2.comm,
                  MPI_STATUS_IGNORE);
+
+    if (len > 1) {
+        MPI_Type_free(&type);
+    }
 }
 
 void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int num_send_,
-                   int num_recv_, MPI_Datatype type)
+                   int num_recv_, MPI_Datatype type, int len)
 {
     assert((send_ || num_send_ == 0) && num_send_ >= 0);
     assert(((recv_ && idx_recv_) || num_recv_ == 0) && num_recv_ >= 0);
+    assert(len > 0);
+
+    if (len > 1) {
+        MPI_Type_contiguous(len, type, &type);
+        MPI_Type_commit(&type);
+    }
 
     long *offset = teal2_calloc(sync2.size + 1, sizeof(*offset));
     MPI_Allgather(&(long){num_send_}, 1, MPI_LONG, &offset[1], 1, MPI_LONG, sync2.comm);
@@ -195,6 +221,19 @@ void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int nu
     teal2_free(idx_send);
     teal2_free(send);
     teal2_free(recv);
+
+    if (len > 1) {
+        MPI_Type_free(&type);
+    }
+}
+
+MPI_Datatype sync2_contiguous(MPI_Datatype type, int len)
+{
+    assert(len > 0);
+    MPI_Datatype contiguous;
+    MPI_Type_contiguous(len, type, &contiguous);
+    MPI_Type_commit(&contiguous);
+    return contiguous;
 }
 
 MPI_Datatype sync2_resized(MPI_Datatype type, MPI_Aint extent)

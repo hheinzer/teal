@@ -66,7 +66,7 @@ static long *collect_parts(const long *adjncy, const Dual *dual, const long *par
     assert(0 <= num_send && num_send <= INT_MAX);
 
     long *recv = teal2_calloc(num_adjncys, sizeof(*recv));
-    sync2_collect(part, recv, adjncy, (int)num_send, num_adjncys, MPI_LONG);
+    sync2_collect(part, recv, adjncy, (int)num_send, num_adjncys, MPI_LONG, 1);
 
     return recv;
 }
@@ -261,15 +261,10 @@ static void redistribute_nodes(Grid *grid, int dst)
     }
 
     int num_nodes;
-    sync2_exchange(&grid->nodes.num, &num_nodes, 1, 1, dst, src, MPI_INT);
-
-    MPI_Datatype type;
-    MPI_Type_contiguous(3, MPI_DOUBLE, &type);
-    MPI_Type_commit(&type);
+    sync2_exchange(&grid->nodes.num, &num_nodes, 1, 1, dst, src, MPI_INT, 1);
 
     Vector *coord = teal2_calloc(num_nodes, sizeof(*coord));
-    sync2_exchange(grid->nodes.coord, coord, grid->nodes.num, num_nodes, dst, src, type);
-    MPI_Type_free(&type);
+    sync2_exchange(grid->nodes.coord, coord, grid->nodes.num, num_nodes, dst, src, MPI_DOUBLE, 3);
 
     teal2_free(grid->nodes.coord);
 
@@ -649,7 +644,7 @@ static void determine_owners(Node *node, const long *node_idx, int num_nodes, in
                 }
             }
         }
-        sync2_rotate(node, &num, cap, type);
+        sync2_rotate(node, &num, cap, type, 1);
     }
     assert(num == num_nodes);
     MPI_Type_free(&type);
@@ -681,7 +676,7 @@ static void propagate_indices(Node *node, const Map *map, int num_nodes, int num
                 node[i].new = val->new;
             }
         }
-        sync2_rotate(node, &num, cap, type);
+        sync2_rotate(node, &num, cap, type, 1);
     }
     assert(num == num_nodes);
     MPI_Type_free(&type);
@@ -701,13 +696,8 @@ static long *collect_tags(const Node *node, int num_nodes)
 
 static Vector *collect_coords(const Grid *grid, const Map *map, const long *node_idx, int num_nodes)
 {
-    MPI_Datatype type;
-    MPI_Type_contiguous(3, MPI_DOUBLE, &type);
-    MPI_Type_commit(&type);
-
     Vector *coord = teal2_calloc(num_nodes, sizeof(*coord));
-    sync2_collect(grid->nodes.coord, coord, node_idx, grid->nodes.num, num_nodes, type);
-    MPI_Type_free(&type);
+    sync2_collect(grid->nodes.coord, coord, node_idx, grid->nodes.num, num_nodes, MPI_DOUBLE, 3);
 
     Vector *sorted = teal2_calloc(num_nodes, sizeof(*grid->nodes.coord));
     for (int i = 0; i < num_nodes; i++) {
@@ -763,7 +753,7 @@ static void remap_entities_node_graph(Grid *grid, const Map *map, int num_nodes)
                 }
             }
         }
-        sync2_rotate(node_idx, &num, cap, MPI_LONG);
+        sync2_rotate(node_idx, &num, cap, MPI_LONG, 1);
     }
     assert(num == grid->entities.node_off[grid->entities.num]);
 

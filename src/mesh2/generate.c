@@ -154,7 +154,7 @@ static void collect_globals(Mesh2 *mesh, const int *map)
     }
 
     long *recv = teal2_calloc(num_nodes, sizeof(*recv));
-    sync2_collect(send, recv, global, mesh->nodes.num_inner, num_nodes, MPI_LONG);
+    sync2_collect(send, recv, global, mesh->nodes.num_inner, num_nodes, MPI_LONG, 1);
 
     num = 0;
     for (int i = mesh->nodes.num_inner; i < mesh->nodes.num; i++) {
@@ -546,10 +546,7 @@ static void collect_centers(Vector *center, const Mesh2 *mesh)
     int tot_send = mesh->neighbors.send.off[mesh->neighbors.num];
     Vector *send = teal2_calloc(tot_send, sizeof(*send));
 
-    MPI_Datatype type;
-    MPI_Type_contiguous(3, MPI_DOUBLE, &type);
-    MPI_Type_commit(&type);
-
+    MPI_Datatype type = sync2_contiguous(MPI_DOUBLE, 3);
     MPI_Request *req_recv = teal2_calloc(mesh->neighbors.num, sizeof(*req_recv));
     MPI_Request *req_send = teal2_calloc(mesh->neighbors.num, sizeof(*req_send));
     for (int i = 0; i < mesh->neighbors.num; i++) {
@@ -565,7 +562,6 @@ static void collect_centers(Vector *center, const Mesh2 *mesh)
     }
     MPI_Waitall(mesh->neighbors.num, req_recv, MPI_STATUSES_IGNORE);
     MPI_Waitall(mesh->neighbors.num, req_send, MPI_STATUSES_IGNORE);
-
     MPI_Type_free(&type);
 
     teal2_free(send);

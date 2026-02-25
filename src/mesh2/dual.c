@@ -49,7 +49,7 @@ static void collect_outer(long *part, const Dual *dual, const Grid *grid)
     assert(num == num_cells);
 
     long *recv = teal2_calloc(num_cells, sizeof(*recv));
-    sync2_collect(part, recv, adjncy, grid->cells.off_periodic, num_cells, MPI_LONG);
+    sync2_collect(part, recv, adjncy, grid->cells.off_periodic, num_cells, MPI_LONG, 1);
 
     num = 0;
     for (int i = grid->cells.num_inner; i < grid->cells.num; i++) {
@@ -199,7 +199,7 @@ static Map *compute_node_map(const Grid *grid, int *num_nodes)
                 }
             }
         }
-        sync2_rotate(periodic, &num, cap, type);
+        sync2_rotate(periodic, &num, cap, type, 1);
     }
     assert(num == num_periodic);
     MPI_Type_free(&type);
@@ -304,7 +304,7 @@ static long *collect_edges(const Dual *dual, const Grid *grid, int num_edges)
                 }
             }
         }
-        sync2_rotate(peer, &num, cap, type);
+        sync2_rotate(peer, &num, cap, type, 1);
     }
     assert(num == num_edges);
     MPI_Type_free(&type);

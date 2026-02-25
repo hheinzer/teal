@@ -93,7 +93,7 @@ long *grid_tag_to_idx(const Grid *grid, const long *node_tag, int num_tags)
                 }
             }
         }
-        sync2_rotate(map, &num, cap, type);
+        sync2_rotate(map, &num, cap, type, 1);
     }
     assert(num == grid->nodes.num);
     MPI_Type_free(&type);

@@ -36,15 +36,18 @@ void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type);
 void sync2_offsets(const void *val, void *buf, int num, MPI_Datatype type);
 
 // Rotate a fixed-capacity buffer and count to the next rank.
-void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type);
+void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len);
 
 // Send to `dst` and receive from `src` in a single exchange.
 void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, int dst, int src,
-                    MPI_Datatype type);
+                    MPI_Datatype type, int len);
 
 // Collect global values at `idx_recv` from all ranks into `recv`.
 void sync2_collect(const void *send, void *recv, const long *idx_recv, int num_send, int num_recv,
-                   MPI_Datatype type);
+                   MPI_Datatype type, int len);
+
+// Create a contiguous derived datatype of `len` values.
+MPI_Datatype sync2_contiguous(MPI_Datatype type, int len);
 
 // Resize a derived datatype to `extent` bytes.
 MPI_Datatype sync2_resized(MPI_Datatype type, MPI_Aint extent);
