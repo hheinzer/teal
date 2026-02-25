@@ -26,14 +26,11 @@ void teal2_verbose(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 // Print a formatted message from any rank to `stderr` and exit teal.
 void teal2_error(const char *fmt, ...) __attribute__((format(printf, 1, 2), noreturn));
 
-// Allocate memory with 64-byte alignment.
-void *teal2_malloc(size_t size);
-
 // Allocate `num * size` bytes and zero-initialize.
 void *teal2_calloc(int num, int size) __attribute__((malloc));
 
 // Reallocate `num * size` bytes, preserving existing contents.
 void *teal2_realloc(void *ptr, int num, int size);
 
-// Free memory allocated with `teal2_malloc` or `teal2_calloc`.
+// Free memory allocated with `teal2_calloc` or `teal2_realloc`.
 void teal2_free(void *ptr);

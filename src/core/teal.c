@@ -134,54 +134,41 @@ void teal2_error(const char *fmt, ...)
     teal2_exit(EXIT_FAILURE);
 }
 
-void *teal2_malloc(size_t size)
+static void *teal2_malloc(int num, int size)
 {
-    if (size == 0) {
-        return 0;
+    if ((size_t)num > (SIZE_MAX - (ALIGN - 1)) / size) {
+        teal2_error("overflow (%d, %d)", num, size);
     }
-
-    if (size > SIZE_MAX - (ALIGN - 1)) {
-        teal2_error("overflow (%zu)", size);
-    }
-
-    size_t padded = (size + (ALIGN - 1)) & ~(ALIGN - 1);
+    size_t bytes = (size_t)num * size;
+    size_t padded = (bytes + (ALIGN - 1)) & ~(ALIGN - 1);
     void *ptr = aligned_alloc(ALIGN, padded);
     if (!ptr) {
-        teal2_error("malloc failure (%zu)", padded);
+        teal2_error("aligned_alloc failure (%zu)", padded);
     }
-
     return ptr;
 }
 
 void *teal2_calloc(int num, int size)
 {
     assert(num >= 0 && size > 0);
-
     if (num == 0) {
         return 0;
     }
-
-    if ((size_t)num > SIZE_MAX / size) {
-        teal2_error("overflow (%d, %d)", num, size);
-    }
-
-    size_t bytes = (size_t)num * size;
-    void *ptr = teal2_malloc(bytes);
-
-    return memset(ptr, 0, bytes);
+    void *ptr = teal2_malloc(num, size);
+    return memset(ptr, 0, (size_t)num * size);
 }
 
 void *teal2_realloc(void *ptr, int num, int size)
 {
     assert(num >= 0 && size > 0);
 
-    if (!ptr) {
-        return teal2_calloc(num, size);
-    }
-
     if (num == 0) {
         teal2_free(ptr);
         return 0;
+    }
+
+    if (!ptr) {
+        return teal2_malloc(num, size);
     }
 
     if ((size_t)num > SIZE_MAX / size) {
@@ -198,7 +185,7 @@ void *teal2_realloc(void *ptr, int num, int size)
         return new;
     }
 
-    void *aligned = teal2_malloc(bytes);
+    void *aligned = teal2_malloc(num, size);
     memcpy(aligned, new, bytes);
 
     teal2_free(new);

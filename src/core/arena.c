@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "arena2.h"
@@ -27,7 +28,10 @@ Arena2 *arena2_init(size_t capacity)
         capacity = min_capacity;
     }
 
-    Arena2 *self = teal2_malloc(sizeof(*self) + capacity);
+    Arena2 *self = malloc(sizeof(*self) + capacity);
+    if (!self) {
+        teal2_error("malloc failure (%zu)", sizeof(*self) + capacity);
+    }
 
     self->base = (char *)(self + 1);
     MAKE_REGION_NOACCESS(self->base, capacity);
@@ -43,7 +47,7 @@ void arena2_deinit(Arena2 *self)
 {
     while (self) {
         Arena2 *prev = self->prev;
-        teal2_free(self);
+        free(self);
         self = prev;
     }
 }
@@ -136,7 +140,7 @@ void arena2_load(Arena2 *self, const Save2 *save)
     while (self->prev && self->base != save->base) {
         Arena2 *prev = self->prev;
         *self = *prev;
-        teal2_free(prev);
+        free(prev);
     }
 
     int matching_base = (self->base == save->base);
