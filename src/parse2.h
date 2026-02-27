@@ -20,7 +20,7 @@ int parse2_string(MPI_File file, char *str, int size);
 // Parse `num` ASCII tokens into `buf` on rank 0 and broadcast.
 void parse2_ascii(MPI_File file, void *buf, int num, MPI_Datatype type);
 
-// Parse `num` ASCII tokens per rank and distribute by rank.
+// Parse `num` ASCII tokens per rank in rank order.
 void parse2_ascii_split(MPI_File file, void *buf, int num, MPI_Datatype type);
 
 // Read `num` binary items on rank 0 (optional byte swap) and broadcast.

@@ -128,11 +128,11 @@ void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, in
     }
 }
 
-void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int num_send_,
-                   int num_recv_, MPI_Datatype type, int len)
+void sync2_collect(const void *send_, void *recv_, const long *global, int num_send_, int num_recv_,
+                   MPI_Datatype type, int len)
 {
     assert((send_ || num_send_ == 0) && num_send_ >= 0);
-    assert(((recv_ && idx_recv_) || num_recv_ == 0) && num_recv_ >= 0);
+    assert(((recv_ && global) || num_recv_ == 0) && num_recv_ >= 0);
     assert(len > 0);
 
     if (len > 1) {
@@ -148,7 +148,7 @@ void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int nu
 
     int *rank = teal2_calloc(num_recv_, sizeof(*rank));
     for (int i = 0; i < num_recv_; i++) {
-        rank[i] = digitize(&idx_recv_[i], offset, sync2.size, sizeof(*offset), compare_long);
+        rank[i] = digitize(&global[i], offset, sync2.size, sizeof(*offset), compare_long);
         assert(0 <= rank[i] && rank[i] < sync2.size);
     }
 
@@ -167,7 +167,7 @@ void sync2_collect(const void *send_, void *recv_, const long *idx_recv_, int nu
 
     int *idx_recv = teal2_calloc(num_recv_, sizeof(*idx_recv));
     for (int i = 0; i < num_recv_; i++) {
-        long idx_local = idx_recv_[i] - offset[rank[i]];
+        long idx_local = global[i] - offset[rank[i]];
         assert(idx_local <= INT_MAX);
         idx_recv[cur_recv[rank[i]]++] = (int)idx_local;
     }

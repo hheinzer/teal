@@ -29,10 +29,10 @@ void sync2_sum(void *buf, int num, MPI_Datatype type);
 // In-place exclusive prefix sum; rank 0 receives zeros.
 void sync2_prefix(void *buf, int num, MPI_Datatype type);
 
-// Gather values from each rank into a contiguous buffer.
+// Gather `num` values per rank into buffer.
 void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type);
 
-// Build exclusive prefix offsets array across ranks.
+// Build rank offsets with first entry zero and last entry equal to the global total.
 void sync2_offsets(const void *val, void *buf, int num, MPI_Datatype type);
 
 // Rotate a fixed-capacity buffer and count to the next rank.
@@ -42,8 +42,8 @@ void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len);
 void sync2_exchange(const void *send, void *recv, int num_send, int num_recv, int dst, int src,
                     MPI_Datatype type, int len);
 
-// Collect global values at `idx_recv` from all ranks into `recv`.
-void sync2_collect(const void *send, void *recv, const long *idx_recv, int num_send, int num_recv,
+// Collect values at global indices from concatenated rank-local `send` arrays.
+void sync2_collect(const void *send, void *recv, const long *global, int num_send, int num_recv,
                    MPI_Datatype type, int len);
 
 // Create a contiguous derived datatype of `len` values.
