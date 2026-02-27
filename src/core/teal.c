@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "sanitizer.h"
 #include "sync2.h"
 #include "teal2.h"
 
@@ -140,19 +141,32 @@ void teal2_error(const char *fmt, ...)
     teal2_exit(EXIT_FAILURE);
 }
 
+typedef struct {
+    void *base;
+    size_t bytes;
+} Alloc;
+
 static void *teal2_malloc(int num, int size)
 {
-    if ((size_t)num > (SIZE_MAX - (ALIGN - 1)) / size) {
+    size_t extra = sizeof(Alloc) + (ALIGN - 1);
+    if ((size_t)num > (SIZE_MAX - extra) / size) {
         teal2_error("overflow (%d, %d)", num, size);
     }
 
     size_t bytes = (size_t)num * size;
 
-    size_t padded = (bytes + (ALIGN - 1)) & ~(ALIGN - 1);
-    void *ptr = aligned_alloc(ALIGN, padded);
-    if (!ptr) {
-        teal2_error("aligned_alloc failure (%zu)", padded);
+    char *base = malloc(bytes + extra);
+    if (!base) {
+        teal2_error("malloc failure (%zu)", bytes + extra);
     }
+
+    char *beg = base + sizeof(Alloc);
+    char *ptr = beg + (-(uintptr_t)beg & (ALIGN - 1));
+
+    ((Alloc *)ptr)[-1].base = base;
+    ((Alloc *)ptr)[-1].bytes = bytes;
+
+    MAKE_REGION_NOACCESS(base, ptr - base);
 
     return ptr;
 }
@@ -183,28 +197,29 @@ void *teal2_realloc(void *ptr, int num, int size)
         return teal2_malloc(num, size);
     }
 
-    if ((size_t)num > SIZE_MAX / size) {
-        teal2_error("overflow (%d, %d)", num, size);
-    }
+    MAKE_REGION_ADDRESSABLE((char *)ptr - sizeof(Alloc), sizeof(Alloc));
+
+    void *new = teal2_malloc(num, size);
 
     size_t bytes = (size_t)num * size;
-    void *new = realloc(ptr, bytes);
-    if (!new) {
-        teal2_error("realloc failure (%zu)", bytes);
+    if (((Alloc *)ptr)[-1].bytes < bytes) {
+        bytes = ((Alloc *)ptr)[-1].bytes;
     }
 
-    if ((uintptr_t)new % ALIGN == 0) {
-        return new;
-    }
+    memcpy(new, ptr, bytes);
 
-    void *aligned = teal2_malloc(num, size);
-    memcpy(aligned, new, bytes);
+    free(((Alloc *)ptr)[-1].base);
 
-    teal2_free(new);
-    return aligned;
+    return new;
 }
 
 void teal2_free(void *ptr)
 {
-    free(ptr);
+    if (!ptr) {
+        return;
+    }
+
+    MAKE_REGION_ADDRESSABLE((char *)ptr - sizeof(Alloc), sizeof(Alloc));
+
+    free(((Alloc *)ptr)[-1].base);
 }

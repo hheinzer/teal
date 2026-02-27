@@ -6,7 +6,7 @@ MPICC = OMPI_CC=$(CC) mpicc
 LDLIBS = -lm -lmetis -lparmetis -lhdf5
 
 # default flags
-CFLAGS = -Isrc -std=c11 -g3 -Wall -Wextra -Wpedantic -Wshadow \
+CFLAGS = -Isrc -std=c99 -g3 -Wall -Wextra -Wpedantic -Wshadow \
 		 -Wno-unused-parameter -Wno-unused-function
 
 # exceptions

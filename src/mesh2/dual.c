@@ -20,12 +20,23 @@ Dual *dual_init(const Grid *grid)
 
     long numflag = 0;
     long ncommon = 3;
+    long *xadj;
+    long *adjncy;
     int ret = ParMETIS_V3_Mesh2Dual(dual->dist, grid->cells.node_off, grid->cells.node_idx,
-                                    &numflag, &ncommon, &dual->xadj, &dual->adjncy, &sync2.comm);
+                                    &numflag, &ncommon, &xadj, &adjncy, &sync2.comm);
     if (ret != METIS_OK) {
         teal2_error("ParMETIS_V3_Mesh2Dual failed (%d)", ret);
     }
 
+    dual->xadj = teal2_calloc(grid->cells.off_periodic + 1, sizeof(*xadj));
+    copy(dual->xadj, xadj, grid->cells.off_periodic + 1, sizeof(*xadj));
+
+    assert(xadj[grid->cells.off_periodic] <= INT_MAX);
+    dual->adjncy = teal2_calloc((int)xadj[grid->cells.off_periodic], sizeof(*adjncy));
+    copy(dual->adjncy, adjncy, (int)xadj[grid->cells.off_periodic], sizeof(*adjncy));
+
+    METIS_Free(xadj);
+    METIS_Free(adjncy);
     return dual;
 }
 
