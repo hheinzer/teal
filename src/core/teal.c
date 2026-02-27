@@ -92,12 +92,16 @@ static void println(FILE *stream, const char *prefix, const char *fmt, va_list a
 {
     char beg[4 << 10];
     char *end = beg;
+
     if (prefix) {
         end += sprintf(end, "[%d] %s: ", sync2.rank, prefix);
     }
+
     end += vsprintf(end, fmt, args);
+
     *end++ = '\n';
     *end = 0;
+
     fputs(beg, stream);
     fflush(stream);
 }
@@ -127,10 +131,12 @@ void teal2_verbose(const char *fmt, ...)
 void teal2_error(const char *fmt, ...)
 {
     assert(fmt);
+
     va_list args;
     va_start(args, fmt);
-    println(stdout, "ERROR", fmt, args);
+    println(stderr, "ERROR", fmt, args);
     va_end(args);
+
     teal2_exit(EXIT_FAILURE);
 }
 
@@ -139,22 +145,28 @@ static void *teal2_malloc(int num, int size)
     if ((size_t)num > (SIZE_MAX - (ALIGN - 1)) / size) {
         teal2_error("overflow (%d, %d)", num, size);
     }
+
     size_t bytes = (size_t)num * size;
+
     size_t padded = (bytes + (ALIGN - 1)) & ~(ALIGN - 1);
     void *ptr = aligned_alloc(ALIGN, padded);
     if (!ptr) {
         teal2_error("aligned_alloc failure (%zu)", padded);
     }
+
     return ptr;
 }
 
 void *teal2_calloc(int num, int size)
 {
     assert(num >= 0 && size > 0);
+
     if (num == 0) {
         return 0;
     }
+
     void *ptr = teal2_malloc(num, size);
+
     return memset(ptr, 0, (size_t)num * size);
 }
 

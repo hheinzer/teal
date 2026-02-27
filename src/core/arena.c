@@ -8,6 +8,7 @@
 #include "teal2.h"
 
 enum { ALIGN = 64 };
+enum { MIN_CAPACITY = 10 << 20 };
 
 struct arena {
     char *base;
@@ -23,9 +24,8 @@ struct save {
 
 Arena2 *arena2_init(size_t capacity)
 {
-    size_t min_capacity = 10 << 20;
-    if (capacity < min_capacity) {
-        capacity = min_capacity;
+    if (capacity < MIN_CAPACITY) {
+        capacity = MIN_CAPACITY;
     }
 
     Arena2 *self = malloc(sizeof(*self) + capacity);
@@ -70,7 +70,7 @@ static void append_chunk(Arena2 *self, int num, int size, int align)
     }
 
     ptrdiff_t capacity = 2 * min_capacity;
-    teal2_verbose("growing scratch by %td MiB", capacity >> 20);
+    teal2_verbose("growing arena by %td MiB", capacity >> 20);
 
     Arena2 *next = arena2_init(capacity);
 

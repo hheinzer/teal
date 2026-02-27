@@ -64,11 +64,14 @@ void sync2_sum(void *buf, int num, MPI_Datatype type)
 void sync2_prefix(void *buf, int num, MPI_Datatype type)
 {
     assert(buf && num > 0);
+
     MPI_Exscan(MPI_IN_PLACE, buf, num, type, MPI_SUM, sync2.comm);
+
     if (sync2.rank == 0) {
         int size;
         MPI_Type_size(type, &size);
         assert(size > 0);
+
         memset(buf, 0, (size_t)num * size);
     }
 }
@@ -82,11 +85,14 @@ void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type)
 void sync2_offsets(const void *val, void *buf_, int num, MPI_Datatype type)
 {
     assert(val && buf_ && num > 0);
+
     int size;
     MPI_Type_size(type, &size);
     assert(size > 0);
+
     char (*buf)[num * size] = buf_;
     memset(buf[0], 0, sizeof(*buf));
+
     MPI_Scan(val, buf[sync2.rank + 1], num, type, MPI_SUM, sync2.comm);
     MPI_Allgather(MPI_IN_PLACE, num, type, buf[1], num, type, sync2.comm);
 }
@@ -102,6 +108,7 @@ void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len)
 
     int next = (sync2.rank + 1) % sync2.size;
     int prev = (sync2.rank - 1 + sync2.size) % sync2.size;
+
     MPI_Sendrecv_replace(num, 1, MPI_INT, next, 0, prev, 0, sync2.comm, MPI_STATUS_IGNORE);
     MPI_Sendrecv_replace(buf, cap, type, next, 1, prev, 1, sync2.comm, MPI_STATUS_IGNORE);
 

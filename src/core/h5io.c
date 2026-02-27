@@ -96,7 +96,9 @@ static hid_t type_string(size_t size)
 static int attribute_dims_matchs(hid_t attr, hsize_t dims)
 {
     int match = 0;
+
     hid_t space = H5Aget_space(attr);
+
     int ndims = H5Sget_simple_extent_ndims(space);
     if (ndims == 0) {
         match = (dims == 1);
@@ -106,7 +108,9 @@ static int attribute_dims_matchs(hid_t attr, hsize_t dims)
         H5Sget_simple_extent_dims(space, &attr_dims, 0);
         match = (dims == attr_dims);
     }
+
     H5Sclose(space);
+
     return match;
 }
 
@@ -162,18 +166,24 @@ void h5io2_attribute_write(const char *name, const void *buf, int num, hid_t typ
 static int dataset_dims_match(hid_t dset, int rank, hsize_t num, hsize_t len)
 {
     int match = 0;
+
     hid_t space = H5Dget_space(dset);
+
     int ndims = H5Sget_simple_extent_ndims(space);
     if (ndims == rank) {
         sync2_sum(&num, 1, HSIZE_AS_MPI_TYPE);
+
         hsize_t dset_dims[2];
         H5Sget_simple_extent_dims(space, dset_dims, 0);
+
         match = (num == dset_dims[0]);
         if (ndims == 2) {
             match &= (len == dset_dims[1]);
         }
     }
+
     H5Sclose(space);
+
     return match;
 }
 
@@ -202,6 +212,7 @@ void h5io2_dataset_read(const char *name, void *buf, int num, int len, hid_t typ
 
     hsize_t start[2] = {num, 0};
     sync2_prefix(&start[0], 1, HSIZE_AS_MPI_TYPE);
+
     H5Sselect_hyperslab(fspace, H5S_SELECT_SET, start, 0, count, 0);
 
     hid_t plist = H5Pcreate(H5P_DATASET_XFER);
@@ -233,6 +244,7 @@ void h5io2_dataset_write(const char *name, const void *buf, int num, int len, hi
 
     hsize_t dims[2] = {num, len};
     sync2_sum(&dims[0], 1, HSIZE_AS_MPI_TYPE);
+
     hid_t fspace = H5Screate_simple(rank, dims, 0);
 
     hid_t dset = H5Dcreate2(loc, name, type, fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -242,6 +254,7 @@ void h5io2_dataset_write(const char *name, const void *buf, int num, int len, hi
 
     hsize_t start[2] = {num, 0};
     sync2_prefix(&start[0], 1, HSIZE_AS_MPI_TYPE);
+
     H5Sselect_hyperslab(fspace, H5S_SELECT_SET, start, 0, count, 0);
 
     hid_t plist = H5Pcreate(H5P_DATASET_XFER);

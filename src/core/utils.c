@@ -23,16 +23,14 @@ int compare_double(const void *lhs_, const void *rhs_)
 {
     const double *lhs = lhs_;
     const double *rhs = rhs_;
-    assert(isfinite(*lhs) && isfinite(*rhs));
-    return (*lhs > *rhs) - (*lhs < *rhs);
+    return isgreater(*lhs, *rhs) - isless(*lhs, *rhs);
 }
 
 int isclose(double lhs, double rhs)
 {
-    assert(isfinite(lhs) && isfinite(rhs));
-    double abs_tol = 1e-8;
-    double rel_tol = 1e-5;
-    return fabs(lhs - rhs) <= fmax(abs_tol, rel_tol * fmax(fabs(lhs), fabs(rhs)));
+    static const double abs_tol = 1e-8;
+    static const double rel_tol = 1e-5;
+    return islessequal(fabs(lhs - rhs), fmax(abs_tol, rel_tol * fmax(fabs(lhs), fabs(rhs))));
 }
 
 void *copy(void *dst, const void *src, int num, int size)

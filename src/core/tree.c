@@ -6,10 +6,8 @@
 #include "utils2.h"
 
 typedef struct node {
-    int beg;
-    int end;
-    Vector min;
-    Vector max;
+    int beg, end;
+    Vector min, max;
     struct node *left;
     struct node *right;
 } Node;
@@ -171,10 +169,6 @@ Tree2 *tree2_init(const Vector *point, int num, int cap_leaf)
 {
     assert((point || num == 0) && num >= 0 && cap_leaf >= 0);
 
-    for (int i = 0; i < num; i++) {
-        assert(isfinite(point[i].x) && isfinite(point[i].y) && isfinite(point[i].z));
-    }
-
     Tree2 *self = teal2_calloc(1, sizeof(*self));
 
     if (num == 0) {
@@ -320,29 +314,28 @@ int tree2_nearest(const Tree2 *self, Vector point, int *idx, int cap)
     return num;
 }
 
-static int radius_r(const Tree2 *self, const Node *node, Vector point, int *idx, int num, int cap,
-                    double radius2)
+static void radius_r(const Tree2 *self, const Node *node, Vector point, int *idx, int *num, int cap,
+                     double radius2)
 {
     if (dist2_bbox(node, point) > radius2) {
-        return num;
+        return;
     }
 
     if (!node->left) {
         for (int i = node->beg; i < node->end; i++) {
             int idx_point = self->perm[i];
             if (dist2_point(self->point[idx_point], point) <= radius2) {
-                if (num < cap) {
-                    idx[num] = idx_point;
+                if (*num < cap) {
+                    idx[*num] = idx_point;
                 }
-                num += 1;
+                *num += 1;
             }
         }
-        return num;
+        return;
     }
 
-    num = radius_r(self, node->left, point, idx, num, cap, radius2);
-    num = radius_r(self, node->right, point, idx, num, cap, radius2);
-    return num;
+    radius_r(self, node->left, point, idx, num, cap, radius2);
+    radius_r(self, node->right, point, idx, num, cap, radius2);
 }
 
 int tree2_radius(const Tree2 *self, Vector point, double radius, int *idx, int cap)
@@ -353,5 +346,8 @@ int tree2_radius(const Tree2 *self, Vector point, double radius, int *idx, int c
         return 0;
     }
 
-    return radius_r(self, self->node, point, idx, 0, cap, sq(radius));
+    int num = 0;
+    radius_r(self, self->node, point, idx, &num, cap, sq(radius));
+
+    return num;
 }

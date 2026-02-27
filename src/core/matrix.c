@@ -44,6 +44,7 @@ Matrix matrix_inverse(Matrix mat)
         vector2_cross(mat.z, mat.x),
         vector2_cross(mat.x, mat.y),
     };
+
     double det = vector2_dot(mat.x, adj.x);
     return (Matrix){
         vector2_div(adj.x, det),

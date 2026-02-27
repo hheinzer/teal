@@ -683,7 +683,6 @@ static Vector compute_face_weight(Vector delta, const double *r11, const double 
     }
     double theta2 = 1 / vector2_norm2(delta);
     vector2_imul(&weight, theta2);
-    assert(isfinite(weight.x) && isfinite(weight.y) && isfinite(weight.z));
     return weight;
 }
 

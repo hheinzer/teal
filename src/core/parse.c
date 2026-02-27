@@ -166,6 +166,7 @@ static int refill(Buffer *buffer)
 
     ptrdiff_t used = buffer->end - buffer->base;
     assert(used <= INT_MAX);
+
     int available = SIZE - (int)used;
     if (available <= 0) {
         return 0;
@@ -225,12 +226,14 @@ static char *next_token(Buffer *buffer)
         if (buffer->beg == buffer->base && buffer->end >= buffer->base + SIZE) {
             teal2_error("token too long (exceeds %d bytes)", SIZE);
         }
+
         if (!refill(buffer)) {
             if (!buffer->eof) {
                 teal2_error("token too long (exceeds %d bytes)", SIZE);
             }
             continue;
         }
+
         token = buffer->beg;
     }
 }
