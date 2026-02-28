@@ -29,11 +29,11 @@ void sync2_sum(void *buf, int num, MPI_Datatype type);
 // In-place exclusive prefix sum; rank 0 receives zeros.
 void sync2_prefix(void *buf, int num, MPI_Datatype type);
 
-// Gather `num` values per rank into buffer.
-void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type);
-
 // Build rank offsets with first entry zero and last entry equal to the global total.
 void sync2_offsets(const void *val, void *buf, int num, MPI_Datatype type);
+
+// Gather `num` values per rank into buffer.
+void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type);
 
 // Rotate a fixed-capacity buffer and count to the next rank.
 void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len);

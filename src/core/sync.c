@@ -76,12 +76,6 @@ void sync2_prefix(void *buf, int num, MPI_Datatype type)
     }
 }
 
-void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type)
-{
-    assert(buf && num > 0);
-    MPI_Allgather(val, num, type, buf, num, type, sync2.comm);
-}
-
 void sync2_offsets(const void *val, void *buf_, int num, MPI_Datatype type)
 {
     assert(val && buf_ && num > 0);
@@ -95,6 +89,12 @@ void sync2_offsets(const void *val, void *buf_, int num, MPI_Datatype type)
 
     MPI_Scan(val, buf[sync2.rank + 1], num, type, MPI_SUM, sync2.comm);
     MPI_Allgather(MPI_IN_PLACE, num, type, buf[1], num, type, sync2.comm);
+}
+
+void sync2_gather(const void *val, void *buf, int num, MPI_Datatype type)
+{
+    assert(buf && num > 0);
+    MPI_Allgather(val, num, type, buf, num, type, sync2.comm);
 }
 
 void sync2_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len)
