@@ -7,7 +7,7 @@ typedef struct arena Arena2;
 typedef struct save Save2;
 
 // Initialize an arena.
-Arena2 *arena2_init(size_t capacity);
+Arena2 *arena2_init(ptrdiff_t capacity);
 
 // Free an arena.
 void arena2_deinit(Arena2 *self);

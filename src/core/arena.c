@@ -8,7 +8,6 @@
 #include "teal2.h"
 
 enum { ALIGN = 64 };
-enum { MIN_CAPACITY = 10 << 20 };
 
 struct arena {
     char *base;
@@ -22,10 +21,11 @@ struct save {
     char *beg;
 };
 
-Arena2 *arena2_init(size_t capacity)
+Arena2 *arena2_init(ptrdiff_t capacity)
 {
-    if (capacity < MIN_CAPACITY) {
-        capacity = MIN_CAPACITY;
+    ptrdiff_t min_capacity = 10 << 20;
+    if (capacity < min_capacity) {
+        capacity = min_capacity;
     }
 
     Arena2 *self = malloc(sizeof(*self) + capacity);
@@ -115,7 +115,7 @@ void *arena2_calloc(Arena2 *self, int num, int size)
 
     void *ptr = arena2_malloc(self, num, size);
 
-    return memset(ptr, 0, (size_t)num * size);
+    return memset(ptr, 0, (ptrdiff_t)num * size);
 }
 
 Save2 *arena2_save(Arena2 *self)
