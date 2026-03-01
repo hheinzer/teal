@@ -1,9 +1,11 @@
 #include <assert.h>
 #include <math.h>
 
+#include "kdtree2.h"
 #include "teal2.h"
-#include "tree2.h"
 #include "utils2.h"
+
+enum { CAP_LEAF = 32 };
 
 typedef struct node {
     int beg, end;
@@ -12,23 +14,23 @@ typedef struct node {
     struct node *right;
 } Node;
 
-struct tree {
-    const Vector *point;
+struct kdtree {
     int *perm;
     Node *node;
+    const Vector *point;
 };
 
-static int count_r(int num_points, int cap_leaf)
+static int count_r(int num_points)
 {
-    if (num_points <= cap_leaf) {
+    if (num_points <= CAP_LEAF) {
         return 1;
     }
-    int left = num_points / 2;
-    int right = num_points - left;
-    return 1 + count_r(left, cap_leaf) + count_r(right, cap_leaf);
+    int num_left = num_points / 2;
+    int num_right = num_points - num_left;
+    return 1 + count_r(num_left) + count_r(num_right);
 }
 
-static void compute_bbox(const Tree2 *self, Node *node)
+static void compute_bbox(const Kdtree2 *self, Node *node)
 {
     Vector min = self->point[self->perm[node->beg]];
     Vector max = min;
@@ -67,7 +69,7 @@ static double component(Vector vec, int axis)
     }
 }
 
-static int compare_point(const Tree2 *self, int lhs, int rhs, int axis)
+static int compare_point(const Kdtree2 *self, int lhs, int rhs, int axis)
 {
     Vector point_l = self->point[lhs];
     Vector point_r = self->point[rhs];
@@ -88,7 +90,7 @@ static int compare_point(const Tree2 *self, int lhs, int rhs, int axis)
     return (lhs > rhs) - (lhs < rhs);
 }
 
-static int choose_pivot(const Tree2 *self, int beg, int end, int axis)
+static int choose_pivot(const Kdtree2 *self, int beg, int end, int axis)
 {
     int mid = (beg + end) / 2;
     int last = end - 1;
@@ -114,21 +116,24 @@ static void swap_int(int *lhs, int *rhs)
     *rhs = swap;
 }
 
-static int partition(Tree2 *self, int beg, int end, int axis, int pivot)
+static int partition(Kdtree2 *self, int beg, int end, int axis, int pivot)
 {
-    int idx = self->perm[pivot];
+    int idx_pivot = self->perm[pivot];
     swap_int(&self->perm[pivot], &self->perm[end - 1]);
+
     int store = beg;
     for (int i = beg; i < end - 1; i++) {
-        if (compare_point(self, self->perm[i], idx, axis) < 0) {
+        if (compare_point(self, self->perm[i], idx_pivot, axis) < 0) {
             swap_int(&self->perm[store++], &self->perm[i]);
         }
     }
+
     swap_int(&self->perm[store], &self->perm[end - 1]);
+
     return store;
 }
 
-static void quickselect(Tree2 *self, int beg, int end, int mid, int axis)
+static void quickselect(Kdtree2 *self, int beg, int end, int mid, int axis)
 {
     while (beg + 1 < end) {
         int pivot = choose_pivot(self, beg, end, axis);
@@ -145,14 +150,14 @@ static void quickselect(Tree2 *self, int beg, int end, int mid, int axis)
     }
 }
 
-static Node *build_nodes(Tree2 *self, Node **next, int beg, int end, int cap_leaf)
+static Node *build_nodes(Kdtree2 *self, Node **next, int beg, int end)
 {
     Node *node = (*next)++;
     node->beg = beg;
     node->end = end;
     compute_bbox(self, node);
 
-    if (end - beg <= cap_leaf) {
+    if (end - beg <= CAP_LEAF) {
         return node;
     }
 
@@ -160,16 +165,17 @@ static Node *build_nodes(Tree2 *self, Node **next, int beg, int end, int cap_lea
     int axis = choose_axis(node);
     quickselect(self, beg, end, mid, axis);
 
-    node->left = build_nodes(self, next, beg, mid, cap_leaf);
-    node->right = build_nodes(self, next, mid, end, cap_leaf);
+    node->left = build_nodes(self, next, beg, mid);
+    node->right = build_nodes(self, next, mid, end);
+
     return node;
 }
 
-Tree2 *tree2_init(const Vector *point, int num, int cap_leaf)
+Kdtree2 *kdtree2_init(const Vector *point, int num)
 {
-    assert((point || num == 0) && num >= 0 && cap_leaf >= 0);
+    assert((point || num == 0) && num >= 0);
 
-    Tree2 *self = teal2_calloc(1, sizeof(*self));
+    Kdtree2 *self = teal2_calloc(1, sizeof(*self));
 
     if (num == 0) {
         return self;
@@ -181,18 +187,17 @@ Tree2 *tree2_init(const Vector *point, int num, int cap_leaf)
         self->perm[i] = i;
     }
 
-    cap_leaf = cap_leaf ? cap_leaf : 32;
-    int num_nodes = count_r(num, cap_leaf);
+    int num_nodes = count_r(num);
     self->node = teal2_calloc(num_nodes, sizeof(*self->node));
 
     Node *next = self->node;
-    build_nodes(self, &next, 0, num, cap_leaf);
+    build_nodes(self, &next, 0, num);
     assert(next == self->node + num_nodes);
 
     return self;
 }
 
-void tree2_deinit(Tree2 *self)
+void kdtree2_deinit(Kdtree2 *self)
 {
     assert(self);
     teal2_free(self->perm);
@@ -260,7 +265,7 @@ static void hit_push(Hit *hit, int *num, int cap, int idx, double dist2)
     }
 }
 
-static void nearest_r(const Tree2 *self, const Node *node, Vector point, Hit *hit, int *num,
+static void nearest_r(const Kdtree2 *self, const Node *node, Vector point, Hit *hit, int *num,
                       int cap)
 {
     if (!node->left) {
@@ -294,7 +299,7 @@ static void nearest_r(const Tree2 *self, const Node *node, Vector point, Hit *hi
     }
 }
 
-int tree2_nearest(const Tree2 *self, Vector point, int *idx, int cap)
+int kdtree2_nearest(const Kdtree2 *self, Vector point, int *idx, int cap)
 {
     assert(self && idx && cap > 0);
 
@@ -302,7 +307,7 @@ int tree2_nearest(const Tree2 *self, Vector point, int *idx, int cap)
         return 0;
     }
 
-    Hit hit[cap];
+    Hit *hit = teal2_calloc(cap, sizeof(*hit));
 
     int num = 0;
     nearest_r(self, self->node, point, hit, &num, cap);
@@ -311,11 +316,12 @@ int tree2_nearest(const Tree2 *self, Vector point, int *idx, int cap)
         idx[i] = hit[num - 1 - i].idx;
     }
 
+    teal2_free(hit);
     return num;
 }
 
-static void radius_r(const Tree2 *self, const Node *node, Vector point, int *idx, int *num, int cap,
-                     double radius2)
+static void radius_r(const Kdtree2 *self, const Node *node, Vector point, int *idx, int *num,
+                     int cap, double radius2)
 {
     if (dist2_bbox(node, point) > radius2) {
         return;
@@ -338,7 +344,7 @@ static void radius_r(const Tree2 *self, const Node *node, Vector point, int *idx
     radius_r(self, node->right, point, idx, num, cap, radius2);
 }
 
-int tree2_radius(const Tree2 *self, Vector point, double radius, int *idx, int cap)
+int kdtree2_radius(const Kdtree2 *self, Vector point, double radius, int *idx, int cap)
 {
     assert(self && radius >= 0 && idx && cap > 0);
 

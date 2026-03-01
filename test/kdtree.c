@@ -1,20 +1,20 @@
+#include "kdtree2.h"
 #include "teal2.h"
 #include "test.h"
-#include "tree2.h"
 
 #define EPS 1e-8
 
 static void test_empty(void)
 {
-    Tree2 *tree = tree2_init(0, 0, 0);
+    Kdtree2 *tree = kdtree2_init(0, 0);
 
     Vector point = {0, 0, 0};
 
     int idx[4];
-    test(tree2_nearest(tree, point, idx, 4) == 0);
-    test(tree2_radius(tree, point, 1.0, idx, 4) == 0);
+    test(kdtree2_nearest(tree, point, idx, 4) == 0);
+    test(kdtree2_radius(tree, point, 1.0, idx, 4) == 0);
 
-    tree2_deinit(tree);
+    kdtree2_deinit(tree);
 }
 
 static void test_single(void)
@@ -22,16 +22,16 @@ static void test_single(void)
     Vector point[] = {
         {1, 2, 3},
     };
-    Tree2 *tree = tree2_init(point, 1, 0);
+    Kdtree2 *tree = kdtree2_init(point, 1);
 
     int idx[2];
-    test(tree2_nearest(tree, point[0], idx, 2) == 1);
+    test(kdtree2_nearest(tree, point[0], idx, 2) == 1);
     test(idx[0] == 0);
 
-    test(tree2_radius(tree, point[0], EPS, idx, 2) == 1);
+    test(kdtree2_radius(tree, point[0], EPS, idx, 2) == 1);
     test(idx[0] == 0);
 
-    tree2_deinit(tree);
+    kdtree2_deinit(tree);
 }
 
 static double dist(Vector lhs, Vector rhs)
@@ -47,12 +47,12 @@ static void test_nearest_order_and_cap(void)
         {3, 0, 0},
         {4, 0, 0},
     };
-    Tree2 *tree = tree2_init(point, 4, 0);
+    Kdtree2 *tree = kdtree2_init(point, 4);
 
     Vector pos = {0, 0, 0};
 
     int idx[3];
-    test(tree2_nearest(tree, pos, idx, 3) == 3);
+    test(kdtree2_nearest(tree, pos, idx, 3) == 3);
     test(idx[0] == 0);
     test(idx[1] == 1);
     test(idx[2] == 2);
@@ -61,7 +61,7 @@ static void test_nearest_order_and_cap(void)
         test(dist(point[idx[i - 1]], pos) <= dist(point[idx[i]], pos));
     }
 
-    tree2_deinit(tree);
+    kdtree2_deinit(tree);
 }
 
 static void test_radius_count_and_truncation(void)
@@ -72,19 +72,19 @@ static void test_radius_count_and_truncation(void)
         {3, 0, 0},
         {4, 0, 0},
     };
-    Tree2 *tree = tree2_init(point, 4, 0);
+    Kdtree2 *tree = kdtree2_init(point, 4);
 
     Vector pos = {0, 0, 0};
 
     int idx[2];
-    test(tree2_radius(tree, pos, 3, idx, 2) == 3);
+    test(kdtree2_radius(tree, pos, 3, idx, 2) == 3);
 
     for (int i = 0; i < 2; i++) {
         test(0 <= idx[i] && idx[i] < 4);
         test(dist(point[idx[i]], pos) <= 3);
     }
 
-    tree2_deinit(tree);
+    kdtree2_deinit(tree);
 }
 
 static int has_idx(const int *idx, int num, int val)
@@ -104,20 +104,20 @@ static void test_duplicates(void)
         {5, 5, 5},
         {8, 8, 8},
     };
-    Tree2 *tree = tree2_init(point, 3, 0);
+    Kdtree2 *tree = kdtree2_init(point, 3);
 
     Vector pos = {5, 5, 5};
 
     int idx[4];
-    test(tree2_radius(tree, pos, EPS, idx, 4) == 2);
+    test(kdtree2_radius(tree, pos, EPS, idx, 4) == 2);
     test(has_idx(idx, 2, 0));
     test(has_idx(idx, 2, 1));
 
-    test(tree2_nearest(tree, pos, idx, 2) == 2);
+    test(kdtree2_nearest(tree, pos, idx, 2) == 2);
     test(has_idx(idx, 2, 0));
     test(has_idx(idx, 2, 1));
 
-    tree2_deinit(tree);
+    kdtree2_deinit(tree);
 }
 
 int main(int argc, char **argv)

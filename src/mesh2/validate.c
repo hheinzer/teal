@@ -1,10 +1,10 @@
 #include <assert.h>
 #include <string.h>
 
+#include "kdtree2.h"
 #include "private.h"
 #include "sync2.h"
 #include "teal2.h"
-#include "tree2.h"
 #include "utils2.h"
 
 #define ensure(expr) \
@@ -12,10 +12,10 @@
 
 static void validate_unique(const Vector *point, int num)
 {
-    Tree2 *tree = tree2_init(point, num, 0);
+    Kdtree2 *tree = kdtree2_init(point, num);
     for (int i = 0; i < num; i++) {
         int idx[2];
-        int len = tree2_nearest(tree, point[i], idx, 2);
+        int len = kdtree2_nearest(tree, point[i], idx, 2);
         ensure(len > 0);
         for (int j = 0; j < len; j++) {
             ensure(0 <= idx[j] && idx[j] < num);
@@ -27,7 +27,7 @@ static void validate_unique(const Vector *point, int num)
             ensure(!(isclose(lhs.x, rhs.x) && isclose(lhs.y, rhs.y) && isclose(lhs.z, rhs.z)));
         }
     }
-    tree2_deinit(tree);
+    kdtree2_deinit(tree);
 }
 
 static void validate_nodes(const Mesh2 *mesh)
