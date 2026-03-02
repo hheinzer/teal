@@ -61,8 +61,6 @@ typedef struct {
     UnitNorm *correction;
 } MeshFaces;
 
-typedef char Name[128];
-
 typedef struct {
     int num;
     int num_inner;

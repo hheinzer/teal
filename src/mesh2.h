@@ -2,11 +2,13 @@
 
 #include "vector2.h"
 
+typedef struct mesh Mesh2;
+
+typedef char Name[128];
+
 typedef struct {
     int x, y, z;
 } Triple;
-
-typedef struct mesh Mesh2;
 
 // Create a distributed Cartesian mesh with optional per-axis periodicity.
 Mesh2 *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple periodic);
