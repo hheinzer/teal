@@ -1,6 +1,8 @@
 #pragma once
 
-#include "private.h"
+#include "matrix2.h"
+#include "utils2.h"
+#include "vector2.h"
 
 typedef struct {
     int num;
@@ -21,7 +23,7 @@ typedef struct {
     int num;
     int num_inner;
     int off_boundary;
-    Name *name;
+    String *name;
     int *cell_off;
     int *periodic;
     Matrix *rotation;

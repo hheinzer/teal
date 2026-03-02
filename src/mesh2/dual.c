@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <parmetis.h>
 
+#include "private.h"
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"

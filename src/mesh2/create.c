@@ -302,7 +302,7 @@ static void create_entities(Mesh2 *mesh, Triple num_cells, Vector del_coord, con
     int num_inner = 1;
     int num_entities = num_inner + (2 * ndims);
 
-    Name *name = teal2_calloc(num_entities, sizeof(*name));
+    String *name = teal2_calloc(num_entities, sizeof(*name));
     int *cell_off = teal2_calloc(num_entities + 1, sizeof(*cell_off));
     Matrix *rotation = teal2_calloc(num_entities, sizeof(*rotation));
     Vector *translation = teal2_calloc(num_entities, sizeof(*translation));

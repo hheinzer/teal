@@ -65,7 +65,7 @@ typedef struct {
     int num;
     int num_inner;
     int off_boundary;
-    Name *name;
+    String *name;
     int *cell_off;
     int *face_off;
     Matrix *rotation;

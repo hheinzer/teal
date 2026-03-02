@@ -57,8 +57,8 @@ static void split_entity(Mesh2 *mesh, int index, int offset)
     int num_entities = mesh->entities.num + 1;
     int num_move = mesh->entities.num - index;
 
-    Name *name = teal2_realloc(mesh->entities.name, num_entities, sizeof(*name));
-    move(name[index + 1], name[index], num_move, sizeof(*name));
+    String *name = teal2_realloc(mesh->entities.name, num_entities, sizeof(*name));
+    move(&name[index + 1], &name[index], num_move, sizeof(*name));
     strcat(name[index], "-a");
     strcat(name[index + 1], "-b");
 

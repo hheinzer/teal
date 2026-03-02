@@ -3,6 +3,12 @@
 #define sq(val) ((val) * (val))
 #define cb(val) ((val) * (val) * (val))
 
+typedef struct {
+    int x, y, z;
+} Triple;
+
+typedef char String[128];
+
 typedef int Compare(const void *lhs, const void *rhs);
 
 Compare compare_int, compare_long, compare_double;

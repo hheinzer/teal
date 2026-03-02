@@ -8,6 +8,7 @@
 #include "arena2.h"
 #include "grid.h"
 #include "parse2.h"
+#include "private.h"
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"
@@ -800,7 +801,7 @@ static void create_entities(Grid *grid, const Entity *entity, const Gmsh *gmsh)
 
     int num_nodes = count_entities(grid, entity, gmsh);
 
-    Name *name = teal2_calloc(grid->entities.num, sizeof(*name));
+    String *name = teal2_calloc(grid->entities.num, sizeof(*name));
     int *cell_off = teal2_calloc(grid->entities.num + 1, sizeof(*cell_off));
     int *periodic = teal2_calloc(grid->entities.num, sizeof(*periodic));
     Matrix *rotation = teal2_calloc(grid->entities.num, sizeof(*rotation));
@@ -812,8 +813,8 @@ static void create_entities(Grid *grid, const Entity *entity, const Gmsh *gmsh)
     for (int i = 0; i < grid->entities.num; i++) {
         cell_off[i + 1] = cell_off[i];
         node_off[i + 1] = node_off[i];
+        strcpy(name[i], entity[num].physical->name);
         if (!entity[num].link) {
-            strcpy(name[i], entity[num].physical->name);
             do {
                 assert(entity[num].block->num_elements <= INT_MAX);
                 cell_off[i + 1] += (int)entity[num].block->num_elements;
@@ -821,7 +822,6 @@ static void create_entities(Grid *grid, const Entity *entity, const Gmsh *gmsh)
             } while (num < num_blocks && entity[num].physical == entity[num - 1].physical);
         }
         else {
-            sprintf(name[i], "%s:%d", entity[num].physical->name, entity[num].block->entity_tag);
             assert(entity[num].block->num_elements <= INT_MAX);
             cell_off[i + 1] += (int)entity[num].block->num_elements;
             periodic[i] = get_periodic(&entity[num], entity, gmsh);
