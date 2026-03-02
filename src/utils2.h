@@ -3,7 +3,7 @@
 #define sq(val) ((val) * (val))
 #define cb(val) ((val) * (val) * (val))
 
-typedef int Compare(const void *, const void *);
+typedef int Compare(const void *lhs, const void *rhs);
 
 Compare compare_int, compare_long, compare_double;
 

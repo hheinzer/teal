@@ -15,7 +15,7 @@ Mesh2 *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple
 Mesh2 *mesh2_read(const char *fname);
 
 // Modify all node coordinates.
-void mesh2_modify(Mesh2 *mesh, void (*modify)(Vector *));
+void mesh2_modify(Mesh2 *mesh, void (*modify)(Vector *coord));
 
 // Split an entity by a plane through `root` with normal `normal`.
 void mesh2_split(Mesh2 *mesh, const char *entity, Vector root, Vector normal);
