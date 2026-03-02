@@ -51,7 +51,7 @@ void *move(void *dst, const void *src, int num, int size)
     return memmove(dst, src, (size_t)num * size);
 }
 
-void sort(void *base, int num, int size, Compare compare)
+void sort(void *base, int num, int size, Compare *compare)
 {
     assert((base || num == 0) && num >= 0 && size > 0 && compare);
     if (num <= 1) {
@@ -60,7 +60,7 @@ void sort(void *base, int num, int size, Compare compare)
     qsort(base, num, size, compare);
 }
 
-int unique(void *base_, int num_, int size, Compare compare)
+int unique(void *base_, int num_, int size, Compare *compare)
 {
     assert((base_ || num_ == 0) && num_ >= 0 && size > 0 && compare);
 
@@ -85,7 +85,7 @@ int unique(void *base_, int num_, int size, Compare compare)
     return num;
 }
 
-void *search(const void *key, const void *base, int num, int size, Compare compare)
+void *search(const void *key, const void *base, int num, int size, Compare *compare)
 {
     assert(key && (base || num == 0) && num >= 0 && size > 0 && compare);
     if (num == 0) {
@@ -94,7 +94,7 @@ void *search(const void *key, const void *base, int num, int size, Compare compa
     return bsearch(key, base, num, size, compare);
 }
 
-int digitize(const void *key, const void *base_, int num, int size, Compare compare)
+int digitize(const void *key, const void *base_, int num, int size, Compare *compare)
 {
     assert(key && (base_ || num == 0) && num >= 0 && size > 0 && compare);
 
