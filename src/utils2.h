@@ -22,9 +22,6 @@ void sort(void *base, int num, int size, Compare compare);
 // Sort and remove duplicate array elements; returns new element count.
 int unique(void *base, int num, int size, Compare compare);
 
-// Linear search for `key`; returns pointer to match or `0`.
-void *find(const void *key, const void *base, int num, int size, Compare compare);
-
 // Binary search for `key` in a sorted array; returns pointer to match or `0`.
 void *search(const void *key, const void *base, int num, int size, Compare compare);
 

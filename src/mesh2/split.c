@@ -6,9 +6,14 @@
 #include "teal2.h"
 #include "utils2.h"
 
-static int compare_name(const void *lhs, const void *rhs)
+static int entity_index(const Mesh2 *mesh, const char *entity)
 {
-    return strcmp(lhs, rhs);
+    for (int i = 0; i < mesh->entities.off_boundary; i++) {
+        if (!strcmp(mesh->entities.name[i], entity)) {
+            return i;
+        }
+    }
+    teal2_error("invalid entity (%s)", entity);
 }
 
 static int reorder_cells(Mesh2 *mesh, Vector root, Vector normal, int index)
@@ -82,15 +87,7 @@ static void split_entity(Mesh2 *mesh, int index, int offset)
 void mesh2_split(Mesh2 *mesh, const char *entity, Vector root, Vector normal)
 {
     assert(mesh && !mesh->generated && entity);
-
-    Name *name = find(entity, mesh->entities.name, mesh->entities.off_boundary,
-                      sizeof(*mesh->entities.name), compare_name);
-    if (!name) {
-        teal2_error("invalid entity (%s)", entity);
-    }
-
-    assert(name - mesh->entities.name <= INT_MAX);
-    int index = (int)(name - mesh->entities.name);
+    int index = entity_index(mesh, entity);
     int offset = reorder_cells(mesh, root, normal, index);
     split_entity(mesh, index, offset);
 }

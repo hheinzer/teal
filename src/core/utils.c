@@ -85,25 +85,6 @@ int unique(void *base_, int num_, int size, Compare compare)
     return num;
 }
 
-void *find(const void *key, const void *base_, int num, int size, Compare compare)
-{
-    assert(key && (base_ || num == 0) && num >= 0 && size > 0 && compare);
-
-    if (num == 0) {
-        return 0;
-    }
-
-    const char (*base)[size] = base_;
-
-    for (int i = 0; i < num; i++) {
-        if (compare(key, base[i]) == 0) {
-            return (void *)base[i];
-        }
-    }
-
-    return 0;
-}
-
 void *search(const void *key, const void *base, int num, int size, Compare compare)
 {
     assert(key && (base || num == 0) && num >= 0 && size > 0 && compare);
