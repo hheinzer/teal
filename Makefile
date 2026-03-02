@@ -51,7 +51,11 @@ format:
 	@clang-format -i $(shell find . -type f -name '*.[ch]')
 
 test: $(filter bin/test/%, $(BIN))
-	@for bin in $^; do echo $$bin; mpirun --oversubscribe -n 8 $$bin -q; done
+	@for bin in $(sort $^); do \
+		printf "%-30s " "$$bin"; \
+		mpirun --oversubscribe -n 8 $$bin -v > "$$bin.out" 2>&1 \
+			&& echo "passed" || echo "FAILED"; \
+	done
 
 # dependencies
 CFLAGS += -MMD -MP

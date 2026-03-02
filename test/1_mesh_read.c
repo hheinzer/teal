@@ -13,11 +13,7 @@ int main(int argc, char **argv)
 {
     teal2_init(&argc, &argv);
 
-    Vector min_coord = {0, 0, 0};
-    Vector max_coord = {9, 3, 3};
-    Triple num_cells = {30, 10, 10};
-    Triple periodic = {1, 0, 1};
-    Mesh2 *mesh = mesh2_create(min_coord, max_coord, num_cells, periodic);
+    Mesh2 *mesh = mesh2_read("test/mesh.msh");
 
     mesh2_modify(mesh, modify);
 
@@ -27,8 +23,8 @@ int main(int argc, char **argv)
 
     mesh2_generate(mesh);
     mesh2_validate(mesh);
-
     mesh2_summary(mesh);
+
     mesh2_write(mesh, argv[0]);
 
     mesh2_destroy(mesh);
