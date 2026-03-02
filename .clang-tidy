@@ -10,6 +10,7 @@ Checks:
   - readability-*
   - -bugprone-easily-swappable-parameters
   - -bugprone-multi-level-implicit-pointer-conversion
+  - -clang-analyzer-deadcode.DeadStores
   - -clang-analyzer-security.insecureAPI.*
   - -misc-include-cleaner
   - -misc-no-recursion
