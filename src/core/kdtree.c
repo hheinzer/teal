@@ -210,26 +210,26 @@ static double dist2_point(Vector lhs, Vector rhs)
     return vector2_norm2(vector2_sub(lhs, rhs));
 }
 
-static double dist2_bbox(const Node *node, Vector point)
+static double dist2_bbox(const Node *node, Vector query)
 {
     double dist2 = 0;
-    if (point.x < node->min.x) {
-        dist2 += sq(node->min.x - point.x);
+    if (query.x < node->min.x) {
+        dist2 += sq(node->min.x - query.x);
     }
-    else if (node->max.x < point.x) {
-        dist2 += sq(point.x - node->max.x);
+    else if (node->max.x < query.x) {
+        dist2 += sq(query.x - node->max.x);
     }
-    if (point.y < node->min.y) {
-        dist2 += sq(node->min.y - point.y);
+    if (query.y < node->min.y) {
+        dist2 += sq(node->min.y - query.y);
     }
-    else if (node->max.y < point.y) {
-        dist2 += sq(point.y - node->max.y);
+    else if (node->max.y < query.y) {
+        dist2 += sq(query.y - node->max.y);
     }
-    if (point.z < node->min.z) {
-        dist2 += sq(node->min.z - point.z);
+    if (query.z < node->min.z) {
+        dist2 += sq(node->min.z - query.z);
     }
-    else if (node->max.z < point.z) {
-        dist2 += sq(point.z - node->max.z);
+    else if (node->max.z < query.z) {
+        dist2 += sq(query.z - node->max.z);
     }
     return dist2;
 }
@@ -265,13 +265,13 @@ static void hit_push(Hit *hit, int *num, int cap, int idx, double dist2)
     }
 }
 
-static void nearest_r(const Kdtree *self, const Node *node, Vector point, Hit *hit, int *num,
+static void nearest_r(const Kdtree *self, const Node *node, Vector query, Hit *hit, int *num,
                       int cap)
 {
     if (!node->left) {
         for (int i = node->beg; i < node->end; i++) {
             int idx = self->perm[i];
-            double dist2 = dist2_point(self->point[idx], point);
+            double dist2 = dist2_point(self->point[idx], query);
             if (*num < cap || dist2 < hit[0].dist2) {
                 hit_push(hit, num, cap, idx, dist2);
             }
@@ -281,8 +281,8 @@ static void nearest_r(const Kdtree *self, const Node *node, Vector point, Hit *h
 
     const Node *left = node->left;
     const Node *right = node->right;
-    double dist2_left = dist2_bbox(left, point);
-    double dist2_right = dist2_bbox(right, point);
+    double dist2_left = dist2_bbox(left, query);
+    double dist2_right = dist2_bbox(right, query);
 
     const Node *near = left;
     const Node *far = right;
@@ -293,13 +293,13 @@ static void nearest_r(const Kdtree *self, const Node *node, Vector point, Hit *h
         dist2_far = dist2_left;
     }
 
-    nearest_r(self, near, point, hit, num, cap);
+    nearest_r(self, near, query, hit, num, cap);
     if (*num < cap || dist2_far < hit[0].dist2) {
-        nearest_r(self, far, point, hit, num, cap);
+        nearest_r(self, far, query, hit, num, cap);
     }
 }
 
-int kdtree2_nearest(const Kdtree *self, Vector point, int *idx, int cap)
+int kdtree2_nearest(const Kdtree *self, Vector query, int *idx, int cap)
 {
     assert(self && idx && cap > 0);
 
@@ -310,7 +310,7 @@ int kdtree2_nearest(const Kdtree *self, Vector point, int *idx, int cap)
     Hit *hit = teal2_calloc(cap, sizeof(*hit));
 
     int num = 0;
-    nearest_r(self, self->node, point, hit, &num, cap);
+    nearest_r(self, self->node, query, hit, &num, cap);
 
     for (int i = 0; i < num; i++) {
         idx[i] = hit[num - 1 - i].idx;
@@ -320,17 +320,17 @@ int kdtree2_nearest(const Kdtree *self, Vector point, int *idx, int cap)
     return num;
 }
 
-static void radius_r(const Kdtree *self, const Node *node, Vector point, int *idx, int *num,
+static void radius_r(const Kdtree *self, const Node *node, Vector query, int *idx, int *num,
                      int cap, double radius2)
 {
-    if (dist2_bbox(node, point) > radius2) {
+    if (dist2_bbox(node, query) > radius2) {
         return;
     }
 
     if (!node->left) {
         for (int i = node->beg; i < node->end; i++) {
             int idx_point = self->perm[i];
-            if (dist2_point(self->point[idx_point], point) <= radius2) {
+            if (dist2_point(self->point[idx_point], query) <= radius2) {
                 if (*num < cap) {
                     idx[*num] = idx_point;
                 }
@@ -340,11 +340,11 @@ static void radius_r(const Kdtree *self, const Node *node, Vector point, int *id
         return;
     }
 
-    radius_r(self, node->left, point, idx, num, cap, radius2);
-    radius_r(self, node->right, point, idx, num, cap, radius2);
+    radius_r(self, node->left, query, idx, num, cap, radius2);
+    radius_r(self, node->right, query, idx, num, cap, radius2);
 }
 
-int kdtree2_radius(const Kdtree *self, Vector point, double radius, int *idx, int cap)
+int kdtree2_radius(const Kdtree *self, Vector query, double radius, int *idx, int cap)
 {
     assert(self && radius >= 0 && idx && cap > 0);
 
@@ -353,7 +353,7 @@ int kdtree2_radius(const Kdtree *self, Vector point, double radius, int *idx, in
     }
 
     int num = 0;
-    radius_r(self, self->node, point, idx, &num, cap, sq(radius));
+    radius_r(self, self->node, query, idx, &num, cap, sq(radius));
 
     return num;
 }

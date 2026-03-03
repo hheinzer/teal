@@ -1,6 +1,6 @@
+#include "../test.h"
 #include "kdtree2.h"
 #include "teal2.h"
-#include "test.h"
 
 #define EPS 1e-8
 

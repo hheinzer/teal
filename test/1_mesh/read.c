@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 {
     teal2_init(&argc, &argv);
 
-    Mesh *mesh = mesh2_read("test/mesh.msh");
+    Mesh *mesh = mesh2_read("test/1_mesh/mesh.msh");
 
     mesh2_modify(mesh, modify);
 

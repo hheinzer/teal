@@ -11,7 +11,7 @@ Kdtree *kdtree2_init(const Vector *point, int num);
 void kdtree2_deinit(Kdtree *self);
 
 // Copy up to `cap` nearest point indices into `idx`; returns number copied.
-int kdtree2_nearest(const Kdtree *self, Vector point, int *idx, int cap);
+int kdtree2_nearest(const Kdtree *self, Vector query, int *idx, int cap);
 
 // Copy up to `cap` point indices within `radius`; returns total matches.
-int kdtree2_radius(const Kdtree *self, Vector point, double radius, int *idx, int cap);
+int kdtree2_radius(const Kdtree *self, Vector query, double radius, int *idx, int cap);

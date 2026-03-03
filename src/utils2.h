@@ -12,7 +12,7 @@ typedef struct {
 } Triple;
 
 typedef struct {
-    int *off, *idx;
+    int *off, *idx;  // compressed sparse row
 } Graph;
 
 typedef char String[128];

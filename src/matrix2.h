@@ -3,7 +3,7 @@
 #include "vector2.h"
 
 typedef struct {
-    Vector x, y, z;  // rows
+    Vector x, y, z;  // row-major order
 } Matrix;
 
 // Return matrix-Vector multiplication.

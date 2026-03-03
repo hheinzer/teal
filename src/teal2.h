@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stddef.h>
-
 extern struct teal {
     int quiet;
     int verbose;
