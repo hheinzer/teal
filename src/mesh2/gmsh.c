@@ -4,15 +4,12 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "arena2.h"
 #include "grid.h"
 #include "mesh2.h"
 #include "parse2.h"
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"
-
-static Arena *arena;
 
 typedef struct {
     double version;
@@ -162,7 +159,7 @@ static void read_physicals(Gmsh *gmsh, MPI_File file)
 {
     parse2_ascii(file, &gmsh->physicals.num, 1, MPI_INT32_T);
 
-    Physical *physical = arena2_calloc(arena, gmsh->physicals.num, sizeof(*physical));
+    Physical *physical = teal2_calloc(gmsh->physicals.num, sizeof(*physical));
     for (int32_t i = 0; i < gmsh->physicals.num; i++) {
         parse2_ascii(file, &physical[i].dim, 1, MPI_INT32_T);
         parse2_ascii(file, &physical[i].tag, 1, MPI_INT32_T);
@@ -174,7 +171,7 @@ static void read_physicals(Gmsh *gmsh, MPI_File file)
 static void read_points(Gmsh *gmsh, MPI_File file, int mode)
 {
     assert(gmsh->entities.num_points <= INT_MAX);
-    Point *point = arena2_calloc(arena, (int)gmsh->entities.num_points, sizeof(*point));
+    Point *point = teal2_calloc((int)gmsh->entities.num_points, sizeof(*point));
     for (uint64_t i = 0; i < gmsh->entities.num_points; i++) {
         parse2(file, &point[i].tag, 1, MPI_INT32_T, mode);
         parse2(file, &point[i].x, 1, MPI_DOUBLE, mode);
@@ -185,7 +182,7 @@ static void read_points(Gmsh *gmsh, MPI_File file, int mode)
         assert(point[i].num_physical_tags <= INT_MAX);
         int num_physical_tags = (int)point[i].num_physical_tags;
 
-        int32_t *physical_tag = arena2_calloc(arena, num_physical_tags, sizeof(*physical_tag));
+        int32_t *physical_tag = teal2_calloc(num_physical_tags, sizeof(*physical_tag));
         parse2(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         point[i].physical_tag = physical_tag;
     }
@@ -195,7 +192,7 @@ static void read_points(Gmsh *gmsh, MPI_File file, int mode)
 static void read_curves(Gmsh *gmsh, MPI_File file, int mode)
 {
     assert(gmsh->entities.num_curves <= INT_MAX);
-    Curve *curve = arena2_calloc(arena, (int)gmsh->entities.num_curves, sizeof(*curve));
+    Curve *curve = teal2_calloc((int)gmsh->entities.num_curves, sizeof(*curve));
     for (uint64_t i = 0; i < gmsh->entities.num_curves; i++) {
         parse2(file, &curve[i].tag, 1, MPI_INT32_T, mode);
         parse2(file, &curve[i].min_x, 1, MPI_DOUBLE, mode);
@@ -209,7 +206,7 @@ static void read_curves(Gmsh *gmsh, MPI_File file, int mode)
         assert(curve[i].num_physical_tags <= INT_MAX);
         int num_physical_tags = (int)curve[i].num_physical_tags;
 
-        int32_t *physical_tag = arena2_calloc(arena, num_physical_tags, sizeof(*physical_tag));
+        int32_t *physical_tag = teal2_calloc(num_physical_tags, sizeof(*physical_tag));
         parse2(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         curve[i].physical_tag = physical_tag;
 
@@ -217,7 +214,7 @@ static void read_curves(Gmsh *gmsh, MPI_File file, int mode)
         assert(curve[i].num_point_tags <= INT_MAX);
         int num_point_tags = (int)curve[i].num_point_tags;
 
-        int32_t *point_tag = arena2_calloc(arena, num_point_tags, sizeof(*point_tag));
+        int32_t *point_tag = teal2_calloc(num_point_tags, sizeof(*point_tag));
         parse2(file, point_tag, num_point_tags, MPI_INT32_T, mode);
         curve[i].point_tag = point_tag;
     }
@@ -227,7 +224,7 @@ static void read_curves(Gmsh *gmsh, MPI_File file, int mode)
 static void read_surfaces(Gmsh *gmsh, MPI_File file, int mode)
 {
     assert(gmsh->entities.num_surfaces <= INT_MAX);
-    Surface *surface = arena2_calloc(arena, (int)gmsh->entities.num_surfaces, sizeof(*surface));
+    Surface *surface = teal2_calloc((int)gmsh->entities.num_surfaces, sizeof(*surface));
     for (uint64_t i = 0; i < gmsh->entities.num_surfaces; i++) {
         parse2(file, &surface[i].tag, 1, MPI_INT32_T, mode);
         parse2(file, &surface[i].min_x, 1, MPI_DOUBLE, mode);
@@ -241,7 +238,7 @@ static void read_surfaces(Gmsh *gmsh, MPI_File file, int mode)
         assert(surface[i].num_physical_tags <= INT_MAX);
         int num_physical_tags = (int)surface[i].num_physical_tags;
 
-        int32_t *physical_tag = arena2_calloc(arena, num_physical_tags, sizeof(*physical_tag));
+        int32_t *physical_tag = teal2_calloc(num_physical_tags, sizeof(*physical_tag));
         parse2(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         surface[i].physical_tag = physical_tag;
 
@@ -249,7 +246,7 @@ static void read_surfaces(Gmsh *gmsh, MPI_File file, int mode)
         assert(surface[i].num_curve_tags <= INT_MAX);
         int num_curve_tags = (int)surface[i].num_curve_tags;
 
-        int32_t *curve_tag = arena2_calloc(arena, num_curve_tags, sizeof(*curve_tag));
+        int32_t *curve_tag = teal2_calloc(num_curve_tags, sizeof(*curve_tag));
         parse2(file, curve_tag, num_curve_tags, MPI_INT32_T, mode);
         surface[i].curve_tag = curve_tag;
     }
@@ -259,7 +256,7 @@ static void read_surfaces(Gmsh *gmsh, MPI_File file, int mode)
 static void read_volumes(Gmsh *gmsh, MPI_File file, int mode)
 {
     assert(gmsh->entities.num_volumes <= INT_MAX);
-    Volume *volume = arena2_calloc(arena, (int)gmsh->entities.num_volumes, sizeof(*volume));
+    Volume *volume = teal2_calloc((int)gmsh->entities.num_volumes, sizeof(*volume));
     for (uint64_t i = 0; i < gmsh->entities.num_volumes; i++) {
         parse2(file, &volume[i].tag, 1, MPI_INT32_T, mode);
         parse2(file, &volume[i].min_x, 1, MPI_DOUBLE, mode);
@@ -273,7 +270,7 @@ static void read_volumes(Gmsh *gmsh, MPI_File file, int mode)
         assert(volume[i].num_physical_tags <= INT_MAX);
         int num_physical_tags = (int)volume[i].num_physical_tags;
 
-        int32_t *physical_tag = arena2_calloc(arena, num_physical_tags, sizeof(*physical_tag));
+        int32_t *physical_tag = teal2_calloc(num_physical_tags, sizeof(*physical_tag));
         parse2(file, physical_tag, num_physical_tags, MPI_INT32_T, mode);
         volume[i].physical_tag = physical_tag;
 
@@ -281,7 +278,7 @@ static void read_volumes(Gmsh *gmsh, MPI_File file, int mode)
         assert(volume[i].num_surface_tags <= INT_MAX);
         int num_surface_tags = (int)volume[i].num_surface_tags;
 
-        int32_t *surface_tag = arena2_calloc(arena, num_surface_tags, sizeof(*surface_tag));
+        int32_t *surface_tag = teal2_calloc(num_surface_tags, sizeof(*surface_tag));
         parse2(file, surface_tag, num_surface_tags, MPI_INT32_T, mode);
         volume[i].surface_tag = surface_tag;
     }
@@ -343,7 +340,7 @@ static void read_nodes(Gmsh *gmsh, MPI_File file, int mode)
     gmsh->nodes.num_nodes = slice.end - slice.beg;
 
     assert(gmsh->nodes.num_blocks <= INT_MAX);
-    NodeBlock *block = arena2_calloc(arena, (int)gmsh->nodes.num_blocks, sizeof(*block));
+    NodeBlock *block = teal2_calloc((int)gmsh->nodes.num_blocks, sizeof(*block));
     uint64_t offset = 0;
     for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
         parse2(file, &block[i].entity_dim, 1, MPI_INT32_T, mode);
@@ -355,11 +352,11 @@ static void read_nodes(Gmsh *gmsh, MPI_File file, int mode)
         int num = num_overlap(slice.beg, slice.end, offset, tot);
         block[i].num_nodes = num;
 
-        block[i].tag = arena2_calloc(arena, num, sizeof(*block[i].tag));
+        block[i].tag = teal2_calloc(num, sizeof(*block[i].tag));
         parse2(file, block[i].tag, num, MPI_UINT64_T, mode | SPLIT);
 
         int len = len_coord(&block[i]);
-        block[i].coord = arena2_calloc(arena, num * len, sizeof(*block[i].coord));
+        block[i].coord = teal2_calloc(num * len, sizeof(*block[i].coord));
         parse2(file, block[i].coord, num * len, MPI_DOUBLE, mode | SPLIT);
 
         offset += tot;
@@ -394,7 +391,7 @@ static void read_elements(Gmsh *gmsh, MPI_File file, int mode)
     gmsh->elements.num_elements = slice.end - slice.beg;
 
     assert(gmsh->elements.num_blocks <= INT_MAX);
-    ElementBlock *block = arena2_calloc(arena, (int)gmsh->elements.num_blocks, sizeof(*block));
+    ElementBlock *block = teal2_calloc((int)gmsh->elements.num_blocks, sizeof(*block));
     uint64_t offset = 0;
     for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
         parse2(file, &block[i].entity_dim, 1, MPI_INT32_T, mode);
@@ -406,14 +403,12 @@ static void read_elements(Gmsh *gmsh, MPI_File file, int mode)
         int num = num_overlap(slice.beg, slice.end, offset, tot);
         block[i].num_elements = num;
 
-        block[i].tag = arena2_calloc(arena, num, sizeof(*block[i].tag));
+        block[i].tag = teal2_calloc(num, sizeof(*block[i].tag));
 
         int len = len_node_tags(&block[i]);
-        block[i].node_tag = arena2_calloc(arena, num * len, sizeof(*block[i].node_tag));
+        block[i].node_tag = teal2_calloc(num * len, sizeof(*block[i].node_tag));
 
-        Save *save = arena2_save(arena);
-
-        uint64_t (*buf)[1 + len] = arena2_calloc(arena, num, (int)sizeof(*buf));
+        uint64_t (*buf)[1 + len] = teal2_calloc(num, (int)sizeof(*buf));
         parse2(file, buf, num * (1 + len), MPI_UINT64_T, mode | SPLIT);
 
         for (int j = 0; j < num; j++) {
@@ -423,7 +418,7 @@ static void read_elements(Gmsh *gmsh, MPI_File file, int mode)
             }
         }
 
-        arena2_load(arena, save);
+        teal2_free(buf);
         offset += tot;
     }
     assert(offset == total);
@@ -436,7 +431,7 @@ static void read_periodic(Gmsh *gmsh, MPI_File file, int mode)
     parse2(file, &gmsh->periodic.num_links, 1, MPI_UINT64_T, mode);
 
     assert(gmsh->periodic.num_links <= INT_MAX);
-    Link *link = arena2_calloc(arena, (int)gmsh->periodic.num_links, sizeof(*link));
+    Link *link = teal2_calloc((int)gmsh->periodic.num_links, sizeof(*link));
     for (uint64_t i = 0; i < gmsh->periodic.num_links; i++) {
         parse2(file, &link[i].entity_dim, 1, MPI_INT32_T, mode);
         parse2(file, &link[i].entity_tag, 1, MPI_INT32_T, mode);
@@ -444,7 +439,7 @@ static void read_periodic(Gmsh *gmsh, MPI_File file, int mode)
         parse2(file, &link[i].num_affine, 1, MPI_UINT64_T, mode);
 
         assert(link[i].num_affine <= INT_MAX);
-        link[i].affine = arena2_calloc(arena, (int)link[i].num_affine, sizeof(*link[i].affine));
+        link[i].affine = teal2_calloc((int)link[i].num_affine, sizeof(*link[i].affine));
         parse2(file, link[i].affine, (int)link[i].num_affine, MPI_DOUBLE, mode);
 
         parse2(file, &link[i].num_nodes, 1, MPI_UINT64_T, mode);
@@ -456,12 +451,10 @@ static void read_periodic(Gmsh *gmsh, MPI_File file, int mode)
         int num = (int)base + ((uint64_t)sync2.rank < extra);
         link[i].num_nodes = num;
 
-        link[i].node_tag = arena2_calloc(arena, num, sizeof(*link[i].node_tag));
-        link[i].node_tag_master = arena2_calloc(arena, num, sizeof(*link[i].node_tag_master));
+        link[i].node_tag = teal2_calloc(num, sizeof(*link[i].node_tag));
+        link[i].node_tag_master = teal2_calloc(num, sizeof(*link[i].node_tag_master));
 
-        Save *save = arena2_save(arena);
-
-        uint64_t (*buf)[2] = arena2_calloc(arena, num, sizeof(*buf));
+        uint64_t (*buf)[2] = teal2_calloc(num, sizeof(*buf));
         parse2(file, buf, num * 2, MPI_UINT64_T, mode | SPLIT);
 
         for (int j = 0; j < num; j++) {
@@ -469,16 +462,16 @@ static void read_periodic(Gmsh *gmsh, MPI_File file, int mode)
             link[i].node_tag_master[j] = buf[j][1];
         }
 
-        arena2_load(arena, save);
+        teal2_free(buf);
     }
     gmsh->periodic.link = link;
 }
 
-static Gmsh *read(const char *fname)
+static Gmsh *gmsh_init(const char *fname)
 {
     MPI_File file = parse2_open(fname);
 
-    Gmsh *gmsh = arena2_calloc(arena, 1, sizeof(*gmsh));
+    Gmsh *gmsh = teal2_calloc(1, sizeof(*gmsh));
     int mode = 0;
     char section[128];
     while (parse2_string(file, section, sizeof(section))) {
@@ -510,6 +503,55 @@ static Gmsh *read(const char *fname)
 
     parse2_close(file);
     return gmsh;
+}
+
+static void gmsh_deinit(Gmsh *gmsh)
+{
+    teal2_free(gmsh->physicals.physical);
+
+    for (uint64_t i = 0; i < gmsh->entities.num_points; i++) {
+        teal2_free(gmsh->entities.point[i].physical_tag);
+    }
+    teal2_free(gmsh->entities.point);
+
+    for (uint64_t i = 0; i < gmsh->entities.num_curves; i++) {
+        teal2_free(gmsh->entities.curve[i].physical_tag);
+        teal2_free(gmsh->entities.curve[i].point_tag);
+    }
+    teal2_free(gmsh->entities.curve);
+
+    for (uint64_t i = 0; i < gmsh->entities.num_surfaces; i++) {
+        teal2_free(gmsh->entities.surface[i].physical_tag);
+        teal2_free(gmsh->entities.surface[i].curve_tag);
+    }
+    teal2_free(gmsh->entities.surface);
+
+    for (uint64_t i = 0; i < gmsh->entities.num_volumes; i++) {
+        teal2_free(gmsh->entities.volume[i].physical_tag);
+        teal2_free(gmsh->entities.volume[i].surface_tag);
+    }
+    teal2_free(gmsh->entities.volume);
+
+    for (uint64_t i = 0; i < gmsh->nodes.num_blocks; i++) {
+        teal2_free(gmsh->nodes.block[i].tag);
+        teal2_free(gmsh->nodes.block[i].coord);
+    }
+    teal2_free(gmsh->nodes.block);
+
+    for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
+        teal2_free(gmsh->elements.block[i].tag);
+        teal2_free(gmsh->elements.block[i].node_tag);
+    }
+    teal2_free(gmsh->elements.block);
+
+    for (uint64_t i = 0; i < gmsh->periodic.num_links; i++) {
+        teal2_free(gmsh->periodic.link[i].affine);
+        teal2_free(gmsh->periodic.link[i].node_tag);
+        teal2_free(gmsh->periodic.link[i].node_tag_master);
+    }
+    teal2_free(gmsh->periodic.link);
+
+    teal2_free(gmsh);
 }
 
 static int32_t *get_physical_tags(const ElementBlock *block, const Gmsh *gmsh,
@@ -598,7 +640,7 @@ static Entity *extract(const Gmsh *gmsh)
     assert(gmsh->elements.num_blocks <= INT_MAX);
     int num_blocks = (int)gmsh->elements.num_blocks;
 
-    Entity *entity = arena2_calloc(arena, num_blocks, sizeof(*entity));
+    Entity *entity = teal2_calloc(num_blocks, sizeof(*entity));
     for (uint64_t i = 0; i < gmsh->elements.num_blocks; i++) {
         entity[i].block = &gmsh->elements.block[i];
         entity[i].physical = get_physical(&gmsh->elements.block[i], gmsh);
@@ -849,9 +891,7 @@ static void create_entities(Grid *grid, const Entity *entity, const Gmsh *gmsh)
 
 Grid *grid_gmsh(const char *fname)
 {
-    arena = arena2_init(0);
-
-    Gmsh *gmsh = read(fname);
+    Gmsh *gmsh = gmsh_init(fname);
     Entity *entity = extract(gmsh);
 
     Grid *grid = teal2_calloc(1, sizeof(*grid));
@@ -859,6 +899,7 @@ Grid *grid_gmsh(const char *fname)
     create_cells(grid, entity, gmsh);
     create_entities(grid, entity, gmsh);
 
-    arena2_deinit(arena);
+    teal2_free(entity);
+    gmsh_deinit(gmsh);
     return grid;
 }
