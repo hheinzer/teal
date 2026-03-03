@@ -4,7 +4,7 @@
 #include "utils2.h"
 #include "vector2.h"
 
-enum Mesh2Limits {
+enum MeshLimits {
     MAX_CELL_NODES = 8,
     MAX_CELL_FACES = 6,
     MAX_FACE_NODES = 4,
@@ -15,7 +15,7 @@ typedef struct {
     int num_inner;
     long *global;
     Vector *coord;
-} Mesh2Nodes;
+} MeshNodes;
 
 typedef struct {
     int num;
@@ -28,7 +28,7 @@ typedef struct {
     Vector *center;
     Vector *projection;
     Vector *offset;
-} Mesh2Cells;
+} MeshCells;
 
 typedef struct {
     int num;
@@ -42,7 +42,7 @@ typedef struct {
     VectorPair *weight;
     VectorPair *offset;
     VectorNorm *correction;
-} Mesh2Faces;
+} MeshFaces;
 
 typedef struct {
     int num;
@@ -53,7 +53,7 @@ typedef struct {
     int *face_off;
     Matrix *rotation;
     Vector *translation;
-} Mesh2Entities;
+} MeshEntities;
 
 typedef struct {
     int num;
@@ -61,39 +61,39 @@ typedef struct {
     int *rank;
     int *recv_off;
     Graph send;
-} Mesh2Neighbors;
+} MeshNeighbors;
 
 typedef struct {
-    Mesh2Nodes nodes;
-    Mesh2Cells cells;
-    Mesh2Faces faces;
-    Mesh2Entities entities;
-    Mesh2Neighbors neighbors;
-} Mesh2;
+    MeshNodes nodes;
+    MeshCells cells;
+    MeshFaces faces;
+    MeshEntities entities;
+    MeshNeighbors neighbors;
+} Mesh;
 
 // Create a distributed Cartesian mesh with optional per-axis periodicity.
-Mesh2 *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple periodic);
+Mesh *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple periodic);
 
 // Read and partition a mesh from disk.
-Mesh2 *mesh2_read(const char *fname);
+Mesh *mesh2_read(const char *fname);
 
 // Modify all node coordinates.
-void mesh2_modify(Mesh2 *mesh, void (*modify)(Vector *coord));
+void mesh2_modify(Mesh *mesh, void (*modify)(Vector *coord));
 
 // Split an entity by a plane through `root` with normal `normal`.
-void mesh2_split(Mesh2 *mesh, const char *entity, Vector root, Vector normal);
+void mesh2_split(Mesh *mesh, const char *entity, Vector root, Vector normal);
 
 // Generate derived connectivity/geometry fields.
-void mesh2_generate(Mesh2 *mesh);
+void mesh2_generate(Mesh *mesh);
 
 // Validate mesh consistency.
-void mesh2_validate(const Mesh2 *mesh);
+void mesh2_validate(const Mesh *mesh);
 
 // Print a global mesh summary.
-void mesh2_summary(const Mesh2 *mesh);
+void mesh2_summary(const Mesh *mesh);
 
 // Write mesh and derived data to disk.
-void mesh2_write(const Mesh2 *mesh, const char *name);
+void mesh2_write(const Mesh *mesh, const char *name);
 
 // Release all mesh resources.
-void mesh2_destroy(Mesh2 *mesh);
+void mesh2_destroy(Mesh *mesh);

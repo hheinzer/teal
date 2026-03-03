@@ -12,7 +12,7 @@
 
 _Static_assert(sizeof(idx_t) == sizeof(long), "idx_t must match long");
 
-static void connect_cells(Mesh2 *mesh)
+static void connect_cells(Mesh *mesh)
 {
     long num_cells = mesh->cells.num;
     long num_nodes = mesh->nodes.num;
@@ -65,7 +65,7 @@ static void connect_cells(Mesh2 *mesh)
     METIS_Free(adjncy);
 }
 
-static void reorder_cells(Mesh2 *mesh)
+static void reorder_cells(Mesh *mesh)
 {
     int *map = teal2_calloc(mesh->cells.num_inner, sizeof(*map));
     int *degree = teal2_calloc(mesh->cells.num_inner, sizeof(*degree));
@@ -132,7 +132,7 @@ static void reorder_cells(Mesh2 *mesh)
     teal2_free(queue);
 }
 
-static void collect_globals(Mesh2 *mesh, const int *map)
+static void collect_globals(Mesh *mesh, const int *map)
 {
     long prefix = mesh->nodes.num_inner;
     sync2_prefix(&prefix, 1, MPI_LONG);
@@ -168,7 +168,7 @@ static void collect_globals(Mesh2 *mesh, const int *map)
     teal2_free(recv);
 }
 
-static void reorder_nodes(Mesh2 *mesh)
+static void reorder_nodes(Mesh *mesh)
 {
     int *map = teal2_calloc(mesh->nodes.num, sizeof(*map));
     for (int i = 0; i < mesh->nodes.num; i++) {
@@ -224,7 +224,7 @@ static int compare_face(const void *lhs_, const void *rhs_)
     return (lhs->right > rhs->right) - (lhs->right < rhs->right);
 }
 
-static void compute_face_nodes(Face *face, const Mesh2 *mesh, int left, int right)
+static void compute_face_nodes(Face *face, const Mesh *mesh, int left, int right)
 {
     face->num_nodes = 0;
     for (int i = mesh->cells.node.off[left]; i < mesh->cells.node.off[left + 1]; i++) {
@@ -237,7 +237,7 @@ static void compute_face_nodes(Face *face, const Mesh2 *mesh, int left, int righ
     }
 }
 
-static void correct_face_node_order(Face *face, const Mesh2 *mesh)
+static void correct_face_node_order(Face *face, const Mesh *mesh)
 {
     switch (face->num_nodes) {
         case 3: return;
@@ -264,7 +264,7 @@ static void correct_face_node_order(Face *face, const Mesh2 *mesh)
     }
 }
 
-static void create_faces(Mesh2 *mesh)
+static void create_faces(Mesh *mesh)
 {
     int max_faces = mesh->cells.num_inner * MAX_CELL_FACES;
     Face *face = teal2_calloc(max_faces, sizeof(*face));
@@ -320,7 +320,7 @@ static void create_faces(Mesh2 *mesh)
     teal2_free(face);
 }
 
-static void create_face_entities(Mesh2 *mesh)
+static void create_face_entities(Mesh *mesh)
 {
     int *face_off = teal2_calloc(mesh->entities.num + 1, sizeof(*face_off));
     face_off[0] = mesh->faces.num_inner;
@@ -350,7 +350,7 @@ static double compute_face_area(const Vector *coord, int num_nodes)
     }
 }
 
-static void compute_face_areas(Mesh2 *mesh)
+static void compute_face_areas(Mesh *mesh)
 {
     double *area = teal2_calloc(mesh->faces.num, sizeof(*area));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -383,7 +383,7 @@ static Vector compute_face_center(const Vector *coord, int num_nodes)
     }
 }
 
-static void compute_face_centers(Mesh2 *mesh)
+static void compute_face_centers(Mesh *mesh)
 {
     Vector *center = teal2_calloc(mesh->faces.num, sizeof(*center));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -434,7 +434,7 @@ static Matrix compute_face_basis(const Vector *coord, int num_nodes)
     return basis;
 }
 
-static void correct_face_basis(Matrix *basis, const Mesh2 *mesh, int idx)
+static void correct_face_basis(Matrix *basis, const Mesh *mesh, int idx)
 {
     int left = mesh->faces.cell_idx[idx].left;
 
@@ -450,7 +450,7 @@ static void correct_face_basis(Matrix *basis, const Mesh2 *mesh, int idx)
     }
 }
 
-static void compute_face_bases(Mesh2 *mesh)
+static void compute_face_bases(Mesh *mesh)
 {
     Matrix *basis = teal2_calloc(mesh->faces.num, sizeof(*basis));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -493,7 +493,7 @@ static double compute_cell_volume(const Vector *coord, int num_nodes)
     }
 }
 
-static void compute_cell_volumes(Mesh2 *mesh)
+static void compute_cell_volumes(Mesh *mesh)
 {
     double *volume = teal2_calloc(mesh->cells.num, sizeof(*volume));
     for (int i = 0; i < mesh->cells.num_inner; i++) {
@@ -542,7 +542,7 @@ static Vector compute_cell_center(const Vector *coord, int num_nodes)
     }
 }
 
-static void collect_centers(Vector *center, const Mesh2 *mesh)
+static void collect_centers(Vector *center, const Mesh *mesh)
 {
     int tot_send = mesh->neighbors.send.off[mesh->neighbors.num];
     Vector *send = teal2_calloc(tot_send, sizeof(*send));
@@ -570,7 +570,7 @@ static void collect_centers(Vector *center, const Mesh2 *mesh)
     teal2_free(req_send);
 }
 
-static void compute_cell_centers(Mesh2 *mesh)
+static void compute_cell_centers(Mesh *mesh)
 {
     Vector *center = teal2_calloc(mesh->cells.num, sizeof(*center));
 
@@ -604,7 +604,7 @@ static void compute_cell_centers(Mesh2 *mesh)
     mesh->cells.center = center;
 }
 
-static void compute_cell_projections(Mesh2 *mesh)
+static void compute_cell_projections(Mesh *mesh)
 {
     Vector *projection = teal2_calloc(mesh->cells.num, sizeof(*projection));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -634,7 +634,7 @@ static int compare_map(const void *lhs_, const void *rhs_)
     return (lhs->right > rhs->right) - (lhs->right < rhs->right);
 }
 
-static void compute_cell_offsets(Mesh2 *mesh)
+static void compute_cell_offsets(Mesh *mesh)
 {
     Map *map = teal2_calloc(mesh->faces.num, sizeof(*map));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -687,7 +687,7 @@ static Vector compute_face_weight(Vector delta, const double *r11, const double 
     return weight;
 }
 
-static void compute_face_weights(Mesh2 *mesh)
+static void compute_face_weights(Mesh *mesh)
 {
     double *r11 = teal2_calloc(mesh->cells.num_inner, sizeof(*r11));
     double *r12 = teal2_calloc(mesh->cells.num_inner, sizeof(*r12));
@@ -745,7 +745,7 @@ static void compute_face_weights(Mesh2 *mesh)
     teal2_free(r33);
 }
 
-static void compute_face_offsets(Mesh2 *mesh)
+static void compute_face_offsets(Mesh *mesh)
 {
     VectorPair *offset = teal2_calloc(mesh->faces.num, sizeof(*offset));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -757,7 +757,7 @@ static void compute_face_offsets(Mesh2 *mesh)
     mesh->faces.offset = offset;
 }
 
-static void compute_face_corrections(Mesh2 *mesh)
+static void compute_face_corrections(Mesh *mesh)
 {
     VectorNorm *correction = teal2_calloc(mesh->faces.num, sizeof(*correction));
     for (int i = 0; i < mesh->faces.num; i++) {
@@ -770,7 +770,7 @@ static void compute_face_corrections(Mesh2 *mesh)
     mesh->faces.correction = correction;
 }
 
-void mesh2_generate(Mesh2 *mesh)
+void mesh2_generate(Mesh *mesh)
 {
     assert(mesh);
 

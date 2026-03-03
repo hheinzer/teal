@@ -12,7 +12,7 @@
 #include "teal2.h"
 #include "utils2.h"
 
-static Arena2 *arena;
+static Arena *arena;
 
 typedef struct {
     double version;
@@ -411,7 +411,7 @@ static void read_elements(Gmsh *gmsh, MPI_File file, int mode)
         int len = len_node_tags(&block[i]);
         block[i].node_tag = arena2_calloc(arena, num * len, sizeof(*block[i].node_tag));
 
-        Save2 *save = arena2_save(arena);
+        Save *save = arena2_save(arena);
 
         uint64_t (*buf)[1 + len] = arena2_calloc(arena, num, (int)sizeof(*buf));
         parse2(file, buf, num * (1 + len), MPI_UINT64_T, mode | SPLIT);
@@ -459,7 +459,7 @@ static void read_periodic(Gmsh *gmsh, MPI_File file, int mode)
         link[i].node_tag = arena2_calloc(arena, num, sizeof(*link[i].node_tag));
         link[i].node_tag_master = arena2_calloc(arena, num, sizeof(*link[i].node_tag_master));
 
-        Save2 *save = arena2_save(arena);
+        Save *save = arena2_save(arena);
 
         uint64_t (*buf)[2] = arena2_calloc(arena, num, sizeof(*buf));
         parse2(file, buf, num * 2, MPI_UINT64_T, mode | SPLIT);

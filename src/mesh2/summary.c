@@ -4,7 +4,7 @@
 #include "sync2.h"
 #include "teal2.h"
 
-void mesh2_summary(const Mesh2 *mesh)
+void mesh2_summary(const Mesh *mesh)
 {
     assert(mesh);
 

@@ -31,7 +31,7 @@ typedef struct {
     Vector coord;
 } Node;
 
-void mesh2_reorder_nodes(Mesh2 *mesh, const int *map, int beg, int end)
+void mesh2_reorder_nodes(Mesh *mesh, const int *map, int beg, int end)
 {
     assert(mesh && is_valid(map, end - beg) && 0 <= beg && beg <= end && end <= mesh->nodes.num);
 
@@ -73,7 +73,7 @@ typedef struct {
     int cell[MAX_CELL_FACES];
 } Cell;
 
-void mesh2_reorder_cells(Mesh2 *mesh, const int *map, int beg, int end)
+void mesh2_reorder_cells(Mesh *mesh, const int *map, int beg, int end)
 {
     assert(mesh && is_valid(map, end - beg) && 0 <= beg && beg <= end && end <= mesh->cells.num);
 

@@ -13,7 +13,7 @@ struct arena {
     char *base;
     char *beg;
     char *end;
-    Arena2 *prev;
+    Arena *prev;
 };
 
 struct save {
@@ -21,14 +21,14 @@ struct save {
     char *beg;
 };
 
-Arena2 *arena2_init(ptrdiff_t capacity)
+Arena *arena2_init(ptrdiff_t capacity)
 {
     ptrdiff_t min_capacity = 10 << 20;
     if (capacity < min_capacity) {
         capacity = min_capacity;
     }
 
-    Arena2 *self = malloc(sizeof(*self) + capacity);
+    Arena *self = malloc(sizeof(*self) + capacity);
     if (!self) {
         teal2_error("malloc failure (%zu)", sizeof(*self) + capacity);
     }
@@ -43,16 +43,16 @@ Arena2 *arena2_init(ptrdiff_t capacity)
     return self;
 }
 
-void arena2_deinit(Arena2 *self)
+void arena2_deinit(Arena *self)
 {
     while (self) {
-        Arena2 *prev = self->prev;
+        Arena *prev = self->prev;
         free(self);
         self = prev;
     }
 }
 
-static void append_chunk(Arena2 *self, int num, int size, int align)
+static void append_chunk(Arena *self, int num, int size, int align)
 {
     if (num > (PTRDIFF_MAX - REDZONE - (align - 1)) / size) {
         teal2_error("overflow (%d, %d)", num, size);
@@ -72,16 +72,16 @@ static void append_chunk(Arena2 *self, int num, int size, int align)
     ptrdiff_t capacity = 2 * min_capacity;
     teal2_verbose("growing arena by %td MiB", capacity >> 20);
 
-    Arena2 *next = arena2_init(capacity);
+    Arena *next = arena2_init(capacity);
 
-    Arena2 swap = *self;
+    Arena swap = *self;
     *self = *next;
     *next = swap;
 
     self->prev = next;
 }
 
-static void *arena2_malloc(Arena2 *self, int num, int size)
+static void *arena2_malloc(Arena *self, int num, int size)
 {
     assert(self && num >= 0 && size > 0);
 
@@ -105,7 +105,7 @@ static void *arena2_malloc(Arena2 *self, int num, int size)
     return ptr;
 }
 
-void *arena2_calloc(Arena2 *self, int num, int size)
+void *arena2_calloc(Arena *self, int num, int size)
 {
     assert(self && num >= 0 && size > 0);
 
@@ -118,14 +118,14 @@ void *arena2_calloc(Arena2 *self, int num, int size)
     return memset(ptr, 0, (ptrdiff_t)num * size);
 }
 
-Save2 *arena2_save(Arena2 *self)
+Save *arena2_save(Arena *self)
 {
     assert(self);
 
     char *base = self->base;
     char *beg = self->beg;
 
-    Save2 *save = arena2_calloc(self, 1, sizeof(*save));
+    Save *save = arena2_calloc(self, 1, sizeof(*save));
 
     save->base = base;
     save->beg = beg;
@@ -133,12 +133,12 @@ Save2 *arena2_save(Arena2 *self)
     return save;
 }
 
-void arena2_load(Arena2 *self, const Save2 *save)
+void arena2_load(Arena *self, const Save *save)
 {
     assert(self && save);
 
     while (self->prev && self->base != save->base) {
-        Arena2 *prev = self->prev;
+        Arena *prev = self->prev;
         *self = *prev;
         free(prev);
     }

@@ -21,7 +21,7 @@ enum CellGhostTypes {
     HIDDENCELL = 32,    // only present for connectivity; ignore data values
 };
 
-static unsigned char *compute_types(const Mesh2 *mesh, int num_cells)
+static unsigned char *compute_types(const Mesh *mesh, int num_cells)
 {
     unsigned char *type = teal2_calloc(num_cells, sizeof(*type));
     for (int i = 0; i < num_cells; i++) {
@@ -46,7 +46,7 @@ static unsigned char *compute_types(const Mesh2 *mesh, int num_cells)
     return type;
 }
 
-static void write_mesh_data_partitioned(const Mesh2 *mesh, int num_nodes, int num_cells, hid_t loc)
+static void write_mesh_data_partitioned(const Mesh *mesh, int num_nodes, int num_cells, hid_t loc)
 {
     int num_indices = mesh->cells.node.off[num_cells];
 
@@ -64,7 +64,7 @@ static void write_mesh_data_partitioned(const Mesh2 *mesh, int num_nodes, int nu
     teal2_free(type);
 }
 
-static unsigned char *compute_ghosts(const Mesh2 *mesh, int num_cells)
+static unsigned char *compute_ghosts(const Mesh *mesh, int num_cells)
 {
     unsigned char *ghost = teal2_calloc(num_cells, sizeof(*ghost));
     for (int i = mesh->cells.num_inner; i < num_cells; i++) {
@@ -78,7 +78,7 @@ static unsigned char *compute_ghosts(const Mesh2 *mesh, int num_cells)
     return ghost;
 }
 
-static int *compute_entities(const Mesh2 *mesh, int num_cells)
+static int *compute_entities(const Mesh *mesh, int num_cells)
 {
     int *entity = teal2_calloc(num_cells, sizeof(*entity));
     for (int i = 0; i < mesh->entities.num; i++) {
@@ -109,7 +109,7 @@ static int *compute_ranks(int num_cells)
     return rank;
 }
 
-static void write_cell_data(const Mesh2 *mesh, int num_cells, hid_t loc)
+static void write_cell_data(const Mesh *mesh, int num_cells, hid_t loc)
 {
     unsigned char *ghost = compute_ghosts(mesh, num_cells);
     int *entity = compute_entities(mesh, num_cells);
@@ -128,7 +128,7 @@ static void write_cell_data(const Mesh2 *mesh, int num_cells, hid_t loc)
     teal2_free(rank);
 }
 
-static int *compute_offsets(const Mesh2 *mesh, int num_cells, int num_indices)
+static int *compute_offsets(const Mesh *mesh, int num_cells, int num_indices)
 {
     int prefix = num_indices;
     sync2_prefix(&prefix, 1, MPI_INT);
@@ -140,7 +140,7 @@ static int *compute_offsets(const Mesh2 *mesh, int num_cells, int num_indices)
     return offset;
 }
 
-static int *compute_indices(const Mesh2 *mesh, int num_indices)
+static int *compute_indices(const Mesh *mesh, int num_indices)
 {
     int *index = teal2_calloc(num_indices, sizeof(*index));
     for (int i = 0; i < num_indices; i++) {
@@ -150,7 +150,7 @@ static int *compute_indices(const Mesh2 *mesh, int num_indices)
     return index;
 }
 
-static void write_mesh_data(const Mesh2 *mesh, int num_nodes, int num_cells, hid_t loc)
+static void write_mesh_data(const Mesh *mesh, int num_nodes, int num_cells, hid_t loc)
 {
     int root = (sync2.rank == 0);
 
@@ -182,7 +182,7 @@ static void write_mesh_data(const Mesh2 *mesh, int num_nodes, int num_cells, hid
     teal2_free(type);
 }
 
-void mesh2_write(const Mesh2 *mesh, const char *name)
+void mesh2_write(const Mesh *mesh, const char *name)
 {
     assert(mesh && name);
 

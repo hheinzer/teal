@@ -93,7 +93,7 @@ static void split_bounds(double *min_coord, double *max_coord, int *num_cells, i
     }
 }
 
-static long *compute_globals(Mesh2 *mesh, Triple num_cells, const int *dims, const int *coords,
+static long *compute_globals(Mesh *mesh, Triple num_cells, const int *dims, const int *coords,
                              const int *neighbor)
 {
     long *global = teal2_calloc(mesh->nodes.num, sizeof(*global));
@@ -140,7 +140,7 @@ static long *compute_globals(Mesh2 *mesh, Triple num_cells, const int *dims, con
     return global;
 }
 
-static void create_nodes(Mesh2 *mesh, Vector min_coord, Vector max_coord, Triple num_cells,
+static void create_nodes(Mesh *mesh, Vector min_coord, Vector max_coord, Triple num_cells,
                          const int *dims, const int *coords, const int *neighbor)
 {
     int num_nodes = (num_cells.x + 1) * (num_cells.y + 1) * (num_cells.z + 1);
@@ -192,7 +192,7 @@ static int is_outer_side(const int *dims, const int *coords, int idx)
     return coords[idx / 2] == dims[idx / 2] - 1;
 }
 
-static void create_cells(Mesh2 *mesh, Triple num_cells, const int *dims, const int *coords,
+static void create_cells(Mesh *mesh, Triple num_cells, const int *dims, const int *coords,
                          const int *neighbor, int ndims)
 {
     int num_inner = num_cells.x * num_cells.y * num_cells.z;
@@ -297,7 +297,7 @@ static Vector compute_translation(Vector del_coord, int idx)
     }
 }
 
-static void create_entities(Mesh2 *mesh, Triple num_cells, Vector del_coord, const int *dims,
+static void create_entities(Mesh *mesh, Triple num_cells, Vector del_coord, const int *dims,
                             const int *periods, const int *coords, const int *neighbor, int ndims)
 {
     int num_inner = 1;
@@ -382,7 +382,7 @@ static void append_side_send_idx(int *send_idx, int *send_off, Triple num_cells,
     }
 }
 
-static void create_neighbors(Mesh2 *mesh, Triple num_cells, const int *dims, const int *coords,
+static void create_neighbors(Mesh *mesh, Triple num_cells, const int *dims, const int *coords,
                              const int *neighbor, int ndims)
 {
     int num_neighbors = 0;
@@ -436,7 +436,7 @@ static void create_neighbors(Mesh2 *mesh, Triple num_cells, const int *dims, con
     mesh->neighbors.send.idx = send_idx;
 }
 
-static void reorder_nodes(Mesh2 *mesh, Triple num_cells, const int *coords)
+static void reorder_nodes(Mesh *mesh, Triple num_cells, const int *coords)
 {
     int *map = teal2_calloc(mesh->nodes.num, sizeof(*map));
 
@@ -465,7 +465,7 @@ static void reorder_nodes(Mesh2 *mesh, Triple num_cells, const int *coords)
     teal2_free(map);
 }
 
-static void reorder_cells(Mesh2 *mesh, Triple num_cells, const int *dims, const int *coords,
+static void reorder_cells(Mesh *mesh, Triple num_cells, const int *dims, const int *coords,
                           const int *neighbor, int ndims)
 {
     int *map = teal2_calloc(mesh->cells.num, sizeof(*map));
@@ -503,7 +503,7 @@ static void reorder_cells(Mesh2 *mesh, Triple num_cells, const int *dims, const 
     teal2_free(map);
 }
 
-Mesh2 *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple periodic)
+Mesh *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple periodic)
 {
     int dims[3];
     int ndims = compute_dims(dims, num_cells);
@@ -528,7 +528,7 @@ Mesh2 *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple
     split_bounds(&min_coord.y, &max_coord.y, &num_cells.y, 1, dims, coords, ndims);
     split_bounds(&min_coord.z, &max_coord.z, &num_cells.z, 2, dims, coords, ndims);
 
-    Mesh2 *mesh = teal2_calloc(1, sizeof(*mesh));
+    Mesh *mesh = teal2_calloc(1, sizeof(*mesh));
     create_nodes(mesh, min_coord, max_coord, num_cells, dims, coords, neighbor);
     create_cells(mesh, num_cells, dims, coords, neighbor, ndims);
     create_entities(mesh, num_cells, del_coord, dims, periods, coords, neighbor, ndims);

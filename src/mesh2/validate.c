@@ -12,7 +12,7 @@
 
 static void validate_unique(const Vector *point, int num)
 {
-    Kdtree2 *tree = kdtree2_init(point, num);
+    Kdtree *tree = kdtree2_init(point, num);
     for (int i = 0; i < num; i++) {
         int idx[2];
         int len = kdtree2_nearest(tree, point[i], idx, 2);
@@ -30,7 +30,7 @@ static void validate_unique(const Vector *point, int num)
     kdtree2_deinit(tree);
 }
 
-static void validate_nodes(const Mesh2 *mesh)
+static void validate_nodes(const Mesh *mesh)
 {
     ensure(mesh->nodes.num > 0);
     ensure(mesh->nodes.num_inner >= 0);
@@ -97,7 +97,7 @@ static int adjacent(Graph graph, int lhs, int rhs)
     return 0;
 }
 
-static void validate_cells(const Mesh2 *mesh)
+static void validate_cells(const Mesh *mesh)
 {
     ensure(mesh->cells.num > 0);
     ensure(mesh->cells.num_inner > 0);
@@ -127,7 +127,7 @@ static void validate_cells(const Mesh2 *mesh)
     validate_unique(mesh->cells.center, mesh->cells.num);
 }
 
-static void validate_faces(const Mesh2 *mesh)
+static void validate_faces(const Mesh *mesh)
 {
     ensure(mesh->faces.num > 0);
     ensure(mesh->faces.num_inner >= 0);
@@ -175,7 +175,7 @@ static void validate_faces(const Mesh2 *mesh)
     }
 }
 
-static void validate_entities(const Mesh2 *mesh)
+static void validate_entities(const Mesh *mesh)
 {
     ensure(mesh->entities.num > 0);
     ensure(mesh->entities.num_inner > 0);
@@ -221,7 +221,7 @@ static void validate_entities(const Mesh2 *mesh)
     }
 }
 
-static void validate_neighbors(const Mesh2 *mesh)
+static void validate_neighbors(const Mesh *mesh)
 {
     ensure(mesh->neighbors.num >= 0);
 
@@ -254,7 +254,7 @@ static void validate_neighbors(const Mesh2 *mesh)
     validate_graph(mesh->neighbors.send, mesh->neighbors.num, -1, -1, 0, mesh->cells.num_inner - 1);
 }
 
-void mesh2_validate(const Mesh2 *mesh)
+void mesh2_validate(const Mesh *mesh)
 {
     assert(mesh);
     validate_nodes(mesh);

@@ -6,7 +6,7 @@
 
 static void test_empty(void)
 {
-    Kdtree2 *tree = kdtree2_init(0, 0);
+    Kdtree *tree = kdtree2_init(0, 0);
 
     Vector point = {0, 0, 0};
 
@@ -22,7 +22,7 @@ static void test_single(void)
     Vector point[] = {
         {1, 2, 3},
     };
-    Kdtree2 *tree = kdtree2_init(point, 1);
+    Kdtree *tree = kdtree2_init(point, 1);
 
     int idx[2];
     test(kdtree2_nearest(tree, point[0], idx, 2) == 1);
@@ -47,7 +47,7 @@ static void test_nearest_order_and_cap(void)
         {3, 0, 0},
         {4, 0, 0},
     };
-    Kdtree2 *tree = kdtree2_init(point, 4);
+    Kdtree *tree = kdtree2_init(point, 4);
 
     Vector pos = {0, 0, 0};
 
@@ -72,7 +72,7 @@ static void test_radius_count_and_truncation(void)
         {3, 0, 0},
         {4, 0, 0},
     };
-    Kdtree2 *tree = kdtree2_init(point, 4);
+    Kdtree *tree = kdtree2_init(point, 4);
 
     Vector pos = {0, 0, 0};
 
@@ -104,7 +104,7 @@ static void test_duplicates(void)
         {5, 5, 5},
         {8, 8, 8},
     };
-    Kdtree2 *tree = kdtree2_init(point, 3);
+    Kdtree *tree = kdtree2_init(point, 3);
 
     Vector pos = {5, 5, 5};
 

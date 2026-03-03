@@ -307,7 +307,7 @@ static void reorder_periodic_cells(Grid *grid, const Cell *recv, int num_periodi
     assert(num == num_periodic);
 }
 
-static void create_periodic_graph(Mesh2 *mesh, const Grid *grid, const Cell *recv, int num_periodic)
+static void create_periodic_graph(Mesh *mesh, const Grid *grid, const Cell *recv, int num_periodic)
 {
     int num_neighbors = 1;
     for (int i = 1; i < num_periodic; i++) {
@@ -371,7 +371,7 @@ static void create_periodic_graph(Mesh2 *mesh, const Grid *grid, const Cell *rec
     teal2_free(req_send);
 }
 
-static void collect_periodic(Mesh2 *mesh, Grid *grid)
+static void collect_periodic(Mesh *mesh, Grid *grid)
 {
     Dual *dual = dual_init(grid);
     dual_periodic(dual, grid);
@@ -452,7 +452,7 @@ static void append_neighbor_cells(Grid *grid, const Cell *recv, int tot_recv)
     teal2_free(inner);
 }
 
-static void append_neighbor_graph(Mesh2 *mesh, const int *num_recv, const int *num_send,
+static void append_neighbor_graph(Mesh *mesh, const int *num_recv, const int *num_send,
                                   const int *off_send, const int *idx_send, const Grid *grid)
 {
     int num_neighbors = mesh->neighbors.num;
@@ -498,7 +498,7 @@ static void append_neighbor_graph(Mesh2 *mesh, const int *num_recv, const int *n
     mesh->neighbors.send.idx = send_idx;
 }
 
-static void create_neighbors(Mesh2 *mesh, Grid *grid)
+static void create_neighbors(Mesh *mesh, Grid *grid)
 {
     if (grid->entities.num > grid->entities.off_boundary) {
         collect_periodic(mesh, grid);
@@ -846,7 +846,7 @@ static int partition_nodes(Grid *grid)
     return num_inner;
 }
 
-static void create_nodes(Mesh2 *mesh, Grid *grid, int num_inner)
+static void create_nodes(Mesh *mesh, Grid *grid, int num_inner)
 {
     long *global = teal2_calloc(grid->nodes.num, sizeof(*global));
     for (int i = 0; i < grid->nodes.num; i++) {
@@ -861,7 +861,7 @@ static void create_nodes(Mesh2 *mesh, Grid *grid, int num_inner)
     grid->nodes.coord = 0;
 }
 
-static void create_cells(Mesh2 *mesh, const Grid *grid)
+static void create_cells(Mesh *mesh, const Grid *grid)
 {
     int *node_off = teal2_calloc(grid->cells.num + 1, sizeof(*node_off));
     for (int i = 0; i < grid->cells.num + 1; i++) {
@@ -883,7 +883,7 @@ static void create_cells(Mesh2 *mesh, const Grid *grid)
     mesh->cells.node.idx = node_idx;
 }
 
-static void create_entities(Mesh2 *mesh, Grid *grid)
+static void create_entities(Mesh *mesh, Grid *grid)
 {
     mesh->entities.num = grid->entities.num;
     mesh->entities.num_inner = grid->entities.num_inner;
@@ -899,14 +899,14 @@ static void create_entities(Mesh2 *mesh, Grid *grid)
     grid->entities.translation = 0;
 }
 
-Mesh2 *mesh2_read(const char *fname)
+Mesh *mesh2_read(const char *fname)
 {
     assert(fname);
 
     Grid *grid = grid_init(fname);
     partition_cells(grid);
 
-    Mesh2 *mesh = teal2_calloc(1, sizeof(*mesh));
+    Mesh *mesh = teal2_calloc(1, sizeof(*mesh));
     create_neighbors(mesh, grid);
 
     int num_inner = partition_nodes(grid);

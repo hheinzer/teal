@@ -7,7 +7,7 @@
 #include "teal2.h"
 #include "utils2.h"
 
-static int entity_index(const Mesh2 *mesh, const char *entity)
+static int entity_index(const Mesh *mesh, const char *entity)
 {
     for (int i = 0; i < mesh->entities.off_boundary; i++) {
         if (!strcmp(mesh->entities.name[i], entity)) {
@@ -17,7 +17,7 @@ static int entity_index(const Mesh2 *mesh, const char *entity)
     teal2_error("invalid entity (%s)", entity);
 }
 
-static int reorder_cells(Mesh2 *mesh, Vector root, Vector normal, int index)
+static int reorder_cells(Mesh *mesh, Vector root, Vector normal, int index)
 {
     int beg = mesh->entities.cell_off[index];
     int end = mesh->entities.cell_off[index + 1];
@@ -53,7 +53,7 @@ static int reorder_cells(Mesh2 *mesh, Vector root, Vector normal, int index)
     return offset;
 }
 
-static void split_entity(Mesh2 *mesh, int index, int offset)
+static void split_entity(Mesh *mesh, int index, int offset)
 {
     int num_entities = mesh->entities.num + 1;
     int num_move = mesh->entities.num - index;
@@ -85,7 +85,7 @@ static void split_entity(Mesh2 *mesh, int index, int offset)
     mesh->entities.translation = translation;
 }
 
-void mesh2_split(Mesh2 *mesh, const char *entity, Vector root, Vector normal)
+void mesh2_split(Mesh *mesh, const char *entity, Vector root, Vector normal)
 {
     assert(mesh && entity);
     int index = entity_index(mesh, entity);
