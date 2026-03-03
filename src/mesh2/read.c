@@ -3,7 +3,7 @@
 
 #include "dual.h"
 #include "grid.h"
-#include "private.h"
+#include "mesh2.h"
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"

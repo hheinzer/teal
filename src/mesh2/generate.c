@@ -4,7 +4,8 @@
 #include <metis.h>
 #include <stdlib.h>
 
-#include "private.h"
+#include "mesh2.h"
+#include "reorder.h"
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"
@@ -288,7 +289,7 @@ static void create_faces(Mesh2 *mesh)
 
     int *node_off = teal2_calloc(num_faces + 1, sizeof(*node_off));
     int *node_idx = teal2_calloc(num_faces * MAX_FACE_NODES, sizeof(*node_idx));
-    IntPair *cell_idx = teal2_calloc(num_faces, sizeof(*cell_idx));
+    Pair *cell_idx = teal2_calloc(num_faces, sizeof(*cell_idx));
 
     int num_inner = 0;
     int num_boundary = 0;
@@ -758,7 +759,7 @@ static void compute_face_offsets(Mesh2 *mesh)
 
 static void compute_face_corrections(Mesh2 *mesh)
 {
-    UnitNorm *correction = teal2_calloc(mesh->faces.num, sizeof(*correction));
+    VectorNorm *correction = teal2_calloc(mesh->faces.num, sizeof(*correction));
     for (int i = 0; i < mesh->faces.num; i++) {
         int left = mesh->faces.cell_idx[i].left;
         int right = mesh->faces.cell_idx[i].right;
@@ -771,7 +772,7 @@ static void compute_face_corrections(Mesh2 *mesh)
 
 void mesh2_generate(Mesh2 *mesh)
 {
-    assert(mesh && !mesh->generated);
+    assert(mesh);
 
     connect_cells(mesh);
     reorder_cells(mesh);
@@ -805,6 +806,4 @@ void mesh2_generate(Mesh2 *mesh)
     if (tot_nodes > INT_MAX || tot_cells > INT_MAX || tot_indices > INT_MAX) {
         teal2.partitioned = 1;
     }
-
-    mesh->generated = 1;
 }

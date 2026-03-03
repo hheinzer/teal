@@ -1,6 +1,6 @@
 #include <assert.h>
 
-#include "private.h"
+#include "mesh2.h"
 #include "teal2.h"
 
 void mesh2_destroy(Mesh2 *mesh)

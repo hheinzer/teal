@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #include "h5io2.h"
-#include "private.h"
+#include "mesh2.h"
 #include "sync2.h"
 #include "teal2.h"
 
@@ -184,7 +184,7 @@ static void write_mesh_data(const Mesh2 *mesh, int num_nodes, int num_cells, hid
 
 void mesh2_write(const Mesh2 *mesh, const char *name)
 {
-    assert(mesh && mesh->generated && name);
+    assert(mesh && name);
 
     char fname[128];
     sprintf(fname, "%s.hdf", name);

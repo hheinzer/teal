@@ -1,12 +1,12 @@
 #include <assert.h>
 
-#include "private.h"
+#include "mesh2.h"
 #include "sync2.h"
 #include "teal2.h"
 
 void mesh2_summary(const Mesh2 *mesh)
 {
-    assert(mesh && mesh->generated);
+    assert(mesh);
 
     long inner_nodes = mesh->nodes.num_inner;
     sync2_sum(&inner_nodes, 1, MPI_LONG);

@@ -2,7 +2,8 @@
 #include <limits.h>
 #include <string.h>
 
-#include "private.h"
+#include "mesh2.h"
+#include "reorder.h"
 #include "teal2.h"
 #include "utils2.h"
 
@@ -86,7 +87,7 @@ static void split_entity(Mesh2 *mesh, int index, int offset)
 
 void mesh2_split(Mesh2 *mesh, const char *entity, Vector root, Vector normal)
 {
-    assert(mesh && !mesh->generated && entity);
+    assert(mesh && entity);
     int index = entity_index(mesh, entity);
     int offset = reorder_cells(mesh, root, normal, index);
     split_entity(mesh, index, offset);

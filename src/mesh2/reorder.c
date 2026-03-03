@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "private.h"
+#include "mesh2.h"
 #include "teal2.h"
 
 static int is_valid(const int *map, int num)

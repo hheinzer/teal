@@ -4,8 +4,16 @@
 #define cb(val) ((val) * (val) * (val))
 
 typedef struct {
+    int left, right;
+} Pair;
+
+typedef struct {
     int x, y, z;
 } Triple;
+
+typedef struct {
+    int *off, *idx;
+} Graph;
 
 typedef char String[128];
 

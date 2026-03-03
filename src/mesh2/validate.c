@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "kdtree2.h"
-#include "private.h"
+#include "mesh2.h"
 #include "sync2.h"
 #include "teal2.h"
 #include "utils2.h"
@@ -256,7 +256,7 @@ static void validate_neighbors(const Mesh2 *mesh)
 
 void mesh2_validate(const Mesh2 *mesh)
 {
-    assert(mesh && mesh->generated);
+    assert(mesh);
     validate_nodes(mesh);
     validate_cells(mesh);
     validate_faces(mesh);

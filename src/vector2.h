@@ -4,6 +4,15 @@ typedef struct {
     double x, y, z;
 } Vector;
 
+typedef struct {
+    Vector left, right;
+} VectorPair;
+
+typedef struct {
+    Vector unit;
+    double norm;
+} VectorNorm;
+
 // Return `lhs + rhs`.
 Vector vector2_add(Vector lhs, Vector rhs);
 
