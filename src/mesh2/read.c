@@ -243,7 +243,7 @@ static void redistribute_cells(Grid *grid, const long *part)
 static void redistribute_nodes(Grid *grid, int dst)
 {
     int *rank = teal2_calloc(sync2.size, sizeof(*rank));
-    sync2_gather(&dst, rank, 1, MPI_INT);
+    sync2_gather(&dst, rank, 1, MPI_INT, 1);
 
     int src = -1;
     for (int i = 0; i < sync2.size; i++) {
@@ -353,8 +353,8 @@ static void create_periodic_graph(Mesh *mesh, const Grid *grid, const Cell *recv
     for (int i = 0; i < num_neighbors; i++) {
         int off = send_off[i];
         int count = recv_off[i + 1] - recv_off[i];
-        MPI_Irecv(&send_idx[off], count, MPI_INT, rank[i], tag[i][0], sync2.comm, &req_recv[i]);
-        MPI_Isend(&recv_idx[off], count, MPI_INT, rank[i], tag[i][1], sync2.comm, &req_send[i]);
+        sync2_irecv(&req_recv[i], &send_idx[off], count, rank[i], tag[i][0], MPI_INT, 1);
+        sync2_isend(&req_send[i], &recv_idx[off], count, rank[i], tag[i][1], MPI_INT, 1);
     }
     MPI_Waitall(num_neighbors, req_recv, MPI_STATUSES_IGNORE);
     MPI_Waitall(num_neighbors, req_send, MPI_STATUSES_IGNORE);
@@ -514,7 +514,7 @@ static void create_neighbors(Mesh *mesh, Grid *grid)
     num_adjncys = unique(adjncy, num_adjncys, sizeof(*adjncy), compare_long);
 
     int *num_inner = teal2_calloc(sync2.size, sizeof(*num_inner));
-    sync2_gather(&grid->cells.num_inner, num_inner, 1, MPI_INT);
+    sync2_gather(&grid->cells.num_inner, num_inner, 1, MPI_INT, 1);
 
     int num = 0;
     while (num < num_adjncys) {

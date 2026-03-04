@@ -544,26 +544,25 @@ static Vector compute_cell_center(const Vector *coord, int num_nodes)
 
 static void collect_centers(Vector *center, const Mesh *mesh)
 {
-    int tot_send = mesh->neighbors.send.off[mesh->neighbors.num];
-    Vector *send = teal2_calloc(tot_send, sizeof(*send));
-
-    MPI_Datatype type = sync2_contiguous(MPI_DOUBLE, 3);
-    MPI_Request *req_recv = teal2_calloc(mesh->neighbors.num, sizeof(*req_recv));
-    MPI_Request *req_send = teal2_calloc(mesh->neighbors.num, sizeof(*req_send));
+    Vector *send = teal2_calloc(mesh->neighbors.send.off[mesh->neighbors.num], sizeof(*send));
     for (int i = 0; i < mesh->neighbors.num; i++) {
         for (int j = mesh->neighbors.send.off[i]; j < mesh->neighbors.send.off[i + 1]; j++) {
             send[j] = center[mesh->neighbors.send.idx[j]];
         }
+    }
+
+    MPI_Request *req_recv = teal2_calloc(mesh->neighbors.num, sizeof(*req_recv));
+    MPI_Request *req_send = teal2_calloc(mesh->neighbors.num, sizeof(*req_send));
+    for (int i = 0; i < mesh->neighbors.num; i++) {
         int num_recv = mesh->neighbors.recv_off[i + 1] - mesh->neighbors.recv_off[i];
         int num_send = mesh->neighbors.send.off[i + 1] - mesh->neighbors.send.off[i];
-        MPI_Irecv(&center[mesh->neighbors.recv_off[i]], num_recv, type, mesh->neighbors.rank[i],
-                  mesh->neighbors.tag[i][0], sync2.comm, &req_recv[i]);
-        MPI_Isend(&send[mesh->neighbors.send.off[i]], num_send, type, mesh->neighbors.rank[i],
-                  mesh->neighbors.tag[i][1], sync2.comm, &req_send[i]);
+        sync2_irecv(&req_recv[i], &center[mesh->neighbors.recv_off[i]], num_recv,
+                    mesh->neighbors.rank[i], mesh->neighbors.tag[i][0], MPI_DOUBLE, 3);
+        sync2_isend(&req_send[i], &send[mesh->neighbors.send.off[i]], num_send,
+                    mesh->neighbors.rank[i], mesh->neighbors.tag[i][1], MPI_DOUBLE, 3);
     }
     MPI_Waitall(mesh->neighbors.num, req_recv, MPI_STATUSES_IGNORE);
     MPI_Waitall(mesh->neighbors.num, req_send, MPI_STATUSES_IGNORE);
-    MPI_Type_free(&type);
 
     teal2_free(send);
     teal2_free(req_recv);

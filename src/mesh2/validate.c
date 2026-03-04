@@ -231,10 +231,10 @@ static void validate_neighbors(const Mesh *mesh)
     for (int i = 0; i < mesh->neighbors.num; i++) {
         ensure(mesh->neighbors.rank[i] >= 0);
         ensure(mesh->neighbors.rank[i] < sync2.size);
-        MPI_Irecv(&rank[i], 1, MPI_INT, mesh->neighbors.rank[i], mesh->neighbors.tag[i][0],
-                  sync2.comm, &req_recv[i]);
-        MPI_Isend(&sync2.rank, 1, MPI_INT, mesh->neighbors.rank[i], mesh->neighbors.tag[i][1],
-                  sync2.comm, &req_send[i]);
+        sync2_irecv(&req_recv[i], &rank[i], 1, mesh->neighbors.rank[i], mesh->neighbors.tag[i][0],
+                    MPI_INT, 1);
+        sync2_isend(&req_send[i], &sync2.rank, 1, mesh->neighbors.rank[i], mesh->neighbors.tag[i][1],
+                    MPI_INT, 1);
     }
     MPI_Waitall(mesh->neighbors.num, req_recv, MPI_STATUSES_IGNORE);
     MPI_Waitall(mesh->neighbors.num, req_send, MPI_STATUSES_IGNORE);
