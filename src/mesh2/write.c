@@ -64,6 +64,60 @@ static void write_mesh_data_partitioned(const Mesh *mesh, int num_nodes, int num
     teal2_free(type);
 }
 
+static int *compute_offsets(const Mesh *mesh, int num_cells, int num_indices)
+{
+    int prefix = num_indices;
+    sync2_prefix(&prefix, 1, MPI_INT);
+
+    int *offset = teal2_calloc(num_cells + 1, sizeof(*offset));
+    for (int i = 0; i < num_cells + 1; i++) {
+        offset[i] = prefix + mesh->cells.node.off[i];
+    }
+    return offset;
+}
+
+static int *compute_indices(const Mesh *mesh, int num_indices)
+{
+    int *index = teal2_calloc(num_indices, sizeof(*index));
+    for (int i = 0; i < num_indices; i++) {
+        assert(mesh->nodes.global[mesh->cells.node.idx[i]] <= INT_MAX);
+        index[i] = (int)mesh->nodes.global[mesh->cells.node.idx[i]];
+    }
+    return index;
+}
+
+static void write_mesh_data(const Mesh *mesh, int num_nodes, int num_cells, hid_t loc)
+{
+    int root = (sync2.rank == 0);
+
+    int tot_nodes = num_nodes;
+    sync2_sum(&tot_nodes, 1, MPI_INT);
+
+    int tot_cells = num_cells;
+    sync2_sum(&tot_cells, 1, MPI_INT);
+
+    int num_indices = mesh->cells.node.off[num_cells];
+    int tot_indices = num_indices;
+    sync2_sum(&tot_indices, 1, MPI_INT);
+
+    h5io2_dataset_write("NumberOfPoints", &tot_nodes, root, 1, H5T_NATIVE_INT, loc);
+    h5io2_dataset_write("NumberOfCells", &tot_cells, root, 1, H5T_NATIVE_INT, loc);
+    h5io2_dataset_write("NumberOfConnectivityIds", &tot_indices, root, 1, H5T_NATIVE_INT, loc);
+
+    int *offset = compute_offsets(mesh, num_cells, num_indices);
+    int *index = compute_indices(mesh, num_indices);
+    unsigned char *type = compute_types(mesh, num_cells);
+
+    h5io2_dataset_write("Points", mesh->nodes.coord, num_nodes, 3, H5T_NATIVE_DOUBLE, loc);
+    h5io2_dataset_write("Offsets", &offset[!root], num_cells + root, 1, H5T_NATIVE_INT, loc);
+    h5io2_dataset_write("Connectivity", index, num_indices, 1, H5T_NATIVE_INT, loc);
+    h5io2_dataset_write("Types", type, num_cells, 1, H5T_NATIVE_UCHAR, loc);
+
+    teal2_free(offset);
+    teal2_free(index);
+    teal2_free(type);
+}
+
 static unsigned char *compute_ghosts(const Mesh *mesh, int num_cells)
 {
     unsigned char *ghost = teal2_calloc(num_cells, sizeof(*ghost));
@@ -128,66 +182,12 @@ static void write_cell_data(const Mesh *mesh, int num_cells, hid_t loc)
     teal2_free(rank);
 }
 
-static int *compute_offsets(const Mesh *mesh, int num_cells, int num_indices)
-{
-    int prefix = num_indices;
-    sync2_prefix(&prefix, 1, MPI_INT);
-
-    int *offset = teal2_calloc(num_cells + 1, sizeof(*offset));
-    for (int i = 0; i < num_cells + 1; i++) {
-        offset[i] = prefix + mesh->cells.node.off[i];
-    }
-    return offset;
-}
-
-static int *compute_indices(const Mesh *mesh, int num_indices)
-{
-    int *index = teal2_calloc(num_indices, sizeof(*index));
-    for (int i = 0; i < num_indices; i++) {
-        assert(mesh->nodes.global[mesh->cells.node.idx[i]] <= INT_MAX);
-        index[i] = (int)mesh->nodes.global[mesh->cells.node.idx[i]];
-    }
-    return index;
-}
-
-static void write_mesh_data(const Mesh *mesh, int num_nodes, int num_cells, hid_t loc)
-{
-    int root = (sync2.rank == 0);
-
-    int tot_nodes = num_nodes;
-    sync2_sum(&tot_nodes, 1, MPI_INT);
-
-    int tot_cells = num_cells;
-    sync2_sum(&tot_cells, 1, MPI_INT);
-
-    int num_indices = mesh->cells.node.off[num_cells];
-    int tot_indices = num_indices;
-    sync2_sum(&tot_indices, 1, MPI_INT);
-
-    h5io2_dataset_write("NumberOfPoints", &tot_nodes, root, 1, H5T_NATIVE_INT, loc);
-    h5io2_dataset_write("NumberOfCells", &tot_cells, root, 1, H5T_NATIVE_INT, loc);
-    h5io2_dataset_write("NumberOfConnectivityIds", &tot_indices, root, 1, H5T_NATIVE_INT, loc);
-
-    int *offset = compute_offsets(mesh, num_cells, num_indices);
-    int *index = compute_indices(mesh, num_indices);
-    unsigned char *type = compute_types(mesh, num_cells);
-
-    h5io2_dataset_write("Points", mesh->nodes.coord, num_nodes, 3, H5T_NATIVE_DOUBLE, loc);
-    h5io2_dataset_write("Offsets", &offset[!root], num_cells + root, 1, H5T_NATIVE_INT, loc);
-    h5io2_dataset_write("Connectivity", index, num_indices, 1, H5T_NATIVE_INT, loc);
-    h5io2_dataset_write("Types", type, num_cells, 1, H5T_NATIVE_UCHAR, loc);
-
-    teal2_free(offset);
-    teal2_free(index);
-    teal2_free(type);
-}
-
 void mesh2_write(const Mesh *mesh, const char *name)
 {
     assert(mesh && name);
 
-    char fname[128];
-    sprintf(fname, "%s.hdf", name);
+    String fname;
+    sprintf(fname, "%s_mesh.hdf", name);
 
     hid_t file = h5io2_file_create(fname);
     hid_t vtkhdf = h5io2_group_create("VTKHDF", file);

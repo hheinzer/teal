@@ -10,6 +10,7 @@
 #include "sanitizer.h"
 #include "sync2.h"
 #include "teal2.h"
+#include "utils2.h"
 
 _Static_assert(sizeof(int) == 4, "teal requires 32-bit int");
 _Static_assert(sizeof(long) == 8, "teal requires 64-bit long");
@@ -64,7 +65,7 @@ void teal2_init(int *argc, char ***argv)
 
     srand(time(0) + sync2.rank);
 
-    char now[128];
+    String now;
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
     teal2_print("Hello, World! This is teal!");
@@ -74,7 +75,7 @@ void teal2_init(int *argc, char ***argv)
 
 void teal2_deinit(void)
 {
-    char now[128];
+    String now;
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
     teal2_print("Goodbye, World!");

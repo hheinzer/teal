@@ -473,7 +473,7 @@ static Gmsh *gmsh_init(const char *fname)
 
     Gmsh *gmsh = teal2_calloc(1, sizeof(*gmsh));
     int mode = 0;
-    char section[128];
+    String section;
     while (parse2_string(file, section, sizeof(section))) {
         if (!strcmp(section, "$MeshFormat")) {
             mode = read_format(gmsh, file);

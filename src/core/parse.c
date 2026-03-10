@@ -11,7 +11,7 @@
 #include "sync2.h"
 #include "teal2.h"
 
-enum { SIZE = 4096 };
+enum { SIZE = 4 << 10 };
 
 MPI_File parse2_open(const char *fname)
 {
