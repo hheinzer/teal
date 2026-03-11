@@ -496,6 +496,8 @@ static double compute_cell_volume(const Vector *coord, int num_nodes)
 static void compute_cell_volumes(Mesh *mesh)
 {
     double *volume = teal2_calloc(mesh->cells.num, sizeof(*volume));
+    double sum_volume = 0;
+
     for (int i = 0; i < mesh->cells.num_inner; i++) {
         Vector coord[MAX_CELL_NODES];
         int num_nodes = 0;
@@ -503,8 +505,13 @@ static void compute_cell_volumes(Mesh *mesh)
             coord[num_nodes++] = mesh->nodes.coord[mesh->cells.node.idx[j]];
         }
         volume[i] = compute_cell_volume(coord, num_nodes);
+        sum_volume += volume[i];
     }
+
+    sync2_sum(&sum_volume, 1, MPI_DOUBLE);
+
     mesh->cells.volume = volume;
+    mesh->cells.sum_volume = sum_volume;
 }
 
 static Vector compute_cell_center(const Vector *coord, int num_nodes)

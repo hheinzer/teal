@@ -24,7 +24,7 @@ typedef struct {
     int off_periodic;
     Graph node;
     Graph cell;
-    double *volume;
+    double *volume, sum_volume;
     Vector *center;
     Vector *projection;
     Vector *offset;
