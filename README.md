@@ -1,35 +1,35 @@
-![](.teal.svg)
+![teal](.logo.svg)
 
-Teal is a general-purpose computational fluid dynamics library for solving hyperbolic-parabolic
+Teal is a general-purpose computational fluid dynamics C library for solving hyperbolic-parabolic
 conservation laws on 3D unstructured meshes using the finite-volume method. It ships with a simple
 mesh generator, integrates with Gmsh for complex geometries, and includes solvers for compressible
-Euler and Navier-Stokes equations with support for user-defined source terms. The teal API is
-designed for flexibility, making it straightforward to extend to other systems of equations.
+Euler and Navier-Stokes equations with support for user-defined source terms.
 
 ## Highlights
 
-- **Meshes**
-    - 3D unstructured mixed meshes
-    - Built-in Cartesian mesh generator
-    - Parallel reader for Gmsh
-    - Extensible to additional formats
-- **Accuracy**
-    - 2nd-order spatial accuracy
-        - Least-squares gradient reconstruction
-    - Up to 3rd-order temporal accuracy
-        - Low-storage explicit Runge-Kutta schemes
-        - Implicit Euler with Newton-GMRES solver
-- **Equations**
-    - Compressible Euler and Navier-Stokes
-    - Modular design for adding other conservation laws
+**Meshes**
+- 3D unstructured mixed meshes
+- Cartesian mesh generator
+- Parallel reader for Gmsh
+- Extensible to additional formats
+
+**Equations**
+- Compressible Euler and Navier-Stokes
+- Modular design for adding other conservation laws
+
+**Accuracy**
+- 2nd-order spatial accuracy
+    - Least-squares gradient reconstruction
+- Up to 3rd-order temporal accuracy
+    - Low-storage explicit Runge-Kutta schemes
+    - Implicit Euler with Newton-GMRES solver
 
 ## Performance
 
 Teal is a toy code that I write for *fun*. Nevertheless, this question is bound to come up
-eventually. To test the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, I run the
-[Taylor-Green vortex](run/taylor_green_vortex/) test case with different resolutions and vary the
-number of MPI ranks, keeping the problem size fixed in each case. For each resolution, speedup and
-efficiency are computed relative to the 128-rank run.
+eventually. To assess the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, I ran the
+[Taylor-Green vortex](run/taylor_green_vortex/) test case with different resolutions and number of
+MPI ranks. For each resolution, speedup and efficiency are computed relative to the 128-rank run.
 
 | cells | ranks | time         | speedup | efficiency [%] |
 | ----- | ----- | ------------ | ------- | -------------- |
@@ -42,19 +42,16 @@ efficiency are computed relative to the 128-rank run.
 | 256^3 | 512   | 5m 33.7s     | 3.65    | 91.3           |
 | 256^3 | 1024  | 3m 5.7s      | 6.57    | 82.1           |
 | 512^3 | 128   | 5h 52m 59.4s | 1.00    | 100.0          |
-| 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3 (*)      |
+| 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3          |
 | 512^3 | 512   | 1h 31m 3.0s  | 3.88    | 96.9           |
 | 512^3 | 1024  | 44m 52.6s    | 7.87    | 98.3           |
 
-(*) The slightly superlinear scaling is probably cache/memory effects (plus a bit of measurement
-noise), but I'll choose to believe it’s because my code is simply that good.
-
 ## Requirements
 
-- C tool chain and build tools: `make` plus either Clang or GCC (set `CC` in `Makefile`)
-- MPI implementation with `mpicc` (Open MPI or MPICH) in your `PATH`
+- Clang or GCC (set `CC` in `Makefile`) plus `make`
+- MPI implementation (Open MPI or MPICH) with `mpicc`
 - HDF5 **built with MPI support** (headers + libs)
-- METIS and ParMETIS (both installed; ParMETIS must match your METIS build)
+- METIS and ParMETIS (ParMETIS must match your METIS build)
 - Gmsh (to generate meshes from `.geo` files)
 - ParaView (to visualize the results)
 
@@ -76,7 +73,7 @@ The best way to get started with teal is by running test cases in [run](run/). F
 mpirun -n 4 bin/supersonic_wedge/run
 ```
 
-Visualize the resulting VTKHDF files directly in ParaView.
+Visualize the resulting VTKHDF files directly with ParaView.
 
 The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
 you can follow the program flow directly in the source.
@@ -84,13 +81,8 @@ you can follow the program flow directly in the source.
 ## Documentation
 
 For now, there is no dedicated documentation. In my opinion, function and variable names together
-with inline comments should be enough to understand what's going on. If there is enough interest in
-the project, I'll invest time into proper documentation.
-
-If you want to explore the code, the [src](src/) directory contains the main modules of teal. Each
-module's header file provides a brief overview and lists public functions. The folder named after
-the module contains the implementation. One exception is the `teal` module which contains the core
-tools used across all modules.
+with inline comments and docstrings should be enough to understand what's going on. If there is
+enough interest in the project, I'll invest time into proper documentation.
 
 ## Contributing
 
