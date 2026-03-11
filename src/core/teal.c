@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "defer2.h"
 #include "sanitizer.h"
 #include "sync2.h"
 #include "teal2.h"
@@ -61,6 +62,7 @@ void teal2_init(int *argc, char ***argv)
     assert(argc && argv);
 
     sync2_init(argc, argv);
+    defer2_init();
     parse_options(argc, argv);
 
     srand(time(0) + sync2.rank);
@@ -81,6 +83,7 @@ void teal2_deinit(void)
     teal2_print("Goodbye, World!");
     teal2_print("\t stop time : %s", now);
 
+    defer2_deinit();
     sync2_deinit();
 }
 
