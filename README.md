@@ -1,9 +1,8 @@
 ![teal](.logo.svg)
 
-Teal is a general-purpose computational fluid dynamics C library for solving hyperbolic-parabolic
-conservation laws on 3D unstructured meshes using the finite-volume method. It ships with a simple
-mesh generator, integrates with Gmsh for complex geometries, and includes solvers for compressible
-Euler and Navier-Stokes equations with support for user-defined source terms.
+Teal is a C library for computational fluid dynamics. It solves the compressible Euler and
+Navier-Stokes equations on 3D unstructured meshes using the finite-volume method. Conservation laws,
+flux schemes, and boundary conditions are interchangeable and can easily be extended to new physics.
 
 ![sphere](.sphere.png)
 
@@ -17,6 +16,7 @@ Euler and Navier-Stokes equations with support for user-defined source terms.
 
 **Equations**
 - Compressible Euler and Navier-Stokes
+- User-defined source terms
 - Modular design for adding other conservation laws
 
 **Accuracy**
@@ -47,7 +47,8 @@ mpirun -n 4 bin/supersonic_wedge/run
 Visualize the resulting VTKHDF files directly with ParaView.
 
 The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
-you can follow the program flow directly in the source.
+you can follow the program flow directly in the source. Function names, inline comments, and
+docstrings should be enough to understand what's going on.
 
 ## Requirements
 
@@ -60,10 +61,9 @@ you can follow the program flow directly in the source.
 
 ## Performance
 
-Teal is a toy code that I write for *fun*. Nevertheless, this question is bound to come up
-eventually. To assess the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, I ran the
-[Taylor-Green vortex](run/taylor_green_vortex/) test case with different resolutions and number of
-MPI ranks. For each resolution, speedup and efficiency are computed relative to the 128-rank run.
+To assess the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, the [Taylor-Green
+vortex](run/taylor_green_vortex/) test case was run at three resolutions with varying numbers of MPI
+ranks. Speedup and efficiency are computed relative to the 128-rank baseline.
 
 | cells | ranks | time         | speedup | efficiency [%] |
 | ----- | ----- | ------------ | ------- | -------------- |
@@ -79,12 +79,6 @@ MPI ranks. For each resolution, speedup and efficiency are computed relative to 
 | 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3          |
 | 512^3 | 512   | 1h 31m 3.0s  | 3.88    | 96.9           |
 | 512^3 | 1024  | 44m 52.6s    | 7.87    | 98.3           |
-
-## Documentation
-
-For now, there is no dedicated documentation. In my opinion, function and variable names together
-with inline comments and docstrings should be enough to understand what's going on. If there is
-enough interest in the project, I'll invest time into proper documentation.
 
 ## Contributing
 
