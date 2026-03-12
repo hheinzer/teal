@@ -26,37 +26,6 @@ Euler and Navier-Stokes equations with support for user-defined source terms.
     - Low-storage explicit Runge-Kutta schemes
     - Implicit Euler with Newton-GMRES solver
 
-## Performance
-
-Teal is a toy code that I write for *fun*. Nevertheless, this question is bound to come up
-eventually. To assess the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, I ran the
-[Taylor-Green vortex](run/taylor_green_vortex/) test case with different resolutions and number of
-MPI ranks. For each resolution, speedup and efficiency are computed relative to the 128-rank run.
-
-| cells | ranks | time         | speedup | efficiency [%] |
-| ----- | ----- | ------------ | ------- | -------------- |
-| 128^3 | 128   | 1m 18.0s     | 1.00    | 100.0          |
-| 128^3 | 256   | 39.8s        | 1.96    | 98.0           |
-| 128^3 | 512   | 23.9s        | 3.26    | 81.4           |
-| 128^3 | 1024  | 26.7s        | 2.92    | 36.6           |
-| 256^3 | 128   | 20m 19.4s    | 1.00    | 100.0          |
-| 256^3 | 256   | 10m 44.2s    | 1.89    | 94.7           |
-| 256^3 | 512   | 5m 33.7s     | 3.65    | 91.3           |
-| 256^3 | 1024  | 3m 5.7s      | 6.57    | 82.1           |
-| 512^3 | 128   | 5h 52m 59.4s | 1.00    | 100.0          |
-| 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3          |
-| 512^3 | 512   | 1h 31m 3.0s  | 3.88    | 96.9           |
-| 512^3 | 1024  | 44m 52.6s    | 7.87    | 98.3           |
-
-## Requirements
-
-- Clang or GCC (set `CC` in `Makefile`) plus `make`
-- MPI implementation (Open MPI or MPICH) with `mpicc`
-- HDF5 **built with MPI support** (headers + libs)
-- METIS and ParMETIS (ParMETIS must match your METIS build)
-- Gmsh (to generate meshes from `.geo` files)
-- ParaView (to visualize the results)
-
 ## Getting started
 
 Clone and build:
@@ -79,6 +48,37 @@ Visualize the resulting VTKHDF files directly with ParaView.
 
 The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
 you can follow the program flow directly in the source.
+
+## Requirements
+
+- Clang or GCC (set `CC` in `Makefile`) plus `make`
+- MPI implementation (Open MPI or MPICH) with `mpicc`
+- HDF5 **built with MPI support** (headers + libs)
+- METIS and ParMETIS (ParMETIS must match your METIS build)
+- Gmsh (to generate meshes from `.geo` files)
+- ParaView (to visualize the results)
+
+## Performance
+
+Teal is a toy code that I write for *fun*. Nevertheless, this question is bound to come up
+eventually. To assess the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, I ran the
+[Taylor-Green vortex](run/taylor_green_vortex/) test case with different resolutions and number of
+MPI ranks. For each resolution, speedup and efficiency are computed relative to the 128-rank run.
+
+| cells | ranks | time         | speedup | efficiency [%] |
+| ----- | ----- | ------------ | ------- | -------------- |
+| 128^3 | 128   | 1m 18.0s     | 1.00    | 100.0          |
+| 128^3 | 256   | 39.8s        | 1.96    | 98.0           |
+| 128^3 | 512   | 23.9s        | 3.26    | 81.4           |
+| 128^3 | 1024  | 26.7s        | 2.92    | 36.6           |
+| 256^3 | 128   | 20m 19.4s    | 1.00    | 100.0          |
+| 256^3 | 256   | 10m 44.2s    | 1.89    | 94.7           |
+| 256^3 | 512   | 5m 33.7s     | 3.65    | 91.3           |
+| 256^3 | 1024  | 3m 5.7s      | 6.57    | 82.1           |
+| 512^3 | 128   | 5h 52m 59.4s | 1.00    | 100.0          |
+| 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3          |
+| 512^3 | 512   | 1h 31m 3.0s  | 3.88    | 96.9           |
+| 512^3 | 1024  | 44m 52.6s    | 7.87    | 98.3           |
 
 ## Documentation
 
