@@ -5,6 +5,8 @@ conservation laws on 3D unstructured meshes using the finite-volume method. It s
 mesh generator, integrates with Gmsh for complex geometries, and includes solvers for compressible
 Euler and Navier-Stokes equations with support for user-defined source terms.
 
+![sphere](.sphere.png)
+
 ## Highlights
 
 **Meshes**
