@@ -100,8 +100,8 @@ typedef struct {
 
 // Create an empty equation system.
 Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *timestep,
-                             BoundarySelect *boundary, ConvectiveSelect *convective,
-                             ViscousSelect *viscous, int space_order);
+                             ConvectiveSelect *convective, ViscousSelect *viscous,
+                             BoundarySelect *boundary, int space_order);
 
 // Register `num` primitive variables with names, dimensions, and an initial condition callback.
 void equations2_create_primitive(Equations *eqns, const char **name, const int *dimension,

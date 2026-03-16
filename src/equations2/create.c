@@ -12,8 +12,8 @@ static void wrap_destroy(void *eqns)
 }
 
 Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *timestep,
-                             BoundarySelect *boundary, ConvectiveSelect *convective,
-                             ViscousSelect *viscous, int space_order)
+                             ConvectiveSelect *convective, ViscousSelect *viscous,
+                             BoundarySelect *boundary, int space_order)
 {
     assert(mesh && name && 1 <= space_order && space_order <= 2);
 
