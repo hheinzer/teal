@@ -18,8 +18,8 @@ int main(int argc, char **argv)
     for (long i = 0; i < mesh->nodes.num; i++) {
         vector *coord = &mesh->nodes.coord[i];
         scalar beta = 2;
-        coord->x = (1 + (tanh(beta * (2 * coord->x - 1)) / tanh(beta))) / 2;
-        coord->y = (1 + (tanh(beta * (2 * coord->y - 1)) / tanh(beta))) / 2;
+        coord->x = (1 + (tanh(beta * ((2 * coord->x) - 1)) / tanh(beta))) / 2;
+        coord->y = (1 + (tanh(beta * ((2 * coord->y) - 1)) / tanh(beta))) / 2;
     }
 
     mesh_generate(mesh);

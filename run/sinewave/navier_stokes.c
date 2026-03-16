@@ -66,7 +66,7 @@ void source(void *source_, const void *variable_, const scalar *property, vector
     scalar cos_phase = cos(phase);
     source->density = a * ((3 * b) - c) * cos_phase;
     source->momentum.x = source->momentum.y = source->momentum.z =
-        a * (b * ((gamma - 1) * ((4 * a * sin_phase) + 5)) + (6 * b) - (2 * c)) * cos_phase / 2;
+        a * ((b * ((gamma - 1) * ((4 * a * sin_phase) + 5))) + (6 * b) - (2 * c)) * cos_phase / 2;
     source->energy =
         0.5 * a *
         ((2 * a * prandtl * ((3 * b * gamma) - c) * sin(2 * phase)) +

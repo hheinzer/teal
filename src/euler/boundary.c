@@ -65,7 +65,7 @@ static void subsonic_inflow(void *ghost_, const void *inner_, const void *refere
     scalar velocity = vector_subdot(reference->velocity, inner->velocity, basis->normal);
 
     scalar factor1 = density * speed_of_sound;
-    ghost->pressure = (reference->pressure + inner->pressure - factor1 * velocity) / 2;
+    ghost->pressure = (reference->pressure + inner->pressure - (factor1 * velocity)) / 2;
     ghost->density =
         reference->density + ((ghost->pressure - reference->pressure) / speed_of_sound2);
 

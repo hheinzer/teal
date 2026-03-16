@@ -20,5 +20,5 @@ scalar navier_stokes_time_step(const void *variable_, const scalar *property, sc
                          gamma * viscosity / (variable->density * prandtl)) /
                     volume;
     scalar sum_lambda_v = sq(projection.x) + sq(projection.y) + sq(projection.z);
-    return volume / (lambda_c_x + lambda_c_y + lambda_c_z + 4 * factor * sum_lambda_v);
+    return volume / (lambda_c_x + lambda_c_y + lambda_c_z + (4 * factor * sum_lambda_v));
 }

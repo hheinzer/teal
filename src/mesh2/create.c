@@ -224,14 +224,14 @@ static void create_cells(Mesh *mesh, Triple num_cells, const int *dims, const in
         for (int j = 0; j < num_cells.y; j++) {
             for (int i = 0; i < num_cells.x; i++) {
                 node_off[num + 1] = node_off[num];
-                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 0)));
-                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + nny * (k + 0)));
-                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 1) + nny * (k + 0)));
-                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + nny * (k + 0)));
-                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 1)));
-                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + nny * (k + 1)));
-                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 1) + nny * (k + 1)));
-                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + nny * (k + 1)));
+                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 0))));
+                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + (nny * (k + 0))));
+                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 1) + (nny * (k + 0))));
+                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + (nny * (k + 0))));
+                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 1))));
+                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + (nny * (k + 1))));
+                node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 1) + (nny * (k + 1))));
+                node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + (nny * (k + 1))));
                 num += 1;
             }
         }
@@ -241,10 +241,10 @@ static void create_cells(Mesh *mesh, Triple num_cells, const int *dims, const in
             for (int j = 0; j < num_cells.y; j++) {
                 for (int k = 0; k < num_cells.z; k++) {
                     node_off[num + 1] = node_off[num];
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + nny * (k + 1)));
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 1)));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + (nny * (k + 1))));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 1))));
                     num += 1;
                 }
             }
@@ -255,10 +255,10 @@ static void create_cells(Mesh *mesh, Triple num_cells, const int *dims, const in
             for (int k = 0; k < num_cells.z; k++) {
                 for (int i = 0; i < num_cells.x; i++) {
                     node_off[num + 1] = node_off[num];
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + nny * (k + 1)));
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 1)));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + (nny * (k + 1))));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 1))));
                     num += 1;
                 }
             }
@@ -269,10 +269,10 @@ static void create_cells(Mesh *mesh, Triple num_cells, const int *dims, const in
             for (int i = 0; i < num_cells.x; i++) {
                 for (int j = 0; j < num_cells.y; j++) {
                     node_off[num + 1] = node_off[num];
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 1) + nny * (k + 0)));
-                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + nny * (k + 0)));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 0) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 0) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 1) + (nnx * ((j + 1) + (nny * (k + 0))));
+                    node_idx[node_off[num + 1]++] = (i + 0) + (nnx * ((j + 1) + (nny * (k + 0))));
                     num += 1;
                 }
             }

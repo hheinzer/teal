@@ -769,11 +769,11 @@ static vector compute_weight(const scalar *r11, const scalar *r12, const scalar 
                              long idx)
 {
     vector weight = {0};
-    scalar beta = (r12[idx] * r23[idx] - r13[idx] * r22[idx]) / (r11[idx] * r22[idx]);
+    scalar beta = ((r12[idx] * r23[idx]) - (r13[idx] * r22[idx])) / (r11[idx] * r22[idx]);
     vector alpha;
     alpha.x = delta.x / sq(r11[idx]);
-    alpha.y = (delta.y - r12[idx] / r11[idx] * delta.x) / sq(r22[idx]);
-    alpha.z = (delta.z - r23[idx] / r22[idx] * delta.y + beta * delta.x) / sq(r33[idx]);
+    alpha.y = (delta.y - (r12[idx] / r11[idx] * delta.x)) / sq(r22[idx]);
+    alpha.z = (delta.z - (r23[idx] / r22[idx] * delta.y) + (beta * delta.x)) / sq(r33[idx]);
     if (!is_close(delta.x, 0)) {
         weight.x += alpha.x;
     }
@@ -830,7 +830,7 @@ static void compute_face_weights(const MeshCells *cells, MeshFaces *faces)
         r12[i] = r12[i] / r11[i];
         r22[i] = sqrt(r22[i] - sq(r12[i]));
         r13[i] = r13[i] / r11[i];
-        r23[i] = (r23[i] - r12[i] * r13[i]) / r22[i];
+        r23[i] = (r23[i] - (r12[i] * r13[i])) / r22[i];
         r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i])));
     }
 

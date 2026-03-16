@@ -90,7 +90,7 @@ void koren(vector *gradient, scalar variable, scalar minimum, scalar maximum, sc
         }
         scalar delta1 = (delta2 > 0) ? (maximum - variable) : (minimum - variable);
         scalar ratio = delta1 / delta2;
-        scalar phi = fmin(fmin(2 * ratio, (1 + 2 * ratio) / 3), 2);
+        scalar phi = fmin(fmin(2 * ratio, (1 + (2 * ratio)) / 3), 2);
         psi = fmin(psi, phi);
     }
     vector_scale(gradient, psi);

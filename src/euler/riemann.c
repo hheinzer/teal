@@ -25,18 +25,20 @@ static scalar guess_pressure(const Euler *left, const Euler *right, scalar left_
 
     if (pvrs < pmin) {  // two-rarefaction estimate (both sides rarefy)
         scalar ratio = pow(left->pressure / right->pressure, gam[1]);
-        scalar guess = (ratio * left->velocity.x / left_c + right->velocity.x / right_c +
-                        gam[4] * (ratio - 1)) /
-                       (ratio / left_c + 1 / right_c);
+        scalar guess = ((ratio * left->velocity.x / left_c) + (right->velocity.x / right_c) +
+                        (gam[4] * (ratio - 1))) /
+                       ((ratio / left_c) + (1 / right_c));
         scalar theta_l = 1 + (gam[7] * (left->velocity.x - guess) / left_c);
         scalar theta_r = 1 + (gam[7] * (guess - right->velocity.x) / right_c);
-        return (left->pressure * pow(theta_l, gam[3]) + right->pressure * pow(theta_r, gam[3])) / 2;
+        return ((left->pressure * pow(theta_l, gam[3])) +
+                (right->pressure * pow(theta_r, gam[3]))) /
+               2;
     }
 
     // two-shock estimate (both sides shock)
-    scalar scale_l = sqrt((gam[5] / left->density) / (gam[6] * left->pressure + pvrs));
-    scalar scale_r = sqrt((gam[5] / right->density) / (gam[6] * right->pressure + pvrs));
-    return (scale_l * left->pressure + scale_r * right->pressure + diff) / (scale_l + scale_r);
+    scalar scale_l = sqrt((gam[5] / left->density) / ((gam[6] * left->pressure) + pvrs));
+    scalar scale_r = sqrt((gam[5] / right->density) / ((gam[6] * right->pressure) + pvrs));
+    return ((scale_l * left->pressure) + (scale_r * right->pressure) + diff) / (scale_l + scale_r);
 }
 
 // Compute wave curve f_k(p) and derivative f'_k(p) for a single state.
@@ -53,7 +55,7 @@ static void prefun(scalar *state_f, scalar *state_df, scalar pold, const Euler *
         scalar coef_b = gam[6] * state->pressure;
         scalar root = sqrt(coef_a / (coef_b + pold));
         *state_f = (pold - state->pressure) * root;
-        *state_df = (1 - (pold - state->pressure) / (coef_b + pold) / 2) * root;
+        *state_df = (1 - ((pold - state->pressure) / (coef_b + pold) / 2)) * root;
     }
 }
 
@@ -104,10 +106,10 @@ static Euler sample(const Euler *left, const Euler *right, scalar left_c, scalar
                 };
             }
 
-            scalar fan_c = gam[5] * (left_c + gam[7] * (left->velocity.x - location));
+            scalar fan_c = gam[5] * (left_c + (gam[7] * (left->velocity.x - location)));
             return (Euler){
                 .density = left->density * pow(fan_c / left_c, gam[4]),
-                .velocity = {.x = gam[5] * (left_c + gam[7] * left->velocity.x + location)},
+                .velocity = {.x = gam[5] * (left_c + (gam[7] * left->velocity.x) + location)},
                 .pressure = left->pressure * pow(fan_c / left_c, gam[3]),
             };
         }
@@ -119,7 +121,7 @@ static Euler sample(const Euler *left, const Euler *right, scalar left_c, scalar
             return *left;
         }
         return (Euler){
-            .density = left->density * (ratio + gam[6]) / (ratio * gam[6] + 1),
+            .density = left->density * (ratio + gam[6]) / ((ratio * gam[6]) + 1),
             .velocity = {.x = star_u},
             .pressure = star_p,
         };
@@ -132,7 +134,7 @@ static Euler sample(const Euler *left, const Euler *right, scalar left_c, scalar
             return *right;
         }
         return (Euler){
-            .density = right->density * (ratio + gam[6]) / (ratio * gam[6] + 1),
+            .density = right->density * (ratio + gam[6]) / ((ratio * gam[6]) + 1),
             .velocity = {.x = star_u},
             .pressure = star_p,
         };
@@ -154,10 +156,10 @@ static Euler sample(const Euler *left, const Euler *right, scalar left_c, scalar
         };
     }
 
-    scalar fan_c = gam[5] * (right_c - gam[7] * (right->velocity.x - location));
+    scalar fan_c = gam[5] * (right_c - (gam[7] * (right->velocity.x - location)));
     return (Euler){
         .density = right->density * pow(fan_c / right_c, gam[4]),
-        .velocity = {.x = gam[5] * (-right_c + gam[7] * right->velocity.x + location)},
+        .velocity = {.x = gam[5] * (-right_c + (gam[7] * right->velocity.x) + location)},
         .pressure = right->pressure * pow(fan_c / right_c, gam[3]),
     };
 }

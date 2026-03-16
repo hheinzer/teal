@@ -60,7 +60,7 @@ void source(void *source_, const void *variable_, const scalar *property, vector
 {
     NavierStokes *source = source_;
     const NavierStokes *variable = variable_;
-    scalar s1 = variable->density * (1 - average.momentum.x / average.density) / 0.001;
+    scalar s1 = variable->density * (1 - (average.momentum.x / average.density)) / 0.001;
     source->momentum.x = s1;
     source->energy = variable->velocity.x * s1;
 }

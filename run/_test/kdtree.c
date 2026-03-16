@@ -20,7 +20,7 @@ static void test_basic_insert_lookup(void)
         for (long j = 0; j < num.y; j++) {
             for (long k = 0; k < num.z; k++) {
                 vector key = {i, j, k};
-                long val = i + (num.x * (j + num.y * k));
+                long val = i + (num.x * (j + (num.y * k)));
                 assert(!kdtree_insert(tree, key, &val));
             }
         }
@@ -33,7 +33,7 @@ static void test_basic_insert_lookup(void)
             for (long k = 0; k < num.z; k++) {
                 vector key = {i, j, k};
                 long *val = kdtree_lookup(tree, key);
-                assert(val && *val == i + (num.x * (j + num.y * k)));
+                assert(val && *val == i + (num.x * (j + (num.y * k))));
             }
         }
     }
@@ -148,23 +148,23 @@ static void test_many_keys(void)
     tuple stride = {7919, 7759, 7841};  // coprimes
 
     for (long i = 0; i < num; i++) {
-        long x = (i * stride.x + 0) % num;
-        long y = (i * stride.y + 1) % num;
-        long z = (i * stride.z + 2) % num;
+        long x = ((i * stride.x) + 0) % num;
+        long y = ((i * stride.y) + 1) % num;
+        long z = ((i * stride.z) + 2) % num;
         vector key = {x, y, z};
-        long val = x + (num * (y + num * z));
+        long val = x + (num * (y + (num * z)));
         kdtree_insert(tree, key, &val);
     }
     assert(tree->num == num);
 
     for (long i = 0; i < 100; i++) {
         long idx = (i * 97) % num;
-        long x = (idx * stride.x + 0) % num;
-        long y = (idx * stride.y + 1) % num;
-        long z = (idx * stride.z + 2) % num;
+        long x = ((idx * stride.x) + 0) % num;
+        long y = ((idx * stride.y) + 1) % num;
+        long z = ((idx * stride.z) + 2) % num;
         vector key = {x, y, z};
         long *val = kdtree_lookup(tree, key);
-        assert(val && *val == x + (num * (y + num * z)));
+        assert(val && *val == x + (num * (y + (num * z))));
     }
 
     arena_load(save);
@@ -209,7 +209,7 @@ static void test_nearest(void)
         for (long j = 0; j < cnt.y; j++) {
             for (long k = 0; k < cnt.z; k++) {
                 vector key;
-                long val = i + (cnt.x * (j + cnt.y * k));
+                long val = i + (cnt.x * (j + (cnt.y * k)));
                 do {
                     key = (vector){rand(), rand(), rand()};
                 } while (kdtree_insert(tree, key, &val));
@@ -253,7 +253,7 @@ static void test_radius(void)
         for (long j = 0; j < cnt.y; j++) {
             for (long k = 0; k < cnt.z; k++) {
                 vector key;
-                long val = i + (cnt.x * (j + cnt.y * k));
+                long val = i + (cnt.x * (j + (cnt.y * k)));
                 do {
                     key = (vector){rand(), rand(), rand()};
                 } while (kdtree_insert(tree, key, &val));

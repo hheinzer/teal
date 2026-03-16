@@ -155,7 +155,7 @@ scalar ralston(const Equations *eqns, scalar *time, void *residual_, scalar max_
 
     for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
-            variable[i][j] += step * (derivative[i][j] + 3 * derivative1[i][j]) / 4;
+            variable[i][j] += step * (derivative[i][j] + (3 * derivative1[i][j])) / 4;
         }
         primitive(variable[i], property);
     }
@@ -198,7 +198,7 @@ scalar ssprk2(const Equations *eqns, scalar *time, void *residual_, scalar max_s
 
     for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
-            variable[i][j] = (variable[i][j] + variable1[i][j] + step * derivative1[i][j]) / 2;
+            variable[i][j] = (variable[i][j] + variable1[i][j] + (step * derivative1[i][j])) / 2;
         }
         primitive(variable[i], property);
     }
@@ -242,7 +242,8 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar max_s
     scalar(*variable2)[stride] = arena_malloc(num_cells, sizeof(*variable2));
     for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
-            variable2[i][j] = (3 * variable[i][j] + variable1[i][j] + step * derivative1[i][j]) / 4;
+            variable2[i][j] =
+                ((3 * variable[i][j]) + variable1[i][j] + (step * derivative1[i][j])) / 4;
         }
         primitive(variable2[i], property);
     }
@@ -252,7 +253,7 @@ scalar ssprk3(const Equations *eqns, scalar *time, void *residual_, scalar max_s
     for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] =
-                (variable[i][j] + 2 * (variable2[i][j] + step * derivative2[i][j])) / 3;
+                (variable[i][j] + (2 * (variable2[i][j] + (step * derivative2[i][j])))) / 3;
         }
         primitive(variable[i], property);
     }
@@ -307,7 +308,7 @@ scalar rk3(const Equations *eqns, scalar *time, void *residual_, scalar max_step
     for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] +=
-                step * (derivative[i][j] + 4 * derivative1[i][j] + derivative2[i][j]) / 6;
+                step * (derivative[i][j] + (4 * derivative1[i][j]) + derivative2[i][j]) / 6;
         }
         primitive(variable[i], property);
     }
@@ -371,7 +372,7 @@ scalar rk4(const Equations *eqns, scalar *time, void *residual_, scalar max_step
     for (long i = 0; i < num_inner; i++) {
         for (long j = 0; j < len; j++) {
             variable[i][j] += step *
-                              (derivative[i][j] + 2 * (derivative1[i][j] + derivative2[i][j]) +
+                              (derivative[i][j] + (2 * (derivative1[i][j] + derivative2[i][j])) +
                                derivative3[i][j]) /
                               6;
         }
