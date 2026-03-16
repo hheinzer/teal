@@ -31,5 +31,7 @@ int main(int argc, char **argv)
 
     mesh2_write(mesh, argv[0]);
 
+    mesh2_destroy(mesh);
+
     teal2_deinit();
 }

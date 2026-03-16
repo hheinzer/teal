@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "defer2.h"
 #include "dual.h"
 #include "grid.h"
 #include "mesh2.h"
@@ -900,11 +899,6 @@ static void create_entities(Mesh *mesh, Grid *grid)
     grid->entities.translation = 0;
 }
 
-static void wrap_destroy(void *mesh)
-{
-    mesh2_destroy(mesh);
-}
-
 Mesh *mesh2_read(const char *fname)
 {
     assert(fname);
@@ -921,5 +915,5 @@ Mesh *mesh2_read(const char *fname)
     create_entities(mesh, grid);
 
     grid_deinit(grid);
-    return defer2_push(mesh, wrap_destroy);
+    return mesh;
 }

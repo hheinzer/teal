@@ -42,5 +42,8 @@ int main(int argc, char **argv)
     mesh2_write(mesh, argv[0]);
     equations2_write(eqns, argv[0], 0, 0);
 
+    mesh2_destroy(mesh);
+    equations2_destroy(eqns);
+
     teal2_deinit();
 }

@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "defer2.h"
 #include "mesh2.h"
 #include "reorder.h"
 #include "sync2.h"
@@ -504,11 +503,6 @@ static void reorder_cells(Mesh *mesh, Triple num_cells, const int *dims, const i
     teal2_free(map);
 }
 
-static void wrap_destroy(void *mesh)
-{
-    mesh2_destroy(mesh);
-}
-
 Mesh *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple periodic)
 {
     int dims[3];
@@ -543,5 +537,5 @@ Mesh *mesh2_create(Vector min_coord, Vector max_coord, Triple num_cells, Triple 
     reorder_nodes(mesh, num_cells, coords);
     reorder_cells(mesh, num_cells, dims, coords, neighbor, ndims);
 
-    return defer2_push(mesh, wrap_destroy);
+    return mesh;
 }

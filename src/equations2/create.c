@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "defer2.h"
 #include "equations2.h"
 #include "teal2.h"
 #include "utils2.h"
@@ -36,7 +35,7 @@ Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *times
     eqns->boundary.compute = teal2_calloc(num, sizeof(*eqns->boundary.compute));
     eqns->boundary.condition = teal2_calloc(num, sizeof(*eqns->boundary.condition));
 
-    return defer2_push(eqns, wrap_destroy);
+    return eqns;
 }
 
 static void create_variables(EquationsVariables *variables, const Equations *eqns,
