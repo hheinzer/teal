@@ -10,6 +10,10 @@ static double timestep(const void *primitive, const double *property, double vol
     return 1;
 }
 
+static void convert(void *primitive, const void *conserved, const double *property)
+{
+}
+
 static void compute(void *primitive_, const double *property, Vector center, double time,
                     const void *context)
 {
@@ -34,7 +38,7 @@ int main(int argc, char **argv)
     mesh2_summary(mesh);
 
     Equations *eqns = equations2_create(mesh, "test", timestep, 0, 0, 0);
-    equations2_create_primitive(eqns, (const char *[]){"velocity"}, (int[]){3}, compute, 1);
+    equations2_create_primitive(eqns, (const char *[]){"velocity"}, (int[]){3}, convert, 1);
     equations2_set_initial_condition(eqns, "domain", compute, 0);
     equations2_summary(eqns);
 

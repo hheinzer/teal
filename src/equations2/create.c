@@ -13,10 +13,8 @@ Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *times
     assert(mesh && name && timestep);
 
     Equations *eqns = teal2_calloc(1, sizeof(*eqns));
-
     eqns->mesh = mesh;
     strcpy(eqns->name, name);
-
     eqns->timestep.compute = timestep;
     eqns->convective.select = convective;
     eqns->viscous.select = viscous;
@@ -33,7 +31,7 @@ Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *times
 }
 
 static void create_variables(EquationsVariables *variables, const Equations *eqns,
-                             const int *dimension, Compute *compute, int num)
+                             const int *dimension, int num)
 {
     int stride = 0;
     for (int i = 0; i < num; i++) {
@@ -49,61 +47,53 @@ static void create_variables(EquationsVariables *variables, const Equations *eqn
     copy(variables->dimension, dimension, num, sizeof(*dimension));
 
     variables->data = teal2_calloc(eqns->mesh->cells.num, (int)sizeof(double[stride]));
-    variables->compute = compute;
 }
 
 void equations2_create_primitive(Equations *eqns, const char **name, const int *dimension,
-                                 Compute *compute, int num)
+                                 Convert *convert, int num)
 {
-    assert(eqns && name && dimension && compute && num > 0);
-
+    assert(eqns && name && dimension && convert && num > 0);
     eqns->primitive.name = teal2_calloc(num, sizeof(*eqns->primitive.name));
     for (int i = 0; i < num; i++) {
         strcpy(eqns->primitive.name[i], name[i]);
     }
-
-    create_variables(&eqns->primitive, eqns, dimension, compute, num);
+    create_variables(&eqns->primitive, eqns, dimension, num);
+    eqns->primitive.fn.convert = convert;
 }
 
 void equations2_create_conserved(Equations *eqns, const char **name, const int *dimension,
-                                 Compute *compute, int num)
+                                 Convert *convert, int num)
 {
-    assert(eqns && name && dimension && compute && num > 0);
-
+    assert(eqns && name && dimension && convert && num > 0);
     eqns->conserved.name = teal2_calloc(num, sizeof(*eqns->conserved.name));
     for (int i = 0; i < num; i++) {
         strcpy(eqns->conserved.name[i], name[i]);
     }
-
-    create_variables(&eqns->conserved, eqns, dimension, compute, num);
+    create_variables(&eqns->conserved, eqns, dimension, num);
+    eqns->conserved.fn.convert = convert;
 }
 
 void equations2_create_reference(Equations *eqns, Compute *compute)
 {
     assert(eqns && compute);
-
     int num = eqns->primitive.num;
-
     eqns->reference.name = teal2_calloc(num, sizeof(*eqns->reference.name));
-    for (int i = 0; i < eqns->primitive.num; i++) {
+    for (int i = 0; i < num; i++) {
         sprintf(eqns->reference.name[i], "%s-ref", eqns->primitive.name[i]);
     }
-
-    create_variables(&eqns->reference, eqns, eqns->primitive.dimension, compute, num);
+    create_variables(&eqns->reference, eqns, eqns->primitive.dimension, num);
+    eqns->reference.fn.compute = compute;
 }
 
 void equations2_create_properties(Equations *eqns, const char **name, const double *property,
                                   int num)
 {
     assert(eqns && name && property && num > 0);
-
     eqns->properties.num = num;
-
     eqns->properties.name = teal2_calloc(num, sizeof(*eqns->properties.name));
     for (int i = 0; i < num; i++) {
         strcpy(eqns->properties.name[i], name[i]);
     }
-
     eqns->properties.data = teal2_calloc(num, sizeof(*property));
     copy(eqns->properties.data, property, num, sizeof(*property));
 }

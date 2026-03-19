@@ -32,6 +32,9 @@ typedef void Boundary(void *outer, const void *inner, const double *property, Ma
 // Select a boundary condition by name.
 typedef Boundary *BoundarySelect(const char *name);
 
+// Convert between primitive and conserved variables.
+typedef void Convert(void *, const void *, const double *property);
+
 typedef struct {
     Timestep *compute;
 } EquationsTimestep;
@@ -69,7 +72,10 @@ typedef struct {
     String *name;
     int *dimension;
     void *data;
-    Compute *compute;
+    union {
+        Convert *convert;
+        Compute *compute;
+    } fn;
 } EquationsVariables;
 
 typedef struct {
@@ -105,11 +111,11 @@ Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *times
 
 // Register `num` primitive variables with names, dimensions, and an initial condition callback.
 void equations2_create_primitive(Equations *eqns, const char **name, const int *dimension,
-                                 Compute *compute, int num);
+                                 Convert *convert, int num);
 
 // Register `num` conserved variables with names, dimensions, and a conversion callback.
 void equations2_create_conserved(Equations *eqns, const char **name, const int *dimension,
-                                 Compute *compute, int num);
+                                 Convert *convert, int num);
 
 // Register a reference solution callback for error norms.
 void equations2_create_reference(Equations *eqns, Compute *compute);

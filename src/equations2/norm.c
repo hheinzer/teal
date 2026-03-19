@@ -18,7 +18,7 @@ void equations2_norm(const Equations *eqns, void *norm_, double time)
     double (*primitive)[stride] = eqns->primitive.data;
     double (*reference)[stride] = eqns->reference.data;
     double *property = eqns->properties.data;
-    Compute *compute = eqns->reference.compute;
+    Compute *compute = eqns->reference.fn.compute;
 
     double *norm = norm_;
     memset(norm, 0, stride * sizeof(*norm));
