@@ -71,6 +71,9 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
 
     int off = 0;
     for (int i = 0; i < num; i++) {
+        if (strlen(name[i]) == 0) {
+            continue;
+        }
         double (*buf)[dimension[i]] = buf_;
         for (int j = 0; j < num_cells; j++) {
             memcpy(buf[j], &data[j][off], sizeof(*buf));
