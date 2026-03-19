@@ -49,6 +49,10 @@ static void write_field_data(const Equations *eqns, double time, hid_t loc)
 
 static void write_variables(const EquationsVariables *variables, int num_cells, hid_t loc)
 {
+    if (variables->num == 0) {
+        return;
+    }
+
     int num = variables->num;
     int stride = variables->stride;
     String *name = variables->name;
@@ -83,9 +87,8 @@ static void write_cell_data(const Equations *eqns, int num_cells, hid_t loc)
 {
     hid_t group = h5io2_group_open("CellData", loc);
     write_variables(&eqns->primitive, num_cells, group);
-    if (eqns->reference.num > 0) {
-        write_variables(&eqns->reference, num_cells, group);
-    }
+    write_variables(&eqns->conserved, num_cells, group);
+    write_variables(&eqns->reference, num_cells, group);
     h5io2_group_close(group);
 }
 
