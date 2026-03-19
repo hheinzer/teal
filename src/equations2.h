@@ -101,7 +101,7 @@ typedef struct {
 // Create an empty equation system.
 Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *timestep,
                              ConvectiveSelect *convective, ViscousSelect *viscous,
-                             BoundarySelect *boundary, int space_order);
+                             BoundarySelect *boundary);
 
 // Register `num` primitive variables with names, dimensions, and an initial condition callback.
 void equations2_create_primitive(Equations *eqns, const char **name, const int *dimension,
@@ -117,6 +117,9 @@ void equations2_create_reference(Equations *eqns, Compute *compute);
 // Register `num` physical properties with names and values.
 void equations2_create_properties(Equations *eqns, const char **name, const double *property,
                                   int num);
+
+// Set the spatial order of the reconstruction (1 or 2).
+void equations2_set_space_order(Equations *eqns, int space_order);
 
 // Select the convective flux scheme by name.
 void equations2_set_convective_flux(Equations *eqns, const char *name);

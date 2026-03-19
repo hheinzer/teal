@@ -6,27 +6,21 @@
 #include "teal2.h"
 #include "utils2.h"
 
-static void wrap_destroy(void *eqns)
-{
-    equations2_destroy(eqns);
-}
-
 Equations *equations2_create(const Mesh *mesh, const char *name, Timestep *timestep,
                              ConvectiveSelect *convective, ViscousSelect *viscous,
-                             BoundarySelect *boundary, int space_order)
+                             BoundarySelect *boundary)
 {
-    assert(mesh && name && 1 <= space_order && space_order <= 2);
+    assert(mesh && name && timestep);
 
     Equations *eqns = teal2_calloc(1, sizeof(*eqns));
 
     eqns->mesh = mesh;
     strcpy(eqns->name, name);
-    eqns->space_order = space_order;
 
     eqns->timestep.compute = timestep;
-    eqns->boundary.select = boundary;
     eqns->convective.select = convective;
     eqns->viscous.select = viscous;
+    eqns->boundary.select = boundary;
 
     int num = mesh->entities.off_boundary - mesh->entities.num_inner;
     eqns->boundary.num = num;

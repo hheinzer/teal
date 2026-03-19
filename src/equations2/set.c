@@ -5,6 +5,12 @@
 #include "limiter.h"
 #include "teal2.h"
 
+void equations2_set_space_order(Equations *eqns, int space_order)
+{
+    assert(eqns && 1 <= space_order && space_order <= 2);
+    eqns->space_order = space_order;
+}
+
 void equations2_set_convective_flux(Equations *eqns, const char *name)
 {
     assert(eqns);

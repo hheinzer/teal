@@ -33,7 +33,7 @@ static double test_gradient(int num)
     Mesh *mesh = mesh2_create(min_coord, max_coord, num_cells, periodic);
     mesh2_generate(mesh);
 
-    Equations *eqns = equations2_create(mesh, "test", timestep, 0, 0, 0, 1);
+    Equations *eqns = equations2_create(mesh, "test", timestep, 0, 0, 0);
     equations2_create_primitive(eqns, (const char *[]){"velocity"}, (int[]){3}, compute, 1);
     equations2_set_initial_condition(eqns, "domain", compute, 0);
 
