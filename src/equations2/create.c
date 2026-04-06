@@ -52,7 +52,7 @@ static void create_variables(EquationsVariables *variables, const Equations *eqn
 void equations2_create_primitive(Equations *eqns, const char **name, const int *dimension,
                                  Convert *convert, int num)
 {
-    assert(eqns && name && dimension && convert && num > 0);
+    assert(eqns && name && dimension && num > 0);
     eqns->primitive.name = teal2_calloc(num, sizeof(*eqns->primitive.name));
     for (int i = 0; i < num; i++) {
         strcpy(eqns->primitive.name[i], name[i]);
@@ -64,7 +64,7 @@ void equations2_create_primitive(Equations *eqns, const char **name, const int *
 void equations2_create_conserved(Equations *eqns, const char **name, const int *dimension,
                                  Convert *convert, int num)
 {
-    assert(eqns && name && dimension && convert && num > 0);
+    assert(eqns && name && dimension && num > 0);
     eqns->conserved.name = teal2_calloc(num, sizeof(*eqns->conserved.name));
     for (int i = 0; i < num; i++) {
         strcpy(eqns->conserved.name[i], name[i]);
