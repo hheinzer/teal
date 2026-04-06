@@ -58,7 +58,7 @@ void equations2_create_primitive(Equations *eqns, const char **name, const int *
         strcpy(eqns->primitive.name[i], name[i]);
     }
     create_variables(&eqns->primitive, eqns, dimension, num);
-    eqns->primitive.fn.convert = convert;
+    eqns->primitive.func.convert = convert;
 }
 
 void equations2_create_conserved(Equations *eqns, const char **name, const int *dimension,
@@ -70,7 +70,7 @@ void equations2_create_conserved(Equations *eqns, const char **name, const int *
         strcpy(eqns->conserved.name[i], name[i]);
     }
     create_variables(&eqns->conserved, eqns, dimension, num);
-    eqns->conserved.fn.convert = convert;
+    eqns->conserved.func.convert = convert;
 }
 
 void equations2_create_reference(Equations *eqns, Compute *compute)
@@ -82,7 +82,7 @@ void equations2_create_reference(Equations *eqns, Compute *compute)
         sprintf(eqns->reference.name[i], "%s-ref", eqns->primitive.name[i]);
     }
     create_variables(&eqns->reference, eqns, eqns->primitive.dimension, num);
-    eqns->reference.fn.compute = compute;
+    eqns->reference.func.compute = compute;
 }
 
 void equations2_create_properties(Equations *eqns, const char **name, const double *property,

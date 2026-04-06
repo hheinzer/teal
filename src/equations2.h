@@ -75,7 +75,7 @@ typedef struct {
     union {
         Convert *convert;
         Compute *compute;
-    } fn;
+    } func;
 } EquationsVariables;
 
 typedef struct {
