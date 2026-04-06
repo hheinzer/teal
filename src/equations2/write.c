@@ -71,7 +71,7 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
 
     int off = 0;
     for (int i = 0; i < num; i++) {
-        if (strlen(name[i]) == 0) {
+        if (!name[i][0]) {
             continue;
         }
         double (*buf)[dimension[i]] = buf_;
