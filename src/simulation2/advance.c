@@ -1,0 +1,119 @@
+#include "advance.h"
+
+#include <math.h>
+
+#include "equations2.h"
+#include "teal2.h"
+
+double euler2(const Equations *eqns, double *time, void *residual, double max_step, double courant,
+              const void *context)
+{
+    (void)context;
+
+    int num_inner = eqns->mesh->cells.num_inner;
+    int stride_p = eqns->primitive.stride;
+    int stride_c = eqns->conserved.stride;
+    double *property = eqns->properties.data;
+    Convert *prim2cons = eqns->conserved.func.convert;
+    Convert *cons2prim = eqns->primitive.func.convert;
+
+    double (*primitive)[stride_p] = eqns->primitive.data;
+    double (*conserved)[stride_c] = eqns->conserved.data;
+
+    double step0 = courant * equations2_timestep(eqns, primitive);
+    double step = fmin(step0, max_step);
+
+    double (*derivative)[stride_c] = teal2_calloc(num_inner, (int)sizeof(*derivative));
+    equations2_derivative(eqns, primitive, derivative, *time);
+
+    for (int i = 0; i < num_inner; i++) {
+        prim2cons(conserved[i], primitive[i], property);
+        for (int j = 0; j < stride_c; j++) {
+            conserved[i][j] += derivative[i][j] * step;
+        }
+        cons2prim(primitive[i], conserved[i], property);
+    }
+
+    *time += step;
+    equations2_residual(eqns, derivative, residual);
+
+    teal2_free(derivative);
+    return step0;
+}
+
+double lserk2(const Equations *eqns, double *time, void *residual, double max_step, double courant,
+              const void *context_)
+{
+    static const double alpha_[3][6][7] = {
+        {
+            {0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.3333, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.1481, 0.4000, 1.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.0833, 0.2069, 0.4265, 1.0000, 0.0000, 0.0000},
+            {0.0000, 0.0533, 0.1263, 0.2375, 0.4414, 1.0000, 0.0000},
+            {0.0000, 0.0370, 0.0851, 0.1521, 0.2562, 0.4512, 1.0000},
+        },
+        {
+            {0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.4242, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.1918, 0.4929, 1.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.1084, 0.2602, 0.5052, 1.0000, 0.0000, 0.0000},
+            {0.0000, 0.0695, 0.1602, 0.2898, 0.5060, 1.0000, 0.0000},
+            {0.0000, 0.0482, 0.1085, 0.1885, 0.3050, 0.5063, 1.0000},
+        },
+        {
+            {0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.6612, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.2884, 0.5010, 1.0000, 0.0000, 0.0000, 0.0000},
+            {0.0000, 0.1666, 0.3027, 0.5275, 1.0000, 0.0000, 0.0000},
+            {0.0000, 0.1067, 0.1979, 0.3232, 0.5201, 1.0000, 0.0000},
+            {0.0000, 0.0742, 0.1393, 0.2198, 0.3302, 0.5181, 1.0000},
+        },
+    };
+
+    const RungeKutta *context = context_;
+    int time_order = context->time_order;
+    int num_stages = context->num_stages;
+    const double *alpha = alpha_[time_order - 1][num_stages - 1];
+
+    int num_inner = eqns->mesh->cells.num_inner;
+    int stride_p = eqns->primitive.stride;
+    int stride_c = eqns->conserved.stride;
+    double *property = eqns->properties.data;
+    Convert *prim2cons = eqns->conserved.func.convert;
+    Convert *cons2prim = eqns->primitive.func.convert;
+
+    double (*primitive)[stride_p] = eqns->primitive.data;
+    double (*conserved)[stride_c] = eqns->conserved.data;
+
+    double step0 = courant * equations2_timestep(eqns, primitive);
+    double step = fmin(step0, max_step);
+
+    double (*conserved0)[stride_c] = teal2_calloc(num_inner, (int)sizeof(*conserved0));
+    for (int i = 0; i < num_inner; i++) {
+        prim2cons(conserved0[i], primitive[i], property);
+    }
+
+    double (*derivative)[stride_c] = teal2_calloc(num_inner, (int)sizeof(*derivative));
+    for (int i = 0; i < num_stages; i++) {
+        equations2_derivative(eqns, primitive, derivative, *time + (alpha[i] * step));
+        for (int j = 0; j < num_inner; j++) {
+            for (int k = 0; k < stride_c; k++) {
+                conserved[j][k] = conserved0[j][k] + (derivative[j][k] * alpha[i + 1] * step);
+            }
+            cons2prim(primitive[j], conserved[j], property);
+        }
+    }
+
+    *time += step;
+    equations2_residual(eqns, derivative, residual);
+
+    teal2_free(conserved0);
+    teal2_free(derivative);
+    return step0;
+}
+
+double implicit_euler2(const Equations *eqns, double *time, void *residual, double max_step,
+                       double courant, const void *context)
+{
+}
