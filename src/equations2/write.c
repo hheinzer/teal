@@ -86,12 +86,50 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
     teal2_free(buf_);
 }
 
-static void write_cell_data(const Equations *eqns, int num_cells, hid_t loc)
+static void convert_conserved(const Equations *eqns, int num_cells)
+{
+    int stride = eqns->primitive.stride;
+    double (*primitive)[stride] = eqns->primitive.data;
+    double (*conserved)[stride] = eqns->conserved.data;
+    double *property = eqns->properties.data;
+    Convert *prim2cons = eqns->conserved.func.convert;
+
+    for (int i = 0; i < num_cells; i++) {
+        prim2cons(conserved[i], primitive[i], property);
+    }
+}
+
+static void compute_reference(const Equations *eqns, double time, int num_cells)
+{
+    Vector *center = eqns->mesh->cells.center;
+
+    int stride = eqns->primitive.stride;
+    double (*primitive)[stride] = eqns->primitive.data;
+    double (*reference)[stride] = eqns->reference.data;
+    double *property = eqns->properties.data;
+    Compute *compute = eqns->reference.func.compute;
+
+    for (int i = 0; i < num_cells; i++) {
+        compute(reference[i], property, center[i], time, primitive[i]);
+    }
+}
+
+static void write_cell_data(const Equations *eqns, double time, int num_cells, hid_t loc)
 {
     hid_t group = h5io2_group_open("CellData", loc);
+
     write_variables(&eqns->primitive, num_cells, group);
-    write_variables(&eqns->conserved, num_cells, group);
-    write_variables(&eqns->reference, num_cells, group);
+
+    if (eqns->conserved.func.convert) {
+        convert_conserved(eqns, num_cells);
+        write_variables(&eqns->conserved, num_cells, group);
+    }
+
+    if (eqns->reference.func.compute) {
+        compute_reference(eqns, time, num_cells);
+        write_variables(&eqns->reference, num_cells, group);
+    }
+
     h5io2_group_close(group);
 }
 
@@ -112,7 +150,7 @@ void equations2_write(const Equations *eqns, const char *name, double time, int 
     write_field_data(eqns, time, vtkhdf);
 
     int num_cells = eqns->mesh->cells.off_periodic;
-    write_cell_data(eqns, num_cells, vtkhdf);
+    write_cell_data(eqns, time, num_cells, vtkhdf);
 
     h5io2_group_close(vtkhdf);
     h5io2_file_close(file);
