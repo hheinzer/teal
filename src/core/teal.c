@@ -64,7 +64,7 @@ void teal_init(int *argc, char ***argv)
     sync_init(argc, argv);
     parse_options(argc, argv);
 
-    srand(time(0) + sync.rank);
+    srand((unsigned)(time(0) + sync.rank));
 
     String now;
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
