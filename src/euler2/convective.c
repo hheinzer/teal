@@ -90,9 +90,9 @@ static void entropy_fix(double eigenvalue[3], Euler left, Euler right, double ga
         double lambda = eigenvalue[i];
         double delta = fmax(0, fmax(lambda - eigenvalue_l[i], eigenvalue_r[i] - lambda));
         if (fabs(lambda) < delta) {
-            // eigenvalue[i] = delta; // first entropy fix of Harten and Hyman
-            eigenvalue[i] =
-                ((sq(lambda) / delta) + delta) / 2;  // second entropy fix of Harten and Hyman
+            eigenvalue[i] = delta;  // first entropy fix of Harten and Hyman
+            // eigenvalue[i] =
+            //     ((sq(lambda) / delta) + delta) / 2;  // second entropy fix of Harten and Hyman
         }
         else {
             eigenvalue[i] = fabs(lambda);
