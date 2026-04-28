@@ -22,7 +22,19 @@ typedef int Compare(const void *lhs, const void *rhs);
 Compare compare_int, compare_long, compare_double;
 
 // Return true if `lhs == rhs` with tolerance.
-int isclose(double lhs, double rhs);
+int is_close(double lhs, double rhs);
+
+// Return true if `lhs < rhs` and not close.
+int is_less(double lhs, double rhs);
+
+// Return true if `lhs > rhs` and not close.
+int is_greater(double lhs, double rhs);
+
+// Return true if `lhs <= rhs` or close.
+int is_less_equal(double lhs, double rhs);
+
+// Return true if `lhs >= rhs` or close.
+int is_greater_equal(double lhs, double rhs);
 
 // Copy `num * size` bytes from `src` to `dst`.
 void *copy(void *dst, const void *src, int num, int size);

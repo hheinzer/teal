@@ -51,7 +51,7 @@ static void barth_jespersen(const Equations *eqns, const void *primitive_, void 
         for (int j = cell_off[i]; j < cell_off[i + 1]; j++) {
             for (int k = 0; k < stride; k++) {
                 double delta2 = vector_dot(gradient[i][k], offset[j]);
-                if (isclose(delta2, 0)) {
+                if (is_close(delta2, 0)) {
                     continue;
                 }
                 double delta1 = ((delta2 > 0) ? max[k] : min[k]) - primitive[i][k];
@@ -97,7 +97,7 @@ static void venkatakrishnan(const Equations *eqns, const void *primitive_, void 
         for (int j = cell_off[i]; j < cell_off[i + 1]; j++) {
             for (int k = 0; k < stride; k++) {
                 double delta2 = vector_dot(gradient[i][k], offset[j]);
-                if (isclose(delta2, 0)) {
+                if (is_close(delta2, 0)) {
                     continue;
                 }
                 double delta1 = ((delta2 > 0) ? max[k] : min[k]) - primitive[i][k];

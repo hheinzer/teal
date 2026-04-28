@@ -135,7 +135,7 @@ typedef struct {
 static int read_format(Gmsh *gmsh, MPI_File file)
 {
     parse_ascii(file, &gmsh->format.version, 1, MPI_DOUBLE);
-    if (!isclose(gmsh->format.version, 4.1)) {
+    if (!is_close(gmsh->format.version, 4.1)) {
         teal_error("unsupported version (%g)", gmsh->format.version);
     }
 
@@ -806,7 +806,7 @@ static void get_affine_transformation(Matrix *rotation, Vector *translation, con
     translation->y = entity->link->affine[(1 * len) + 3];
     translation->z = entity->link->affine[(2 * len) + 3];
 
-    if (!isclose(matrix_determinant(*rotation), 1)) {
+    if (!is_close(matrix_determinant(*rotation), 1)) {
         teal_error("invalid affine transformation determinant (%g)", matrix_determinant(*rotation));
     }
 

@@ -36,7 +36,7 @@ Vector vector_mul(double lhs, Vector rhs)
 
 Vector vector_div(Vector lhs, double rhs)
 {
-    assert(!isclose(rhs, 0));
+    assert(!is_close(rhs, 0));
     return (Vector){
         lhs.x / rhs,
         lhs.y / rhs,
@@ -70,7 +70,7 @@ void vector_imul(Vector *lhs, double rhs)
 
 void vector_idiv(Vector *lhs, double rhs)
 {
-    assert(lhs && !isclose(rhs, 0));
+    assert(lhs && !is_close(rhs, 0));
     lhs->x /= rhs;
     lhs->y /= rhs;
     lhs->z /= rhs;

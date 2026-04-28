@@ -676,14 +676,14 @@ static Vector compute_face_weight(Vector delta, const double *r11, const double 
     alpha.x = delta.x / sq(r11[idx]);
     alpha.y = (delta.y - (r12[idx] / r11[idx] * delta.x)) / sq(r22[idx]);
     alpha.z = (delta.z - (r23[idx] / r22[idx] * delta.y) + (beta * delta.x)) / sq(r33[idx]);
-    if (!isclose(delta.x, 0)) {
+    if (!is_close(delta.x, 0)) {
         weight.x += alpha.x;
     }
-    if (!isclose(delta.y, 0)) {
+    if (!is_close(delta.y, 0)) {
         weight.x += -r12[idx] / r11[idx] * alpha.y;
         weight.y += alpha.y;
     }
-    if (!isclose(delta.z, 0)) {
+    if (!is_close(delta.z, 0)) {
         weight.x += beta * alpha.z;
         weight.y += -r23[idx] / r22[idx] * alpha.z;
         weight.z += alpha.z;

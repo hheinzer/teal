@@ -24,7 +24,7 @@ static void validate_unique(const Vector *point, int num)
             }
             Vector lhs = point[i];
             Vector rhs = point[idx[j]];
-            ensure(!(isclose(lhs.x, rhs.x) && isclose(lhs.y, rhs.y) && isclose(lhs.z, rhs.z)));
+            ensure(!(is_close(lhs.x, rhs.x) && is_close(lhs.y, rhs.y) && is_close(lhs.z, rhs.z)));
         }
     }
     kdtree_deinit(tree);
@@ -58,9 +58,9 @@ static void validate_nodes(const Mesh *mesh)
     sync_collect(mesh->nodes.coord, coord, mesh->nodes.global, mesh->nodes.num_inner,
                  mesh->nodes.num, MPI_DOUBLE, 3);
     for (int i = 0; i < mesh->nodes.num; i++) {
-        ensure(isclose(mesh->nodes.coord[i].x, coord[i].x));
-        ensure(isclose(mesh->nodes.coord[i].y, coord[i].y));
-        ensure(isclose(mesh->nodes.coord[i].z, coord[i].z));
+        ensure(is_close(mesh->nodes.coord[i].x, coord[i].x));
+        ensure(is_close(mesh->nodes.coord[i].y, coord[i].y));
+        ensure(is_close(mesh->nodes.coord[i].z, coord[i].z));
     }
     teal_free(coord);
 
@@ -117,10 +117,10 @@ static void validate_cells(const Mesh *mesh)
 
     for (int i = 0; i < mesh->cells.num; i++) {
         if (i < mesh->cells.num_inner) {
-            ensure(!isclose(mesh->cells.volume[i], 0) && mesh->cells.volume[i] > 0);
+            ensure(!is_close(mesh->cells.volume[i], 0) && mesh->cells.volume[i] > 0);
         }
         else {
-            ensure(isclose(mesh->cells.volume[i], 0));
+            ensure(is_close(mesh->cells.volume[i], 0));
         }
     }
 
@@ -155,23 +155,23 @@ static void validate_faces(const Mesh *mesh)
     }
 
     for (int i = 0; i < mesh->faces.num; i++) {
-        ensure(!isclose(mesh->faces.area[i], 0) && mesh->faces.area[i] > 0);
+        ensure(!is_close(mesh->faces.area[i], 0) && mesh->faces.area[i] > 0);
     }
 
     validate_unique(mesh->faces.center, mesh->faces.num);
 
     for (int i = 0; i < mesh->faces.num; i++) {
-        ensure(isclose(vector_norm(mesh->faces.basis[i].x), 1));
-        ensure(isclose(vector_norm(mesh->faces.basis[i].y), 1));
-        ensure(isclose(vector_norm(mesh->faces.basis[i].z), 1));
-        ensure(isclose(vector_dot(mesh->faces.basis[i].x, mesh->faces.basis[i].y), 0));
-        ensure(isclose(vector_dot(mesh->faces.basis[i].y, mesh->faces.basis[i].z), 0));
-        ensure(isclose(vector_dot(mesh->faces.basis[i].z, mesh->faces.basis[i].x), 0));
+        ensure(is_close(vector_norm(mesh->faces.basis[i].x), 1));
+        ensure(is_close(vector_norm(mesh->faces.basis[i].y), 1));
+        ensure(is_close(vector_norm(mesh->faces.basis[i].z), 1));
+        ensure(is_close(vector_dot(mesh->faces.basis[i].x, mesh->faces.basis[i].y), 0));
+        ensure(is_close(vector_dot(mesh->faces.basis[i].y, mesh->faces.basis[i].z), 0));
+        ensure(is_close(vector_dot(mesh->faces.basis[i].z, mesh->faces.basis[i].x), 0));
         int left = mesh->faces.cell_idx[i].left;
         int right = mesh->faces.cell_idx[i].right;
         Vector delta = vector_sub(mesh->cells.center[right], mesh->cells.center[left]);
         double normal_projection = vector_dot(mesh->faces.basis[i].x, delta);
-        ensure(!isclose(normal_projection, 0) && normal_projection > 0);
+        ensure(!is_close(normal_projection, 0) && normal_projection > 0);
     }
 }
 
@@ -212,11 +212,11 @@ static void validate_entities(const Mesh *mesh)
 
     for (int i = 0; i < mesh->entities.num; i++) {
         if (i < mesh->entities.off_boundary) {
-            ensure(isclose(matrix_determinant(mesh->entities.rotation[i]), 0));
-            ensure(isclose(vector_norm(mesh->entities.translation[i]), 0));
+            ensure(is_close(matrix_determinant(mesh->entities.rotation[i]), 0));
+            ensure(is_close(vector_norm(mesh->entities.translation[i]), 0));
         }
         else {
-            ensure(isclose(matrix_determinant(mesh->entities.rotation[i]), 1));
+            ensure(is_close(matrix_determinant(mesh->entities.rotation[i]), 1));
         }
     }
 }

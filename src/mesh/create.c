@@ -76,7 +76,7 @@ static void split_bounds(double *min_coord, double *max_coord, int *num_cells, i
                          const int *dims, const int *coords, int ndims)
 {
     if (dim < ndims) {
-        assert(!isclose(*min_coord, *max_coord) && *num_cells > 1);
+        assert(!is_close(*min_coord, *max_coord) && *num_cells > 1);
         double width = (*max_coord - *min_coord) / *num_cells;
         int base = *num_cells / dims[dim];
         int extra = *num_cells % dims[dim];
@@ -87,7 +87,7 @@ static void split_bounds(double *min_coord, double *max_coord, int *num_cells, i
     }
     else {
         *num_cells = 1;
-        if (isclose(*min_coord, *max_coord)) {
+        if (is_close(*min_coord, *max_coord)) {
             *max_coord = *min_coord + 1;
         }
     }

@@ -9,6 +9,7 @@
 #include "mesh.h"
 #include "simulation.h"
 #include "teal.h"
+#include "utils.h"
 
 static volatile sig_atomic_t sig_terminate = 0;
 
@@ -61,7 +62,7 @@ double simulation_run(Simulation *sim)
 
     int iter = 0;
     int has_converged = 0;
-    while (iter < max_iter && time < max_time && !has_converged && !sig_terminate) {
+    while (iter < max_iter && is_less(time, max_time) && !has_converged && !sig_terminate) {
         double max_step = fmin(max_time, out_time) - time;
         double step0 = advance(eqns, &time, residual, max_step, courant, context);
         iter += 1;
@@ -77,7 +78,7 @@ double simulation_run(Simulation *sim)
             has_converged = ((variable >= 0) ? residual[variable] : max_residual) < threshold;
         }
 
-        int has_reached_time = time >= fmin(max_time, out_time);
+        int has_reached_time = is_greater_equal(time, fmin(max_time, out_time));
         int has_reached_iter = iter >= (out_iter < max_iter ? out_iter : max_iter);
 
         if (has_reached_time || has_reached_iter || has_converged || sig_terminate) {
@@ -102,7 +103,7 @@ double simulation_run(Simulation *sim)
     signal(SIGINT, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
 
-    teal_print("\t computation time  : %g", wtime_end - wtime_beg);
+    teal_print("\t computation time : %g", wtime_end - wtime_beg);
 
     teal_free(residual);
     return time;

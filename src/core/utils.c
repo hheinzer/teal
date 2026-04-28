@@ -26,11 +26,31 @@ int compare_double(const void *lhs_, const void *rhs_)
     return isgreater(*lhs, *rhs) - isless(*lhs, *rhs);
 }
 
-int isclose(double lhs, double rhs)
+int is_close(double lhs, double rhs)
 {
     static const double abs_tol = 1e-8;
     static const double rel_tol = 1e-5;
     return islessequal(fabs(lhs - rhs), fmax(abs_tol, rel_tol * fmax(fabs(lhs), fabs(rhs))));
+}
+
+int is_less(double lhs, double rhs)
+{
+    return !is_close(lhs, rhs) && lhs < rhs;
+}
+
+int is_greater(double lhs, double rhs)
+{
+    return !is_close(lhs, rhs) && lhs > rhs;
+}
+
+int is_less_equal(double lhs, double rhs)
+{
+    return is_close(lhs, rhs) || lhs < rhs;
+}
+
+int is_greater_equal(double lhs, double rhs)
+{
+    return is_close(lhs, rhs) || lhs > rhs;
 }
 
 void *copy(void *dst, const void *src, int num, int size)
