@@ -1,7 +1,7 @@
 #include <math.h>
 
-#include "mesh2.h"
-#include "teal2.h"
+#include "mesh.h"
+#include "teal.h"
 
 static void modify(Vector *coord)
 {
@@ -11,27 +11,27 @@ static void modify(Vector *coord)
 
 int main(int argc, char **argv)
 {
-    teal2_init(&argc, &argv);
+    teal_init(&argc, &argv);
 
     Vector min_coord = {0, 0, 0};
     Vector max_coord = {9, 3, 3};
     Triple num_cells = {30, 10, 10};
     Triple periodic = {1, 0, 1};
-    Mesh *mesh = mesh2_create(min_coord, max_coord, num_cells, periodic);
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
 
-    mesh2_modify(mesh, modify);
+    mesh_modify(mesh, modify);
 
     Vector root = {3, 0, 0};
     Vector normal = {1, 0, 0};
-    mesh2_split(mesh, "bottom", root, normal);
+    mesh_split(mesh, "bottom", root, normal);
 
-    mesh2_generate(mesh);
-    mesh2_validate(mesh);
-    mesh2_summary(mesh);
+    mesh_generate(mesh);
+    mesh_validate(mesh);
+    mesh_summary(mesh);
 
-    mesh2_write(mesh, argv[0]);
+    mesh_write(mesh, argv[0]);
 
-    mesh2_destroy(mesh);
+    mesh_destroy(mesh);
 
-    teal2_deinit();
+    teal_deinit();
 }

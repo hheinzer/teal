@@ -2,11 +2,11 @@
 #include <string.h>
 
 #include "../test.h"
-#include "equations2.h"
-#include "mesh2.h"
-#include "sync2.h"
-#include "teal2.h"
-#include "utils2.h"
+#include "equations.h"
+#include "mesh.h"
+#include "sync.h"
+#include "teal.h"
+#include "utils.h"
 
 static double timestep(const void *primitive, const double *property, double volume,
                        Vector projection)
@@ -30,12 +30,12 @@ static double test_gradient(int num)
     Vector max_coord = {1, 1, 1};
     Triple num_cells = {num, num, num};
     Triple periodic = {1, 1, 1};
-    Mesh *mesh = mesh2_create(min_coord, max_coord, num_cells, periodic);
-    mesh2_generate(mesh);
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
+    mesh_generate(mesh);
 
-    Equations *eqns = equations2_create(mesh, "test", timestep, 0, 0, 0);
-    equations2_create_primitive(eqns, (const char *[]){"velocity"}, (int[]){3}, 0, 1);
-    equations2_set_initial_condition(eqns, "domain", compute, 0);
+    Equations *eqns = equations_create(mesh, "test", timestep, 0, 0, 0);
+    equations_create_primitive(eqns, (const char *[]){"velocity"}, (int[]){3}, 0, 1);
+    equations_set_initial_condition(eqns, "domain", compute, 0);
 
     int num_inner = eqns->mesh->cells.num_inner;
     int num_cells_ = eqns->mesh->cells.num;
@@ -45,9 +45,9 @@ static double test_gradient(int num)
 
     int stride = eqns->primitive.stride;
     double (*primitive)[stride] = eqns->primitive.data;
-    Vector(*gradient)[stride] = teal2_calloc(num_cells_, (int)sizeof(*gradient));
+    Vector(*gradient)[stride] = teal_calloc(num_cells_, (int)sizeof(*gradient));
 
-    equations2_gradient(eqns, primitive, gradient);
+    equations_gradient(eqns, primitive, gradient);
 
     double error[stride];
     memset(error, 0, sizeof(error));
@@ -66,11 +66,11 @@ static double test_gradient(int num)
         exact[2] = (Vector){0, 0, 0};
 
         for (int j = 0; j < stride; j++) {
-            error[j] += volume[i] * vector2_norm2(vector2_sub(gradient[i][j], exact[j]));
+            error[j] += volume[i] * vector_norm2(vector_sub(gradient[i][j], exact[j]));
         }
     }
 
-    sync2_sum(error, stride, MPI_DOUBLE);
+    sync_sum(error, stride, MPI_DOUBLE);
 
     double max_error = 0;
     for (int i = 0; i < stride; i++) {
@@ -80,16 +80,16 @@ static double test_gradient(int num)
         }
     }
 
-    mesh2_destroy(mesh);
-    equations2_destroy(eqns);
+    mesh_destroy(mesh);
+    equations_destroy(eqns);
 
-    teal2_free(gradient);
+    teal_free(gradient);
     return max_error;
 }
 
 int main(int argc, char **argv)
 {
-    teal2_init(&argc, &argv);
+    teal_init(&argc, &argv);
 
     double error16 = test_gradient(16);
     double error32 = test_gradient(32);
@@ -100,5 +100,5 @@ int main(int argc, char **argv)
     test(rate1 > 1.99);
     test(rate2 > 1.99);
 
-    teal2_deinit();
+    teal_deinit();
 }

@@ -1,0 +1,815 @@
+#include <assert.h>
+#include <limits.h>
+#include <math.h>
+#include <metis.h>
+#include <stdlib.h>
+
+#include "mesh.h"
+#include "reorder.h"
+#include "sync.h"
+#include "teal.h"
+#include "utils.h"
+
+_Static_assert(sizeof(idx_t) == sizeof(long), "idx_t must match long");
+
+static void connect_cells(Mesh *mesh)
+{
+    long num_cells = mesh->cells.num;
+    long num_nodes = mesh->nodes.num;
+
+    long *eptr = teal_calloc(mesh->cells.num + 1, sizeof(*eptr));
+    long *eind = teal_calloc(mesh->cells.num * (MAX_CELL_NODES + 1), sizeof(*eind));
+
+    for (int i = 0; i < mesh->cells.num; i++) {
+        eptr[i + 1] = eptr[i];
+        for (int j = mesh->cells.node.off[i]; j < mesh->cells.node.off[i + 1]; j++) {
+            assert(eptr[i + 1] - eptr[i] < MAX_CELL_NODES + 1);
+            eind[eptr[i + 1]++] = mesh->cells.node.idx[j];
+        }
+        if (i >= mesh->cells.num_inner) {
+            assert(eptr[i + 1] - eptr[i] < MAX_CELL_NODES + 1);
+            eind[eptr[i + 1]++] = num_nodes++;  // add dummy node to enforce ncommon=3
+        }
+    }
+
+    long ncommon = 3;
+    long numflag = 0;
+    long *xadj;
+    long *adjncy;
+    int ret =
+        METIS_MeshToDual(&num_cells, &num_nodes, eptr, eind, &ncommon, &numflag, &xadj, &adjncy);
+    if (ret != METIS_OK) {
+        teal_error("METIS_MeshToDual failed (%d)", ret);
+    }
+
+    int *cell_off = teal_calloc(mesh->cells.num + 1, sizeof(*cell_off));
+    int *cell_idx = teal_calloc(mesh->cells.num * MAX_CELL_FACES, sizeof(*cell_idx));
+
+    for (int i = 0; i < mesh->cells.num; i++) {
+        cell_off[i + 1] = cell_off[i];
+        for (long j = xadj[i]; j < xadj[i + 1]; j++) {
+            if (i < mesh->cells.num_inner || adjncy[j] < mesh->cells.num_inner) {
+                assert(cell_off[i + 1] - cell_off[i] < MAX_CELL_FACES);
+                assert(adjncy[j] <= INT_MAX);
+                cell_idx[cell_off[i + 1]++] = (int)adjncy[j];
+            }
+        }
+    }
+
+    mesh->cells.cell.off = cell_off;
+    mesh->cells.cell.idx = teal_realloc(cell_idx, cell_off[mesh->cells.num], sizeof(*cell_idx));
+
+    teal_free(eptr);
+    teal_free(eind);
+    METIS_Free(xadj);
+    METIS_Free(adjncy);
+}
+
+static void reorder_cells(Mesh *mesh)
+{
+    int *map = teal_calloc(mesh->cells.num_inner, sizeof(*map));
+    int *degree = teal_calloc(mesh->cells.num_inner, sizeof(*degree));
+
+    for (int i = 0; i < mesh->cells.num_inner; i++) {
+        map[i] = -1;
+        degree[i] = mesh->cells.cell.off[i + 1] - mesh->cells.cell.off[i];
+    }
+
+    int *queue = teal_calloc(mesh->cells.num_inner, sizeof(*queue));
+
+    assert(mesh->cells.num_inner > 0);
+    int seed = rand() % mesh->cells.num_inner;
+
+    int num_components = 0;
+    int num = 0;
+    while (num < mesh->cells.num_inner) {
+        num_components += 1;
+        while (map[seed] != -1) {
+            seed = (seed + 1) % mesh->cells.num_inner;
+        }
+        int beg = 0;
+        int end = 0;
+        map[seed] = num++;
+        queue[end++] = seed;
+        while (beg < end) {
+            int cur = queue[beg++];
+            int cell[MAX_CELL_FACES];
+            int num_cells = 0;
+            for (int i = mesh->cells.cell.off[cur]; i < mesh->cells.cell.off[cur + 1]; i++) {
+                int idx = mesh->cells.cell.idx[i];
+                if (idx < mesh->cells.num_inner && map[idx] == -1) {
+                    assert(num_cells < MAX_CELL_FACES);
+                    cell[num_cells++] = idx;
+                    map[idx] = -2;
+                }
+            }
+            for (int i = 1; i < num_cells; i++) {
+                int idx = cell[i];
+                int deg = degree[idx];
+                int j = i - 1;  // NOLINT(readability-identifier-length)
+                while (j >= 0 && degree[cell[j]] < deg) {
+                    cell[j + 1] = cell[j];
+                    j -= 1;
+                }
+                cell[j + 1] = idx;
+            }
+            for (int i = 0; i < num_cells; i++) {
+                map[cell[i]] = num++;
+                queue[end++] = cell[i];
+            }
+        }
+    }
+    assert(num == mesh->cells.num_inner);
+
+    if (num_components > 1) {
+        teal_verbose("disconnected domain (%d)", num_components);
+    }
+
+    mesh_reorder_cells(mesh, map, 0, mesh->cells.num_inner);
+
+    teal_free(map);
+    teal_free(degree);
+    teal_free(queue);
+}
+
+static void collect_globals(Mesh *mesh, const int *map)
+{
+    long prefix = mesh->nodes.num_inner;
+    sync_prefix(&prefix, 1, MPI_LONG);
+
+    for (int i = 0; i < mesh->nodes.num_inner; i++) {
+        mesh->nodes.global[i] = prefix + i;
+    }
+
+    int num_nodes = mesh->nodes.num - mesh->nodes.num_inner;
+    long *global = teal_calloc(num_nodes, sizeof(*global));
+    int num = 0;
+    for (int i = mesh->nodes.num_inner; i < mesh->nodes.num; i++) {
+        global[num++] = mesh->nodes.global[i];
+    }
+    assert(num == num_nodes);
+
+    long *send = teal_calloc(mesh->nodes.num_inner, sizeof(*send));
+    for (int i = 0; i < mesh->nodes.num_inner; i++) {
+        send[i] = mesh->nodes.global[map[i]];
+    }
+
+    long *recv = teal_calloc(num_nodes, sizeof(*recv));
+    sync_collect(send, recv, global, mesh->nodes.num_inner, num_nodes, MPI_LONG, 1);
+
+    num = 0;
+    for (int i = mesh->nodes.num_inner; i < mesh->nodes.num; i++) {
+        mesh->nodes.global[i] = recv[num++];
+    }
+    assert(num == num_nodes);
+
+    teal_free(global);
+    teal_free(send);
+    teal_free(recv);
+}
+
+static void reorder_nodes(Mesh *mesh)
+{
+    int *map = teal_calloc(mesh->nodes.num, sizeof(*map));
+    for (int i = 0; i < mesh->nodes.num; i++) {
+        map[i] = -1;
+    }
+
+    int num = 0;
+    for (int i = 0; i < mesh->cells.num; i++) {
+        for (int j = mesh->cells.node.off[i]; j < mesh->cells.node.off[i + 1]; j++) {
+            int idx = mesh->cells.node.idx[j];
+            if (idx < mesh->nodes.num_inner && map[idx] == -1) {
+                map[idx] = num++;
+            }
+        }
+    }
+    assert(num == mesh->nodes.num_inner);
+
+    for (int i = 0; i < mesh->cells.num; i++) {
+        for (int j = mesh->cells.node.off[i]; j < mesh->cells.node.off[i + 1]; j++) {
+            int idx = mesh->cells.node.idx[j];
+            if (idx >= mesh->nodes.num_inner && map[idx] == -1) {
+                map[idx] = num++;
+            }
+        }
+    }
+    assert(num == mesh->nodes.num);
+
+    mesh_reorder_nodes(mesh, map, 0, mesh->nodes.num);
+
+    collect_globals(mesh, map);
+
+    teal_free(map);
+}
+
+typedef struct {
+    int inner;
+    int left;
+    int right;
+    int num_nodes;
+    int node[MAX_FACE_NODES];
+} Face;
+
+static int compare_face(const void *lhs_, const void *rhs_)
+{
+    const Face *lhs = lhs_;
+    const Face *rhs = rhs_;
+    if (lhs->inner != rhs->inner) {
+        return (lhs->inner > rhs->inner) ? -1 : +1;
+    }
+    if (lhs->inner) {
+        return (lhs->left > rhs->left) - (lhs->left < rhs->left);
+    }
+    return (lhs->right > rhs->right) - (lhs->right < rhs->right);
+}
+
+static void compute_face_nodes(Face *face, const Mesh *mesh, int left, int right)
+{
+    face->num_nodes = 0;
+    for (int i = mesh->cells.node.off[left]; i < mesh->cells.node.off[left + 1]; i++) {
+        for (int j = mesh->cells.node.off[right]; j < mesh->cells.node.off[right + 1]; j++) {
+            if (mesh->cells.node.idx[i] == mesh->cells.node.idx[j]) {
+                assert(face->num_nodes < MAX_FACE_NODES);
+                face->node[face->num_nodes++] = mesh->cells.node.idx[i];
+            }
+        }
+    }
+}
+
+static void correct_face_node_order(Face *face, const Mesh *mesh)
+{
+    switch (face->num_nodes) {
+        case 3: return;
+        case 4:
+            for (int i = 0; i < 3; i++) {
+                Vector coord[4];
+                for (int j = 0; j < 4; j++) {
+                    coord[j] = mesh->nodes.coord[face->node[j]];
+                }
+                Vector a2b = vector_sub(coord[1], coord[0]);
+                Vector a2c = vector_sub(coord[2], coord[0]);
+                Vector a2d = vector_sub(coord[3], coord[0]);
+                if (vector_dot(vector_cross(a2b, a2c), vector_cross(a2c, a2d)) > 0) {
+                    return;
+                }
+                if (i + 2 < face->num_nodes) {
+                    int swap = face->node[i + 1];
+                    face->node[i + 1] = face->node[i + 2];
+                    face->node[i + 2] = swap;
+                }
+            }
+            teal_error("quad vertex order could not be made valid");
+        default: teal_error("invalid number of nodes (%d)", face->num_nodes);
+    }
+}
+
+static void create_faces(Mesh *mesh)
+{
+    int max_faces = mesh->cells.num_inner * MAX_CELL_FACES;
+    Face *face = teal_calloc(max_faces, sizeof(*face));
+
+    int num_faces = 0;
+    for (int i = 0; i < mesh->cells.num_inner; i++) {
+        for (int j = mesh->cells.cell.off[i]; j < mesh->cells.cell.off[i + 1]; j++) {
+            int left = i;
+            int right = mesh->cells.cell.idx[j];
+            if (left < right) {
+                assert(num_faces < max_faces);
+                face[num_faces].inner = (right < mesh->cells.num_inner);
+                face[num_faces].left = left;
+                face[num_faces].right = right;
+                compute_face_nodes(&face[num_faces], mesh, left, right);
+                correct_face_node_order(&face[num_faces], mesh);
+                num_faces += 1;
+            }
+        }
+    }
+    sort(face, num_faces, sizeof(*face), compare_face);
+
+    int *node_off = teal_calloc(num_faces + 1, sizeof(*node_off));
+    int *node_idx = teal_calloc(num_faces * MAX_FACE_NODES, sizeof(*node_idx));
+    Pair *cell_idx = teal_calloc(num_faces, sizeof(*cell_idx));
+
+    int num_inner = 0;
+    int num_boundary = 0;
+    for (int i = 0; i < num_faces; i++) {
+        assert(face[i].left < mesh->cells.num_inner);
+        if (face[i].right < mesh->cells.num_inner) {
+            num_inner += 1;
+        }
+        else if (face[i].right < mesh->cells.off_boundary) {
+            num_boundary += 1;
+        }
+        node_off[i + 1] = node_off[i];
+        for (int j = 0; j < face[i].num_nodes; j++) {
+            node_idx[node_off[i + 1]++] = face[i].node[j];
+        }
+        cell_idx[i].left = face[i].left;
+        cell_idx[i].right = face[i].right;
+    }
+    assert(num_boundary == mesh->cells.off_boundary - mesh->cells.num_inner);
+
+    mesh->faces.num = num_faces;
+    mesh->faces.num_inner = num_inner;
+    mesh->faces.off_boundary = num_inner + num_boundary;
+    mesh->faces.node.off = node_off;
+    mesh->faces.node.idx = node_idx;
+    mesh->faces.cell_idx = cell_idx;
+
+    teal_free(face);
+}
+
+static void create_face_entities(Mesh *mesh)
+{
+    int *face_off = teal_calloc(mesh->entities.num + 1, sizeof(*face_off));
+    face_off[0] = mesh->faces.num_inner;
+    for (int i = 0; i < mesh->entities.num; i++) {
+        face_off[i + 1] = face_off[i];
+        if (i >= mesh->entities.num_inner) {
+            face_off[i + 1] += mesh->entities.cell_off[i + 1] - mesh->entities.cell_off[i];
+        }
+    }
+    mesh->entities.face_off = face_off;
+}
+
+static double compute_face_area(const Vector *coord, int num_nodes)
+{
+    switch (num_nodes) {
+        case 3: {
+            Vector a2b = vector_sub(coord[1], coord[0]);
+            Vector a2c = vector_sub(coord[2], coord[0]);
+            return vector_norm(vector_cross(a2b, a2c)) / 2;
+        }
+        case 4: {
+            Vector lhs[3] = {coord[0], coord[1], coord[2]};
+            Vector rhs[3] = {coord[0], coord[2], coord[3]};
+            return compute_face_area(lhs, 3) + compute_face_area(rhs, 3);
+        }
+        default: teal_error("invalid number of nodes (%d)", num_nodes);
+    }
+}
+
+static void compute_face_areas(Mesh *mesh)
+{
+    double *area = teal_calloc(mesh->faces.num, sizeof(*area));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        Vector coord[MAX_FACE_NODES];
+        int num_nodes = 0;
+        for (int j = mesh->faces.node.off[i]; j < mesh->faces.node.off[i + 1]; j++) {
+            coord[num_nodes++] = mesh->nodes.coord[mesh->faces.node.idx[j]];
+        }
+        area[i] = compute_face_area(coord, num_nodes);
+    }
+    mesh->faces.area = area;
+}
+
+static Vector compute_face_center(const Vector *coord, int num_nodes)
+{
+    switch (num_nodes) {
+        case 3: {
+            Vector sum = vector_add(coord[0], vector_add(coord[1], coord[2]));
+            return vector_div(sum, 3);
+        }
+        case 4: {
+            Vector lhs[3] = {coord[0], coord[1], coord[2]};
+            Vector rhs[3] = {coord[0], coord[2], coord[3]};
+            double area[2] = {compute_face_area(lhs, 3), compute_face_area(rhs, 3)};
+            Vector center[2] = {compute_face_center(lhs, 3), compute_face_center(rhs, 3)};
+            Vector mul[2] = {vector_mul(area[0], center[0]), vector_mul(area[1], center[1])};
+            return vector_div(vector_add(mul[0], mul[1]), area[0] + area[1]);
+        }
+        default: teal_error("invalid number of nodes (%d)", num_nodes);
+    }
+}
+
+static void compute_face_centers(Mesh *mesh)
+{
+    Vector *center = teal_calloc(mesh->faces.num, sizeof(*center));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        Vector coord[MAX_FACE_NODES];
+        int num_nodes = 0;
+        for (int j = mesh->faces.node.off[i]; j < mesh->faces.node.off[i + 1]; j++) {
+            coord[num_nodes++] = mesh->nodes.coord[mesh->faces.node.idx[j]];
+        }
+        center[i] = compute_face_center(coord, num_nodes);
+    }
+    mesh->faces.center = center;
+}
+
+static Vector compute_face_normal(const Vector *coord, int num_nodes)
+{
+    switch (num_nodes) {
+        case 3: {
+            Vector a2b = vector_sub(coord[1], coord[0]);
+            Vector a2c = vector_sub(coord[2], coord[0]);
+            Vector normal = vector_cross(a2b, a2c);
+            return vector_div(normal, vector_norm(normal));
+        }
+        case 4: {
+            Vector normal = {0};
+            for (int i = 0; i < 4; i++) {
+                vector_iadd(&normal, vector_cross(coord[i], coord[(i + 1) % 4]));
+            }
+            return vector_div(normal, vector_norm(normal));
+        }
+        default: teal_error("invalid number of nodes (%d)", num_nodes);
+    }
+}
+
+static Matrix compute_face_basis(const Vector *coord, int num_nodes)
+{
+    Vector normal = compute_face_normal(coord, num_nodes);
+    Matrix basis = {.x = normal};
+    double nqz = hypot(normal.x, normal.y);
+    double nqy = hypot(normal.x, normal.z);
+    if (nqz > nqy) {
+        basis.y = (Vector){-normal.y / nqz, normal.x / nqz, 0};
+        basis.z = (Vector){-normal.x * normal.z / nqz, -normal.y * normal.z / nqz, nqz};
+    }
+    else {
+        basis.y = (Vector){-normal.x * normal.y / nqy, nqy, -normal.y * normal.z / nqy};
+        basis.z = (Vector){-normal.z / nqy, 0, normal.x / nqy};
+    }
+    return basis;
+}
+
+static void correct_face_basis(Matrix *basis, const Mesh *mesh, int idx)
+{
+    int left = mesh->faces.cell_idx[idx].left;
+
+    Vector mean = {0};
+    for (int i = mesh->cells.node.off[left]; i < mesh->cells.node.off[left + 1]; i++) {
+        vector_iadd(&mean, mesh->nodes.coord[mesh->cells.node.idx[i]]);
+    }
+    vector_idiv(&mean, mesh->cells.node.off[left + 1] - mesh->cells.node.off[left]);
+
+    if (vector_dot(vector_sub(mean, mesh->faces.center[idx]), basis->x) > 0) {
+        vector_imul(&basis->x, -1);
+        vector_imul(&basis->y, -1);
+    }
+}
+
+static void compute_face_bases(Mesh *mesh)
+{
+    Matrix *basis = teal_calloc(mesh->faces.num, sizeof(*basis));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        Vector coord[MAX_FACE_NODES];
+        int num_nodes = 0;
+        for (int j = mesh->faces.node.off[i]; j < mesh->faces.node.off[i + 1]; j++) {
+            coord[num_nodes++] = mesh->nodes.coord[mesh->faces.node.idx[j]];
+        }
+        basis[i] = compute_face_basis(coord, num_nodes);
+        correct_face_basis(&basis[i], mesh, i);
+    }
+    mesh->faces.basis = basis;
+}
+
+static double compute_cell_volume(const Vector *coord, int num_nodes)
+{
+    switch (num_nodes) {
+        case 4: {
+            Vector a2b = vector_sub(coord[1], coord[0]);
+            Vector a2c = vector_sub(coord[2], coord[0]);
+            Vector a2d = vector_sub(coord[3], coord[0]);
+            return fabs(vector_dot(a2b, vector_cross(a2c, a2d))) / 6;
+        }
+        case 5: {
+            Vector lhs[4] = {coord[0], coord[1], coord[2], coord[4]};
+            Vector rhs[4] = {coord[0], coord[2], coord[3], coord[4]};
+            return compute_cell_volume(lhs, 4) + compute_cell_volume(rhs, 4);
+        }
+        case 6: {
+            Vector lhs[5] = {coord[0], coord[1], coord[4], coord[3], coord[5]};
+            Vector rhs[4] = {coord[0], coord[1], coord[2], coord[5]};
+            return compute_cell_volume(lhs, 5) + compute_cell_volume(rhs, 4);
+        }
+        case 8: {
+            Vector lhs[6] = {coord[0], coord[1], coord[2], coord[4], coord[5], coord[6]};
+            Vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
+            return compute_cell_volume(lhs, 6) + compute_cell_volume(rhs, 6);
+        }
+        default: teal_error("invalid number of nodes (%d)", num_nodes);
+    }
+}
+
+static void compute_cell_volumes(Mesh *mesh)
+{
+    double *volume = teal_calloc(mesh->cells.num, sizeof(*volume));
+    double sum_volume = 0;
+
+    for (int i = 0; i < mesh->cells.num_inner; i++) {
+        Vector coord[MAX_CELL_NODES];
+        int num_nodes = 0;
+        for (int j = mesh->cells.node.off[i]; j < mesh->cells.node.off[i + 1]; j++) {
+            coord[num_nodes++] = mesh->nodes.coord[mesh->cells.node.idx[j]];
+        }
+        volume[i] = compute_cell_volume(coord, num_nodes);
+        sum_volume += volume[i];
+    }
+
+    sync_sum(&sum_volume, 1, MPI_DOUBLE);
+
+    mesh->cells.volume = volume;
+    mesh->cells.sum_volume = sum_volume;
+}
+
+static Vector compute_cell_center(const Vector *coord, int num_nodes)
+{
+    switch (num_nodes) {
+        case 4: {
+            Vector sum[2] = {vector_add(coord[0], coord[1]), vector_add(coord[2], coord[3])};
+            return vector_div(vector_add(sum[0], sum[1]), 4);
+        }
+        case 5: {
+            Vector lhs[4] = {coord[0], coord[1], coord[2], coord[4]};
+            Vector rhs[4] = {coord[0], coord[2], coord[3], coord[4]};
+            double volume[2] = {compute_cell_volume(lhs, 4), compute_cell_volume(rhs, 4)};
+            Vector center[2] = {compute_cell_center(lhs, 4), compute_cell_center(rhs, 4)};
+            Vector mul[2] = {vector_mul(volume[0], center[0]), vector_mul(volume[1], center[1])};
+            return vector_div(vector_add(mul[0], mul[1]), volume[0] + volume[1]);
+        }
+        case 6: {
+            Vector lhs[5] = {coord[0], coord[1], coord[4], coord[3], coord[5]};
+            Vector rhs[4] = {coord[0], coord[1], coord[2], coord[5]};
+            double volume[2] = {compute_cell_volume(lhs, 5), compute_cell_volume(rhs, 4)};
+            Vector center[2] = {compute_cell_center(lhs, 5), compute_cell_center(rhs, 4)};
+            Vector mul[2] = {vector_mul(volume[0], center[0]), vector_mul(volume[1], center[1])};
+            return vector_div(vector_add(mul[0], mul[1]), volume[0] + volume[1]);
+        }
+        case 8: {
+            Vector lhs[6] = {coord[0], coord[1], coord[2], coord[4], coord[5], coord[6]};
+            Vector rhs[6] = {coord[0], coord[2], coord[3], coord[4], coord[6], coord[7]};
+            double volume[2] = {compute_cell_volume(lhs, 6), compute_cell_volume(rhs, 6)};
+            Vector center[2] = {compute_cell_center(lhs, 6), compute_cell_center(rhs, 6)};
+            Vector mul[2] = {vector_mul(volume[0], center[0]), vector_mul(volume[1], center[1])};
+            return vector_div(vector_add(mul[0], mul[1]), volume[0] + volume[1]);
+        }
+        default: teal_error("invalid number of nodes (%d)", num_nodes);
+    }
+}
+
+static void collect_centers(Vector *center, const Mesh *mesh)
+{
+    Vector *send = teal_calloc(mesh->neighbors.send.off[mesh->neighbors.num], sizeof(*send));
+    for (int i = 0; i < mesh->neighbors.num; i++) {
+        for (int j = mesh->neighbors.send.off[i]; j < mesh->neighbors.send.off[i + 1]; j++) {
+            send[j] = center[mesh->neighbors.send.idx[j]];
+        }
+    }
+
+    MPI_Request *req_recv = teal_calloc(mesh->neighbors.num, sizeof(*req_recv));
+    MPI_Request *req_send = teal_calloc(mesh->neighbors.num, sizeof(*req_send));
+    for (int i = 0; i < mesh->neighbors.num; i++) {
+        int num_recv = mesh->neighbors.recv_off[i + 1] - mesh->neighbors.recv_off[i];
+        int num_send = mesh->neighbors.send.off[i + 1] - mesh->neighbors.send.off[i];
+        sync_irecv(&req_recv[i], &center[mesh->neighbors.recv_off[i]], num_recv,
+                   mesh->neighbors.rank[i], mesh->neighbors.tag[i][0], MPI_DOUBLE, 3);
+        sync_isend(&req_send[i], &send[mesh->neighbors.send.off[i]], num_send,
+                   mesh->neighbors.rank[i], mesh->neighbors.tag[i][1], MPI_DOUBLE, 3);
+    }
+    MPI_Waitall(mesh->neighbors.num, req_recv, MPI_STATUSES_IGNORE);
+    MPI_Waitall(mesh->neighbors.num, req_send, MPI_STATUSES_IGNORE);
+
+    teal_free(send);
+    teal_free(req_recv);
+    teal_free(req_send);
+}
+
+static void compute_cell_centers(Mesh *mesh)
+{
+    Vector *center = teal_calloc(mesh->cells.num, sizeof(*center));
+
+    for (int i = 0; i < mesh->cells.num_inner; i++) {
+        Vector coord[MAX_CELL_NODES];
+        int num_nodes = 0;
+        for (int j = mesh->cells.node.off[i]; j < mesh->cells.node.off[i + 1]; j++) {
+            coord[num_nodes++] = mesh->nodes.coord[mesh->cells.node.idx[j]];
+        }
+        center[i] = compute_cell_center(coord, num_nodes);
+    }
+
+    for (int i = mesh->faces.num_inner; i < mesh->faces.off_boundary; i++) {
+        int left = mesh->faces.cell_idx[i].left;
+        int right = mesh->faces.cell_idx[i].right;
+        Vector normal = mesh->faces.basis[i].x;
+        Vector offset = vector_sub(mesh->faces.center[i], center[left]);
+        double factor = 2 * vector_dot(normal, offset);
+        center[right] = vector_add(center[left], vector_mul(factor, normal));
+    }
+
+    collect_centers(center, mesh);
+
+    for (int i = mesh->entities.off_boundary; i < mesh->entities.num; i++) {
+        for (int j = mesh->entities.cell_off[i]; j < mesh->entities.cell_off[i + 1]; j++) {
+            center[j] = matrix_vector(mesh->entities.rotation[i], center[j]);
+            vector_iadd(&center[j], mesh->entities.translation[i]);
+        }
+    }
+
+    mesh->cells.center = center;
+}
+
+static void compute_cell_projections(Mesh *mesh)
+{
+    Vector *projection = teal_calloc(mesh->cells.num, sizeof(*projection));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        int left = mesh->faces.cell_idx[i].left;
+        int right = mesh->faces.cell_idx[i].right;
+        Vector normal = mesh->faces.basis[i].x;
+        Vector increment = vector_mul(mesh->faces.area[i] / 2, vector_abs(normal));
+        vector_iadd(&projection[left], increment);
+        if (right < mesh->cells.num_inner) {
+            vector_iadd(&projection[right], increment);
+        }
+    }
+    mesh->cells.projection = projection;
+}
+
+typedef struct {
+    int left, right, idx;
+} Map;
+
+static int compare_map(const void *lhs_, const void *rhs_)
+{
+    const Map *lhs = lhs_;
+    const Map *rhs = rhs_;
+    if (lhs->left != rhs->left) {
+        return (lhs->left < rhs->left) ? -1 : +1;
+    }
+    return (lhs->right > rhs->right) - (lhs->right < rhs->right);
+}
+
+static void compute_cell_offsets(Mesh *mesh)
+{
+    Map *map = teal_calloc(mesh->faces.num, sizeof(*map));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        map[i].left = mesh->faces.cell_idx[i].left;
+        map[i].right = mesh->faces.cell_idx[i].right;
+        map[i].idx = i;
+    }
+    sort(map, mesh->faces.num, sizeof(*map), compare_map);
+
+    int num_offsets = mesh->cells.cell.off[mesh->cells.num_inner];
+    Vector *offset = teal_calloc(num_offsets, sizeof(*offset));
+    for (int i = 0; i < mesh->cells.num_inner; i++) {
+        for (int j = mesh->cells.cell.off[i]; j < mesh->cells.cell.off[i + 1]; j++) {
+            int idx = mesh->cells.cell.idx[j];
+            Map key = {.left = (i < idx) ? i : idx, .right = (i > idx) ? i : idx};
+            Map *val = search(&key, map, mesh->faces.num, sizeof(*map), compare_map);
+            assert(val);
+            offset[j] = vector_sub(mesh->faces.center[val->idx], mesh->cells.center[i]);
+        }
+    }
+    mesh->cells.offset = offset;
+
+    teal_free(map);
+}
+
+static Vector compute_face_weight(Vector delta, const double *r11, const double *r12,
+                                  const double *r22, const double *r13, const double *r23,
+                                  const double *r33, int idx)
+{
+    Vector weight = {0};
+    double beta = ((r12[idx] * r23[idx]) - (r13[idx] * r22[idx])) / (r11[idx] * r22[idx]);
+    Vector alpha;
+    alpha.x = delta.x / sq(r11[idx]);
+    alpha.y = (delta.y - (r12[idx] / r11[idx] * delta.x)) / sq(r22[idx]);
+    alpha.z = (delta.z - (r23[idx] / r22[idx] * delta.y) + (beta * delta.x)) / sq(r33[idx]);
+    if (!isclose(delta.x, 0)) {
+        weight.x += alpha.x;
+    }
+    if (!isclose(delta.y, 0)) {
+        weight.x += -r12[idx] / r11[idx] * alpha.y;
+        weight.y += alpha.y;
+    }
+    if (!isclose(delta.z, 0)) {
+        weight.x += beta * alpha.z;
+        weight.y += -r23[idx] / r22[idx] * alpha.z;
+        weight.z += alpha.z;
+    }
+    double theta2 = 1 / vector_norm2(delta);
+    vector_imul(&weight, theta2);
+    return weight;
+}
+
+static void compute_face_weights(Mesh *mesh)
+{
+    double *r11 = teal_calloc(mesh->cells.num_inner, sizeof(*r11));
+    double *r12 = teal_calloc(mesh->cells.num_inner, sizeof(*r12));
+    double *r22 = teal_calloc(mesh->cells.num_inner, sizeof(*r22));
+    double *r13 = teal_calloc(mesh->cells.num_inner, sizeof(*r13));
+    double *r23 = teal_calloc(mesh->cells.num_inner, sizeof(*r23));
+    double *r33 = teal_calloc(mesh->cells.num_inner, sizeof(*r33));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        int left = mesh->faces.cell_idx[i].left;
+        int right = mesh->faces.cell_idx[i].right;
+        Vector delta = vector_sub(mesh->cells.center[right], mesh->cells.center[left]);
+        double theta2 = 1 / vector_norm2(delta);
+        r11[left] += theta2 * delta.x * delta.x;
+        r12[left] += theta2 * delta.x * delta.y;
+        r22[left] += theta2 * delta.y * delta.y;
+        r13[left] += theta2 * delta.x * delta.z;
+        r23[left] += theta2 * delta.y * delta.z;
+        r33[left] += theta2 * delta.z * delta.z;
+        if (right < mesh->cells.num_inner) {
+            r11[right] += theta2 * delta.x * delta.x;
+            r12[right] += theta2 * delta.x * delta.y;
+            r22[right] += theta2 * delta.y * delta.y;
+            r13[right] += theta2 * delta.x * delta.z;
+            r23[right] += theta2 * delta.y * delta.z;
+            r33[right] += theta2 * delta.z * delta.z;
+        }
+    }
+    for (int i = 0; i < mesh->cells.num_inner; i++) {
+        r11[i] = sqrt(r11[i]);
+        r12[i] = r12[i] / r11[i];
+        r22[i] = sqrt(r22[i] - sq(r12[i]));
+        r13[i] = r13[i] / r11[i];
+        r23[i] = (r23[i] - (r12[i] * r13[i])) / r22[i];
+        r33[i] = sqrt(r33[i] - (sq(r13[i]) + sq(r23[i])));
+    }
+
+    VectorPair *weight = teal_calloc(mesh->faces.num, sizeof(*weight));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        int left = mesh->faces.cell_idx[i].left;
+        int right = mesh->faces.cell_idx[i].right;
+        Vector delta = vector_sub(mesh->cells.center[right], mesh->cells.center[left]);
+        weight[i].left = compute_face_weight(delta, r11, r12, r22, r13, r23, r33, left);
+        if (right < mesh->cells.num_inner) {
+            vector_imul(&delta, -1);
+            weight[i].right = compute_face_weight(delta, r11, r12, r22, r13, r23, r33, right);
+        }
+    }
+    mesh->faces.weight = weight;
+
+    teal_free(r11);
+    teal_free(r12);
+    teal_free(r22);
+    teal_free(r13);
+    teal_free(r23);
+    teal_free(r33);
+}
+
+static void compute_face_offsets(Mesh *mesh)
+{
+    VectorPair *offset = teal_calloc(mesh->faces.num, sizeof(*offset));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        int left = mesh->faces.cell_idx[i].left;
+        int right = mesh->faces.cell_idx[i].right;
+        offset[i].left = vector_sub(mesh->faces.center[i], mesh->cells.center[left]);
+        offset[i].right = vector_sub(mesh->faces.center[i], mesh->cells.center[right]);
+    }
+    mesh->faces.offset = offset;
+}
+
+static void compute_face_corrections(Mesh *mesh)
+{
+    VectorNorm *correction = teal_calloc(mesh->faces.num, sizeof(*correction));
+    for (int i = 0; i < mesh->faces.num; i++) {
+        int left = mesh->faces.cell_idx[i].left;
+        int right = mesh->faces.cell_idx[i].right;
+        Vector delta = vector_sub(mesh->cells.center[right], mesh->cells.center[left]);
+        correction[i].norm = vector_norm(delta);
+        correction[i].unit = vector_div(delta, correction[i].norm);
+    }
+    mesh->faces.correction = correction;
+}
+
+void mesh_generate(Mesh *mesh)
+{
+    assert(mesh);
+
+    connect_cells(mesh);
+    reorder_cells(mesh);
+    reorder_nodes(mesh);
+
+    create_faces(mesh);
+    create_face_entities(mesh);
+
+    compute_face_areas(mesh);
+    compute_face_centers(mesh);
+    compute_face_bases(mesh);
+
+    compute_cell_volumes(mesh);
+    compute_cell_centers(mesh);
+    compute_cell_projections(mesh);
+    compute_cell_offsets(mesh);
+
+    compute_face_weights(mesh);
+    compute_face_offsets(mesh);
+    compute_face_corrections(mesh);
+
+    long tot_nodes = mesh->nodes.num;
+    sync_sum(&tot_nodes, 1, MPI_LONG);
+
+    long tot_cells = mesh->cells.num;
+    sync_sum(&tot_cells, 1, MPI_LONG);
+
+    long tot_indices = mesh->cells.node.off[mesh->cells.num];
+    sync_sum(&tot_indices, 1, MPI_LONG);
+
+    if (tot_nodes > INT_MAX || tot_cells > INT_MAX || tot_indices > INT_MAX) {
+        teal.partitioned = 1;
+    }
+}

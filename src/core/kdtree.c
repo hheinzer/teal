@@ -1,9 +1,10 @@
+#include "kdtree.h"
+
 #include <assert.h>
 #include <math.h>
 
-#include "kdtree2.h"
-#include "teal2.h"
-#include "utils2.h"
+#include "teal.h"
+#include "utils.h"
 
 enum { CAP_LEAF = 32 };
 
@@ -49,7 +50,7 @@ static void compute_bbox(const Kdtree *self, Node *node)
 
 static int choose_axis(const Node *node)
 {
-    Vector del = vector2_sub(node->max, node->min);
+    Vector del = vector_sub(node->max, node->min);
     if (del.x >= del.y && del.x >= del.z) {
         return 0;
     }
@@ -65,7 +66,7 @@ static double component(Vector vec, int axis)
         case 0: return vec.x;
         case 1: return vec.y;
         case 2: return vec.z;
-        default: teal2_error("invalid axis (%d)", axis);
+        default: teal_error("invalid axis (%d)", axis);
     }
 }
 
@@ -171,24 +172,24 @@ static Node *build_nodes(Kdtree *self, Node **next, int beg, int end)
     return node;
 }
 
-Kdtree *kdtree2_init(const Vector *point, int num)
+Kdtree *kdtree_init(const Vector *point, int num)
 {
     assert((point || num == 0) && num >= 0);
 
-    Kdtree *self = teal2_calloc(1, sizeof(*self));
+    Kdtree *self = teal_calloc(1, sizeof(*self));
 
     if (num == 0) {
         return self;
     }
 
     self->point = point;
-    self->perm = teal2_calloc(num, sizeof(*self->perm));
+    self->perm = teal_calloc(num, sizeof(*self->perm));
     for (int i = 0; i < num; i++) {
         self->perm[i] = i;
     }
 
     int num_nodes = count_r(num);
-    self->node = teal2_calloc(num_nodes, sizeof(*self->node));
+    self->node = teal_calloc(num_nodes, sizeof(*self->node));
 
     Node *next = self->node;
     build_nodes(self, &next, 0, num);
@@ -197,17 +198,17 @@ Kdtree *kdtree2_init(const Vector *point, int num)
     return self;
 }
 
-void kdtree2_deinit(Kdtree *self)
+void kdtree_deinit(Kdtree *self)
 {
     assert(self);
-    teal2_free(self->perm);
-    teal2_free(self->node);
-    teal2_free(self);
+    teal_free(self->perm);
+    teal_free(self->node);
+    teal_free(self);
 }
 
 static double dist2_point(Vector lhs, Vector rhs)
 {
-    return vector2_norm2(vector2_sub(lhs, rhs));
+    return vector_norm2(vector_sub(lhs, rhs));
 }
 
 static double dist2_bbox(const Node *node, Vector query)
@@ -299,7 +300,7 @@ static void nearest_r(const Kdtree *self, const Node *node, Vector point, Hit *h
     }
 }
 
-int kdtree2_nearest(const Kdtree *self, Vector point, int *index, int cap)
+int kdtree_nearest(const Kdtree *self, Vector point, int *index, int cap)
 {
     assert(self && index && cap > 0);
 
@@ -307,7 +308,7 @@ int kdtree2_nearest(const Kdtree *self, Vector point, int *index, int cap)
         return 0;
     }
 
-    Hit *hit = teal2_calloc(cap, sizeof(*hit));
+    Hit *hit = teal_calloc(cap, sizeof(*hit));
 
     int num = 0;
     nearest_r(self, self->node, point, hit, &num, cap);
@@ -316,6 +317,6 @@ int kdtree2_nearest(const Kdtree *self, Vector point, int *index, int cap)
         index[i] = hit[num - 1 - i].idx;
     }
 
-    teal2_free(hit);
+    teal_free(hit);
     return num;
 }

@@ -1,15 +1,15 @@
-#include <assert.h>
+#include "matrix.h"
 
-#include "matrix2.h"
+#include <assert.h>
 
 _Static_assert(sizeof(Matrix) == sizeof(Vector[3]), "Matrix must be packed");
 
 Vector matrix_vector(Matrix mat, Vector vec)
 {
     return (Vector){
-        vector2_dot(mat.x, vec),
-        vector2_dot(mat.y, vec),
-        vector2_dot(mat.z, vec),
+        vector_dot(mat.x, vec),
+        vector_dot(mat.y, vec),
+        vector_dot(mat.z, vec),
     };
 }
 
@@ -34,21 +34,21 @@ Matrix matrix_transpose(Matrix mat)
 
 double matrix_determinant(Matrix mat)
 {
-    return vector2_dot(mat.x, vector2_cross(mat.y, mat.z));
+    return vector_dot(mat.x, vector_cross(mat.y, mat.z));
 }
 
 Matrix matrix_inverse(Matrix mat)
 {
     Matrix adj = {
-        vector2_cross(mat.y, mat.z),
-        vector2_cross(mat.z, mat.x),
-        vector2_cross(mat.x, mat.y),
+        vector_cross(mat.y, mat.z),
+        vector_cross(mat.z, mat.x),
+        vector_cross(mat.x, mat.y),
     };
 
-    double det = vector2_dot(mat.x, adj.x);
+    double det = vector_dot(mat.x, adj.x);
     return (Matrix){
-        vector2_div(adj.x, det),
-        vector2_div(adj.y, det),
-        vector2_div(adj.z, det),
+        vector_div(adj.x, det),
+        vector_div(adj.y, det),
+        vector_div(adj.z, det),
     };
 }

@@ -1,85 +1,86 @@
+#include "h5io.h"
+
 #include <assert.h>
 
-#include "h5io2.h"
-#include "sync2.h"
-#include "teal2.h"
+#include "sync.h"
+#include "teal.h"
 
 static herr_t h5io_error(hid_t estack, void *ctx)
 {
     (void)ctx;
-    if (sync2.rank == 0) {
+    if (sync.rank == 0) {
         H5Eprint2(estack, stderr);
         fflush(stderr);
     }
-    teal2_error("h5io error");
+    teal_error("h5io error");
 }
 
-hid_t h5io2_file_open(const char *fname)
+hid_t h5io_file_open(const char *fname)
 {
     assert(fname);
 
     hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist, sync2.comm, MPI_INFO_NULL);
+    H5Pset_fapl_mpio(plist, sync.comm, MPI_INFO_NULL);
     H5Pset_all_coll_metadata_ops(plist, 1);
 
     hid_t file = H5Fopen(fname, H5F_ACC_RDONLY, plist);
     if (file < 0) {
-        teal2_error("could not open file (%s)", fname);
+        teal_error("could not open file (%s)", fname);
     }
 
     if (H5Eset_auto2(H5E_DEFAULT, h5io_error, 0) < 0) {
-        teal2_error("could not install error handler");
+        teal_error("could not install error handler");
     }
 
     H5Pclose(plist);
     return file;
 }
 
-hid_t h5io2_file_create(const char *fname)
+hid_t h5io_file_create(const char *fname)
 {
     assert(fname);
 
     hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist, sync2.comm, MPI_INFO_NULL);
+    H5Pset_fapl_mpio(plist, sync.comm, MPI_INFO_NULL);
     H5Pset_all_coll_metadata_ops(plist, 1);
     H5Pset_coll_metadata_write(plist, 1);
 
     hid_t file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, plist);
     if (file < 0) {
-        teal2_error("could not create file (%s)", fname);
+        teal_error("could not create file (%s)", fname);
     }
 
     if (H5Eset_auto2(H5E_DEFAULT, h5io_error, 0) < 0) {
-        teal2_error("could not install error handler");
+        teal_error("could not install error handler");
     }
 
     H5Pclose(plist);
     return file;
 }
 
-void h5io2_file_close(hid_t file)
+void h5io_file_close(hid_t file)
 {
     assert(file >= 0);
     H5Fclose(file);
 
     if (H5Eset_auto2(H5E_DEFAULT, 0, 0) < 0) {
-        teal2_error("could not restore error handler");
+        teal_error("could not restore error handler");
     }
 }
 
-hid_t h5io2_group_open(const char *name, hid_t loc)
+hid_t h5io_group_open(const char *name, hid_t loc)
 {
     assert(name && loc >= 0);
     return H5Gopen2(loc, name, H5P_DEFAULT);
 }
 
-hid_t h5io2_group_create(const char *name, hid_t loc)
+hid_t h5io_group_create(const char *name, hid_t loc)
 {
     assert(name && loc >= 0);
     return H5Gcreate2(loc, name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 }
 
-void h5io2_group_close(hid_t group)
+void h5io_group_close(hid_t group)
 {
     assert(group >= 0);
     H5Gclose(group);
@@ -114,7 +115,7 @@ static int attribute_dims_matchs(hid_t attr, hsize_t dims)
     return match;
 }
 
-void h5io2_attribute_read(const char *name, void *buf, int num, hid_t type, hid_t loc)
+void h5io_attribute_read(const char *name, void *buf, int num, hid_t type, hid_t loc)
 {
     assert(name && buf && num > 0 && type >= 0 && loc >= 0);
 
@@ -127,7 +128,7 @@ void h5io2_attribute_read(const char *name, void *buf, int num, hid_t type, hid_
 
     hid_t attr = H5Aopen(loc, name, H5P_DEFAULT);
     if (!attribute_dims_matchs(attr, num)) {
-        teal2_error("attribute dims mismatch (%s)", name);
+        teal_error("attribute dims mismatch (%s)", name);
     }
 
     H5Aread(attr, type, buf);
@@ -138,7 +139,7 @@ void h5io2_attribute_read(const char *name, void *buf, int num, hid_t type, hid_
     }
 }
 
-void h5io2_attribute_write(const char *name, const void *buf, int num, hid_t type, hid_t loc)
+void h5io_attribute_write(const char *name, const void *buf, int num, hid_t type, hid_t loc)
 {
     assert(name && buf && num > 0 && type >= 0 && loc >= 0);
 
@@ -171,7 +172,7 @@ static int dataset_dims_match(hid_t dset, int rank, hsize_t num, hsize_t len)
 
     int ndims = H5Sget_simple_extent_ndims(space);
     if (ndims == rank) {
-        sync2_sum(&num, 1, HSIZE_AS_MPI_TYPE);
+        sync_sum(&num, 1, HSIZE_AS_MPI_TYPE);
 
         hsize_t dset_dims[2];
         H5Sget_simple_extent_dims(space, dset_dims, 0);
@@ -187,7 +188,7 @@ static int dataset_dims_match(hid_t dset, int rank, hsize_t num, hsize_t len)
     return match;
 }
 
-void h5io2_dataset_read(const char *name, void *buf, int num, int len, hid_t type, hid_t loc)
+void h5io_dataset_read(const char *name, void *buf, int num, int len, hid_t type, hid_t loc)
 {
     assert(name && (buf || num == 0) && num >= 0 && len > 0 && type >= 0 && loc >= 0);
 
@@ -202,7 +203,7 @@ void h5io2_dataset_read(const char *name, void *buf, int num, int len, hid_t typ
 
     hid_t dset = H5Dopen2(loc, name, H5P_DEFAULT);
     if (!dataset_dims_match(dset, rank, num, len)) {
-        teal2_error("dataset dims mismatch (%s)", name);
+        teal_error("dataset dims mismatch (%s)", name);
     }
 
     hid_t fspace = H5Dget_space(dset);
@@ -211,7 +212,7 @@ void h5io2_dataset_read(const char *name, void *buf, int num, int len, hid_t typ
     hid_t mspace = H5Screate_simple(rank, count, 0);
 
     hsize_t start[2] = {num, 0};
-    sync2_prefix(&start[0], 1, HSIZE_AS_MPI_TYPE);
+    sync_prefix(&start[0], 1, HSIZE_AS_MPI_TYPE);
 
     H5Sselect_hyperslab(fspace, H5S_SELECT_SET, start, 0, count, 0);
 
@@ -229,7 +230,7 @@ void h5io2_dataset_read(const char *name, void *buf, int num, int len, hid_t typ
     }
 }
 
-void h5io2_dataset_write(const char *name, const void *buf, int num, int len, hid_t type, hid_t loc)
+void h5io_dataset_write(const char *name, const void *buf, int num, int len, hid_t type, hid_t loc)
 {
     assert(name && (buf || num == 0) && num >= 0 && len > 0 && type >= 0 && loc >= 0);
 
@@ -243,7 +244,7 @@ void h5io2_dataset_write(const char *name, const void *buf, int num, int len, hi
     }
 
     hsize_t dims[2] = {num, len};
-    sync2_sum(&dims[0], 1, HSIZE_AS_MPI_TYPE);
+    sync_sum(&dims[0], 1, HSIZE_AS_MPI_TYPE);
 
     hid_t fspace = H5Screate_simple(rank, dims, 0);
 
@@ -253,7 +254,7 @@ void h5io2_dataset_write(const char *name, const void *buf, int num, int len, hi
     hid_t mspace = H5Screate_simple(rank, count, 0);
 
     hsize_t start[2] = {num, 0};
-    sync2_prefix(&start[0], 1, HSIZE_AS_MPI_TYPE);
+    sync_prefix(&start[0], 1, HSIZE_AS_MPI_TYPE);
 
     H5Sselect_hyperslab(fspace, H5S_SELECT_SET, start, 0, count, 0);
 
@@ -271,7 +272,7 @@ void h5io2_dataset_write(const char *name, const void *buf, int num, int len, hi
     }
 }
 
-void h5io2_link_create(const char *file, const char *object, const char *name, hid_t loc)
+void h5io_link_create(const char *file, const char *object, const char *name, hid_t loc)
 {
     assert(file && object && name && loc >= 0);
     H5Lcreate_external(file, object, loc, name, H5P_DEFAULT, H5P_DEFAULT);

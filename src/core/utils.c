@@ -1,9 +1,9 @@
+#include "utils.h"
+
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "utils2.h"
 
 int compare_int(const void *lhs_, const void *rhs_)
 {

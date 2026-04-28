@@ -1,3 +1,5 @@
+#include "teal.h"
+
 #include <assert.h>
 #include <getopt.h>
 #include <stdarg.h>
@@ -8,9 +10,8 @@
 #include <time.h>
 
 #include "sanitizer.h"
-#include "sync2.h"
-#include "teal2.h"
-#include "utils2.h"
+#include "sync.h"
+#include "utils.h"
 
 _Static_assert(sizeof(int) == 4, "teal requires 32-bit int");
 _Static_assert(sizeof(long) == 8, "teal requires 64-bit long");
@@ -18,11 +19,11 @@ _Static_assert(sizeof(double) == 8, "teal requires 64-bit double");
 
 enum { ALIGN = 64 };
 
-struct teal teal2 = {0};
+struct teal teal = {0};
 
 static void print_help(char **argv)
 {
-    teal2_print(
+    teal_print(
         "usage: %s [options] ...\n\n"
         "options:\n"
         "  %-10s show this help message and exit\n"
@@ -39,11 +40,11 @@ static void parse_options(int *argc, char ***argv)
     int opt;
     while ((opt = getopt(*argc, *argv, "hqvp")) != -1) {
         switch (opt) {
-            case 'h': print_help(*argv); teal2_exit(EXIT_SUCCESS);
-            case 'q': teal2.quiet = 1; break;
-            case 'v': teal2.verbose = 1; break;
-            case 'p': teal2.partitioned = 1; break;
-            default: print_help(*argv); teal2_exit(EXIT_FAILURE);
+            case 'h': print_help(*argv); teal_exit(EXIT_SUCCESS);
+            case 'q': teal.quiet = 1; break;
+            case 'v': teal.verbose = 1; break;
+            case 'p': teal.partitioned = 1; break;
+            default: print_help(*argv); teal_exit(EXIT_FAILURE);
         }
     }
 
@@ -56,37 +57,37 @@ static void parse_options(int *argc, char ***argv)
     (*argv)[num] = 0;
 }
 
-void teal2_init(int *argc, char ***argv)
+void teal_init(int *argc, char ***argv)
 {
     assert(argc && argv);
 
-    sync2_init(argc, argv);
+    sync_init(argc, argv);
     parse_options(argc, argv);
 
-    srand(time(0) + sync2.rank);
+    srand(time(0) + sync.rank);
 
     String now;
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
-    teal2_print("Hello, World! This is teal!");
-    teal2_print("\t start time      : %s", now);
-    teal2_print("\t number of ranks : %d", sync2.size);
+    teal_print("Hello, World! This is teal!");
+    teal_print("\t start time      : %s", now);
+    teal_print("\t number of ranks : %d", sync.size);
 }
 
-void teal2_deinit(void)
+void teal_deinit(void)
 {
     String now;
     strftime(now, sizeof(now), "%a %b %e %T %Y", localtime(&(time_t){time(0)}));
 
-    teal2_print("Goodbye, World!");
-    teal2_print("\t stop time : %s", now);
+    teal_print("Goodbye, World!");
+    teal_print("\t stop time : %s", now);
 
-    sync2_deinit();
+    sync_deinit();
 }
 
-void teal2_exit(int status)
+void teal_exit(int status)
 {
-    sync2_deinit();
+    sync_deinit();
     exit(status);
 }
 
@@ -96,7 +97,7 @@ static void println(FILE *stream, const char *prefix, const char *fmt, va_list a
     char *end = beg;
 
     if (prefix) {
-        end += sprintf(end, "[%d] %s: ", sync2.rank, prefix);
+        end += sprintf(end, "[%d] %s: ", sync.rank, prefix);
     }
 
     end += vsprintf(end, fmt, args);
@@ -108,10 +109,10 @@ static void println(FILE *stream, const char *prefix, const char *fmt, va_list a
     fflush(stream);
 }
 
-void teal2_print(const char *fmt, ...)
+void teal_print(const char *fmt, ...)
 {
     assert(fmt);
-    if (sync2.rank == 0 && !teal2.quiet) {
+    if (sync.rank == 0 && !teal.quiet) {
         va_list args;
         va_start(args, fmt);
         println(stdout, 0, fmt, args);
@@ -119,10 +120,10 @@ void teal2_print(const char *fmt, ...)
     }
 }
 
-void teal2_verbose(const char *fmt, ...)
+void teal_verbose(const char *fmt, ...)
 {
     assert(fmt);
-    if (!teal2.quiet && teal2.verbose) {
+    if (!teal.quiet && teal.verbose) {
         va_list args;
         va_start(args, fmt);
         println(stdout, "VERBOSE", fmt, args);
@@ -130,7 +131,7 @@ void teal2_verbose(const char *fmt, ...)
     }
 }
 
-void teal2_error(const char *fmt, ...)
+void teal_error(const char *fmt, ...)
 {
     assert(fmt);
 
@@ -139,7 +140,7 @@ void teal2_error(const char *fmt, ...)
     println(stderr, "ERROR", fmt, args);
     va_end(args);
 
-    teal2_exit(EXIT_FAILURE);
+    teal_exit(EXIT_FAILURE);
 }
 
 typedef struct {
@@ -147,18 +148,18 @@ typedef struct {
     size_t bytes;
 } Alloc;
 
-static void *teal2_malloc(int num, int size)
+static void *teal_malloc(int num, int size)
 {
     size_t extra = sizeof(Alloc) + (ALIGN - 1);
     if ((size_t)num > (SIZE_MAX - extra) / size) {
-        teal2_error("overflow (%d, %d)", num, size);
+        teal_error("overflow (%d, %d)", num, size);
     }
 
     size_t bytes = (size_t)num * size;
 
     char *base = malloc(bytes + extra);
     if (!base) {
-        teal2_error("malloc failure (%zu)", bytes + extra);
+        teal_error("malloc failure (%zu)", bytes + extra);
     }
 
     char *beg = base + sizeof(Alloc);
@@ -172,7 +173,7 @@ static void *teal2_malloc(int num, int size)
     return ptr;
 }
 
-void *teal2_calloc(int num, int size)
+void *teal_calloc(int num, int size)
 {
     assert(num >= 0 && size > 0);
 
@@ -180,27 +181,27 @@ void *teal2_calloc(int num, int size)
         return 0;
     }
 
-    void *ptr = teal2_malloc(num, size);
+    void *ptr = teal_malloc(num, size);
 
     return memset(ptr, 0, (size_t)num * size);
 }
 
-void *teal2_realloc(void *ptr, int num, int size)
+void *teal_realloc(void *ptr, int num, int size)
 {
     assert(num >= 0 && size > 0);
 
     if (num == 0) {
-        teal2_free(ptr);
+        teal_free(ptr);
         return 0;
     }
 
     if (!ptr) {
-        return teal2_malloc(num, size);
+        return teal_malloc(num, size);
     }
 
     MAKE_REGION_ADDRESSABLE((char *)ptr - sizeof(Alloc), sizeof(Alloc));
 
-    void *new = teal2_malloc(num, size);
+    void *new = teal_malloc(num, size);
 
     size_t bytes = (size_t)num * size;
     if (((Alloc *)ptr)[-1].bytes < bytes) {
@@ -214,7 +215,7 @@ void *teal2_realloc(void *ptr, int num, int size)
     return new;
 }
 
-void teal2_free(void *ptr)
+void teal_free(void *ptr)
 {
     if (!ptr) {
         return;
