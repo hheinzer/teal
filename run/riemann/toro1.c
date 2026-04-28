@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {
     teal_init(&argc, &argv);
 
-    char *flux = (argc > 1) ? argv[1] : "hllc";
+    const char *flux = (argc > 1) ? argv[1] : "hllc";
     int space_order = (argc > 2) ? (int)strtol(argv[2], 0, 10) : 2;
 
     Vector min_coord = {.x = 0};

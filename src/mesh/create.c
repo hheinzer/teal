@@ -308,7 +308,7 @@ static void create_entities(Mesh *mesh, Triple num_cells, Vector del_coord, cons
     Matrix *rotation = teal_calloc(num_entities, sizeof(*rotation));
     Vector *translation = teal_calloc(num_entities, sizeof(*translation));
 
-    char *entity[] = {"domain", "left", "right", "bottom", "top", "back", "front"};
+    const char *entity[] = {"domain", "left", "right", "bottom", "top", "back", "front"};
     strcpy(name[0], entity[0]);
     cell_off[1] = mesh->cells.num_inner;
 
