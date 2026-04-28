@@ -86,20 +86,6 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
     teal2_free(buf_);
 }
 
-static void convert_conserved(const Equations *eqns, int num_cells)
-{
-    int stride_p = eqns->primitive.stride;
-    int stride_c = eqns->conserved.stride;
-    double (*primitive)[stride_p] = eqns->primitive.data;
-    double (*conserved)[stride_c] = eqns->conserved.data;
-    double *property = eqns->properties.data;
-    Convert *prim2cons = eqns->conserved.func.convert;
-
-    for (int i = 0; i < num_cells; i++) {
-        prim2cons(conserved[i], primitive[i], property);
-    }
-}
-
 static void compute_reference(const Equations *eqns, double time, int num_cells)
 {
     Vector *center = eqns->mesh->cells.center;
@@ -127,11 +113,6 @@ static void write_cell_data(const Equations *eqns, double time, int num_cells, h
     equations2_exchange_wait_recv(eqns, exchange);
     write_variables(&eqns->primitive, num_cells, group);
     equations2_exchange_wait_send(eqns, exchange);
-
-    if (eqns->conserved.func.convert) {
-        convert_conserved(eqns, num_cells);
-        write_variables(&eqns->conserved, num_cells, group);
-    }
 
     if (eqns->reference.func.compute) {
         compute_reference(eqns, time, num_cells);
