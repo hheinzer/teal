@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "equations2.h"
+#include "exchange.h"
 #include "h5io2.h"
 #include "sync2.h"
 #include "teal2.h"
@@ -71,14 +72,13 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
 
     int off = 0;
     for (int i = 0; i < num; i++) {
-        if (!name[i][0]) {
-            continue;
+        if (name[i][0]) {
+            double (*buf)[dimension[i]] = buf_;
+            for (int j = 0; j < num_cells; j++) {
+                memcpy(buf[j], &data[j][off], sizeof(*buf));
+            }
+            h5io2_dataset_write(name[i], buf, num_cells, dimension[i], H5T_NATIVE_DOUBLE, loc);
         }
-        double (*buf)[dimension[i]] = buf_;
-        for (int j = 0; j < num_cells; j++) {
-            memcpy(buf[j], &data[j][off], sizeof(*buf));
-        }
-        h5io2_dataset_write(name[i], buf, num_cells, dimension[i], H5T_NATIVE_DOUBLE, loc);
         off += dimension[i];
     }
     assert(off == stride);
@@ -88,9 +88,10 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
 
 static void convert_conserved(const Equations *eqns, int num_cells)
 {
-    int stride = eqns->primitive.stride;
-    double (*primitive)[stride] = eqns->primitive.data;
-    double (*conserved)[stride] = eqns->conserved.data;
+    int stride_p = eqns->primitive.stride;
+    int stride_c = eqns->conserved.stride;
+    double (*primitive)[stride_p] = eqns->primitive.data;
+    double (*conserved)[stride_c] = eqns->conserved.data;
     double *property = eqns->properties.data;
     Convert *prim2cons = eqns->conserved.func.convert;
 
@@ -118,7 +119,14 @@ static void write_cell_data(const Equations *eqns, double time, int num_cells, h
 {
     hid_t group = h5io2_group_open("CellData", loc);
 
+    int stride = eqns->primitive.stride;
+    double (*primitive)[stride] = eqns->primitive.data;
+
+    Exchange exchange = equations2_exchange(eqns, primitive, stride);
+    equations2_boundary(eqns, primitive, time);
+    equations2_exchange_wait_recv(eqns, exchange);
     write_variables(&eqns->primitive, num_cells, group);
+    equations2_exchange_wait_send(eqns, exchange);
 
     if (eqns->conserved.func.convert) {
         convert_conserved(eqns, num_cells);
