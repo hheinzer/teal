@@ -1,6 +1,0 @@
----
-InheritParentConfig: true
-Checks:
-  - -bugprone-narrowing-conversions
-  - -clang-analyzer-deadcode.DeadStores
-...
