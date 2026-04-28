@@ -1,6 +1,8 @@
 #pragma once
 
 #include "equations.h"
+#include "simulation.h"  // IWYU pragma: export
+#include "teal.h"        // IWYU pragma: export
 
 typedef struct {
     double density;
