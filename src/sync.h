@@ -35,7 +35,7 @@ void sync_offsets(const void *val, void *buf, int num, MPI_Datatype type);
 // Gather values per rank into buffer.
 void sync_gather(const void *val, void *buf, int num, MPI_Datatype type, int len);
 
-// Rotate a fixed-capacity buffer and count to the next rank.
+// Rotate a fixed-capacity buffer and count to the next rank, receive from the previous rank.
 void sync_rotate(void *buf, int *num, int cap, MPI_Datatype type, int len);
 
 // Send to `dst` and receive from `src` in a single exchange.

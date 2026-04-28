@@ -109,11 +109,11 @@ Equations *equations_create(const Mesh *mesh, const char *name, Timestep *timest
                             ConvectiveSelect *convective, ViscousSelect *viscous,
                             BoundarySelect *boundary);
 
-// Register `num` primitive variables with names, dimensions, and an initial condition callback.
+// Register `num` primitive variables with names, dimensions, and a convert to conserved callback.
 void equations_create_primitive(Equations *eqns, const char **name, const int *dimension,
                                 Convert *convert, int num);
 
-// Register `num` conserved variables with names, dimensions, and a conversion callback.
+// Register `num` conserved variables with names, dimensions, and a convert to primitive callback.
 void equations_create_conserved(Equations *eqns, const char **name, const int *dimension,
                                 Convert *convert, int num);
 
