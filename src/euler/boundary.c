@@ -5,10 +5,10 @@
 #include "teal.h"
 
 static void symmetry(void *outer_, const void *inner_, const double *property, Matrix basis,
-                     const void *context_)
+                     const void *context)
 {
     (void)property;
-    (void)context_;
+    (void)context;
     EulerPrimitive *outer = outer_;
     const EulerPrimitive *inner = inner_;
 
@@ -19,10 +19,10 @@ static void symmetry(void *outer_, const void *inner_, const double *property, M
     outer->pressure = inner->pressure;
 }
 
-static void supersonic_inflow(void *outer_, const void *inner_, const double *property,
-                              Matrix basis, const void *context_)
+static void supersonic_inflow(void *outer_, const void *inner, const double *property, Matrix basis,
+                              const void *context_)
 {
-    (void)inner_;
+    (void)inner;
     (void)property;
     (void)basis;
     EulerPrimitive *outer = outer_;
@@ -32,11 +32,11 @@ static void supersonic_inflow(void *outer_, const void *inner_, const double *pr
 }
 
 static void supersonic_outflow(void *outer_, const void *inner_, const double *property,
-                               Matrix basis, const void *context_)
+                               Matrix basis, const void *context)
 {
     (void)property;
     (void)basis;
-    (void)context_;
+    (void)context;
     EulerPrimitive *outer = outer_;
     const EulerPrimitive *inner = inner_;
 
