@@ -1,8 +1,8 @@
 #pragma once
 
 #include "equations.h"
-#include "simulation.h"  // IWYU pragma: export
-#include "teal.h"        // IWYU pragma: export
+#include "simulation.h"
+#include "teal.h"  // IWYU pragma: export
 
 typedef struct {
     double density;
@@ -30,3 +30,7 @@ Equations *euler_create(const Mesh *mesh);
 
 // Solve the exact Riemann problem for the Euler equations.
 EulerPrimitive euler_riemann(EulerPrimitive left, EulerPrimitive right, double gamma, double loc);
+
+// Compute pressure coefficient distribution and lift/drag coefficients for an airfoil entity.
+void euler_polar(const Simulation *sim, const char *entity, EulerPrimitive reference, double length,
+                 double time);
