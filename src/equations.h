@@ -34,7 +34,7 @@ typedef void Boundary(void *outer, const void *inner, const double *property, Ma
 // Select a boundary condition by name.
 typedef Boundary *BoundarySelect(const char *name);
 
-// Convert between primitive and conserved variables.
+// Convert from one variable representation to another.
 typedef void Convert(void *, const void *, const double *property);
 
 // Pre-pass called once per derivative evaluation before per-cell source terms.
@@ -115,11 +115,11 @@ Equations *equations_create(const Mesh *mesh, const char *name, Timestep *timest
                             ConvectiveSelect *convective, ViscousSelect *viscous,
                             BoundarySelect *boundary);
 
-// Register `num` primitive variables with names, dimensions, and a convert to conserved callback.
+// Register `num` primitive variables with names, dimensions, and a conserved-to-primitive callback.
 void equations_create_primitive(Equations *eqns, const char **name, const int *dimension,
                                 Convert *convert, int num);
 
-// Register `num` conserved variables with names, dimensions, and a convert to primitive callback.
+// Register `num` conserved variables with names, dimensions, and a primitive-to-conserved callback.
 void equations_create_conserved(Equations *eqns, const char **name, const int *dimension,
                                 Convert *convert, int num);
 
