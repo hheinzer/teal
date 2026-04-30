@@ -3,7 +3,10 @@
 #include <math.h>
 
 #include "equations.h"
+#include "gmres.h"
+#include "sync.h"
 #include "teal.h"
+#include "utils.h"
 
 double euler(const Equations *eqns, double *time, void *residual, double max_step, double courant,
              const void *context)
@@ -114,6 +117,79 @@ double lserk(const Equations *eqns, double *time, void *residual, double max_ste
 }
 
 double implicit_euler(const Equations *eqns, double *time, void *residual, double max_step,
-                      double courant, const void *context)
+                      double courant, const void *context_)
 {
+    const NewtonKrylov *context = context_;
+    double tol = context->newton_tolerance;
+
+    int num_inner = eqns->mesh->cells.num_inner;
+    int stride_p = eqns->primitive.stride;
+    int stride_c = eqns->conserved.stride;
+    double *property = eqns->properties.data;
+    Convert *prim2cons = eqns->conserved.func.convert;
+    Convert *cons2prim = eqns->primitive.func.convert;
+
+    double (*primitive)[stride_p] = eqns->primitive.data;
+    double (*conserved)[stride_c] = eqns->conserved.data;
+
+    double step0 = courant * equations_timestep(eqns, primitive);
+    double step = fmin(step0, max_step);
+
+    double (*conserved0)[stride_c] = teal_calloc(num_inner, (int)sizeof(*conserved0));
+    for (int i = 0; i < num_inner; i++) {
+        prim2cons(conserved[i], primitive[i], property);
+        copy(conserved0[i], conserved[i], stride_c, (int)sizeof(double));
+    }
+
+    *time += step;
+    double (*derivative)[stride_c] = teal_calloc(num_inner, (int)sizeof(*derivative));
+    equations_derivative(eqns, primitive, derivative, *time);
+
+    double (*newton_residual)[stride_c] = teal_calloc(num_inner, (int)sizeof(*newton_residual));
+    for (int i = 0; i < num_inner; i++) {
+        for (int j = 0; j < stride_c; j++) {
+            newton_residual[i][j] = -derivative[i][j] * step;
+        }
+    }
+
+    double norm = sync_norm(*newton_residual, num_inner * stride_c);
+
+    static const double fd_relative = 1e-6;
+    double cons_norm = sync_norm(*conserved, num_inner * stride_c);
+    double fd_scale = fd_relative * fmax(1, cons_norm) / fmax(1, norm);
+
+    double tol_norm = tol * norm;
+    int max_iter = 128 * (num_inner + 1);
+
+    double (*increment)[stride_c] = teal_calloc(num_inner, (int)sizeof(*increment));
+    for (int iter = 0; iter < max_iter && norm > tol_norm; iter++) {
+        gmres(eqns, conserved, derivative, newton_residual, increment, *time, step, norm, fd_scale,
+              context);
+        for (int i = 0; i < num_inner; i++) {
+            for (int j = 0; j < stride_c; j++) {
+                conserved[i][j] += increment[i][j];
+            }
+            cons2prim(primitive[i], conserved[i], property);
+        }
+
+        equations_derivative(eqns, primitive, derivative, *time);
+        for (int i = 0; i < num_inner; i++) {
+            for (int j = 0; j < stride_c; j++) {
+                newton_residual[i][j] =
+                    conserved[i][j] - conserved0[i][j] - (derivative[i][j] * step);
+            }
+        }
+
+        norm = sync_norm(*newton_residual, num_inner * stride_c);
+        cons_norm = sync_norm(*conserved, num_inner * stride_c);
+        fd_scale = fd_relative * fmax(1, cons_norm) / fmax(1, norm);
+    }
+
+    equations_residual(eqns, derivative, residual);
+
+    teal_free(increment);
+    teal_free(newton_residual);
+    teal_free(derivative);
+    teal_free(conserved0);
+    return step0;
 }

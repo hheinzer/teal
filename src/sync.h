@@ -26,6 +26,12 @@ void sync_max(void *buf, int num, MPI_Datatype type);
 // In-place global sum.
 void sync_sum(void *buf, int num, MPI_Datatype type);
 
+// Global dot product of two double arrays.
+double sync_dot(const double *lhs, const double *rhs, int num);
+
+// Global L2 norm of a double array.
+double sync_norm(const double *buf, int num);
+
 // In-place exclusive prefix sum; rank 0 receives zeros.
 void sync_prefix(void *buf, int num, MPI_Datatype type);
 

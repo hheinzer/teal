@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -60,6 +61,21 @@ void sync_sum(void *buf, int num, MPI_Datatype type)
 {
     assert(buf && num > 0);
     MPI_Allreduce(MPI_IN_PLACE, buf, num, type, MPI_SUM, sync.comm);
+}
+
+double sync_dot(const double *lhs, const double *rhs, int num)
+{
+    double dot = 0;
+    for (int i = 0; i < num; i++) {
+        dot += lhs[i] * rhs[i];
+    }
+    sync_sum(&dot, 1, MPI_DOUBLE);
+    return dot;
+}
+
+double sync_norm(const double *buf, int num)
+{
+    return sqrt(sync_dot(buf, buf, num));
 }
 
 void sync_prefix(void *buf, int num, MPI_Datatype type)
