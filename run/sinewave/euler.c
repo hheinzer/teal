@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     equations_create_reference(eqns, exact);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
     equations_set_initial_condition(eqns, "domain", exact, 0);
-    equations_set_source(eqns, source);
+    equations_set_source(eqns, source, 0);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);

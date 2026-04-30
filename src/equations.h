@@ -3,6 +3,8 @@
 #include "matrix.h"
 #include "mesh.h"
 
+typedef struct Equations Equations;
+
 // Compute the maximum stable time step for a cell given its volume and face projection.
 typedef double Timestep(const void *primitive, const double *property, double volume,
                         Vector projection);
@@ -34,6 +36,9 @@ typedef Boundary *BoundarySelect(const char *name);
 
 // Convert between primitive and conserved variables.
 typedef void Convert(void *, const void *, const double *property);
+
+// Pre-pass called once per derivative evaluation before per-cell source terms.
+typedef void Prepare(const Equations *, const void *primitive);
 
 typedef struct {
     Timestep *compute;
@@ -86,9 +91,10 @@ typedef struct {
 
 typedef struct {
     Compute *compute;
+    Prepare *prepare;
 } EquationsSource;
 
-typedef struct {
+struct Equations {
     const Mesh *mesh;
     String name;
     int space_order;
@@ -102,7 +108,7 @@ typedef struct {
     EquationsVariables reference;
     EquationsProperties properties;
     EquationsSource source;
-} Equations;
+};
 
 // Create an empty equation system.
 Equations *equations_create(const Mesh *mesh, const char *name, Timestep *timestep,
@@ -147,8 +153,8 @@ void equations_set_initial_condition(Equations *eqns, const char *entity, Comput
 // Override a named physical property value.
 void equations_set_property(Equations *eqns, const char *name, double property);
 
-// Set the source term callback.
-void equations_set_source(Equations *eqns, Compute *compute);
+// Set the source term callback and optionally a prepare function.
+void equations_set_source(Equations *eqns, Compute *compute, Prepare *prepare);
 
 // Print a summary of the equation system.
 void equations_summary(const Equations *eqns);
@@ -170,6 +176,10 @@ void equations_derivative(const Equations *eqns, void *primitive, void *derivati
 
 // Compute the volume-weighted L2 norm of the derivative.
 void equations_residual(const Equations *eqns, const void *derivative, void *residual);
+
+// Compute the volume-weighted average of primitive variables over a named entity.
+void equations_average(const Equations *eqns, const char *entity, const void *primitive,
+                       void *average);
 
 // Compute the L2 error norm against the reference solution.
 void equations_norm(const Equations *eqns, void *norm, double time);

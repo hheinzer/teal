@@ -240,7 +240,12 @@ static void finalize_derivative(const Equations *eqns, const void *primitive_, v
     double *property = eqns->properties.data;
 
     Compute *compute = eqns->source.compute;
+    Prepare *prepare = eqns->source.prepare;
     double source[stride_c];
+
+    if (prepare) {
+        prepare(eqns, primitive);
+    }
 
     if (!compute) {
         for (int i = 0; i < num_inner; i++) {

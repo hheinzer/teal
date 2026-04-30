@@ -140,8 +140,9 @@ void equations_set_property(Equations *eqns, const char *name, double property)
     teal_error("invalid property (%s)", name);
 }
 
-void equations_set_source(Equations *eqns, Compute *compute)
+void equations_set_source(Equations *eqns, Compute *compute, Prepare *prepare)
 {
     assert(eqns && compute);
     eqns->source.compute = compute;
+    eqns->source.prepare = prepare;
 }
