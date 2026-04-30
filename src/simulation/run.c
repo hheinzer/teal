@@ -79,7 +79,7 @@ double simulation_run(Simulation *sim)
         }
 
         int has_reached_time = is_greater_equal(time, fmin(max_time, out_time));
-        int has_reached_iter = iter >= (out_iter < max_iter ? out_iter : max_iter);
+        int has_reached_iter = iter >= ((out_iter < max_iter) ? out_iter : max_iter);
 
         if (has_reached_time || has_reached_iter || has_converged || sig_terminate) {
             double wtime_now = MPI_Wtime();

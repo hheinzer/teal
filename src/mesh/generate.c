@@ -655,7 +655,7 @@ static void compute_cell_offsets(Mesh *mesh)
     for (int i = 0; i < mesh->cells.num_inner; i++) {
         for (int j = mesh->cells.cell.off[i]; j < mesh->cells.cell.off[i + 1]; j++) {
             int idx = mesh->cells.cell.idx[j];
-            Map key = {.left = (i < idx) ? i : idx, .right = (i > idx) ? i : idx};
+            Map key = {.left = ((i < idx) ? i : idx), .right = ((i > idx) ? i : idx)};
             Map *val = search(&key, map, mesh->faces.num, sizeof(*map), compare_map);
             assert(val);
             offset[j] = vector_sub(mesh->faces.center[val->idx], mesh->cells.center[i]);

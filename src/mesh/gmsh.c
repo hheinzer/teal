@@ -316,9 +316,9 @@ static Slice slice_rank(uint64_t total)
 
 static int num_overlap(uint64_t beg, uint64_t end, uint64_t offset, uint64_t tot)
 {
-    uint64_t min = (end < offset + tot) ? end : offset + tot;
+    uint64_t min = (end < offset + tot) ? end : (offset + tot);
     uint64_t max = (beg > offset) ? beg : offset;
-    uint64_t num = (min > max) ? min - max : 0;
+    uint64_t num = (min > max) ? (min - max) : 0;
     assert(num <= INT_MAX);
     return (int)num;
 }

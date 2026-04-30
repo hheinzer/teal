@@ -80,7 +80,7 @@ static void split_bounds(double *min_coord, double *max_coord, int *num_cells, i
         double width = (*max_coord - *min_coord) / *num_cells;
         int base = *num_cells / dims[dim];
         int extra = *num_cells % dims[dim];
-        int offset = (coords[dim] * base) + (coords[dim] < extra ? coords[dim] : extra);
+        int offset = (coords[dim] * base) + ((coords[dim] < extra) ? coords[dim] : extra);
         *num_cells = base + (coords[dim] < extra);
         *min_coord = *min_coord + (offset * width);
         *max_coord = *min_coord + (*num_cells * width);
@@ -352,7 +352,8 @@ static void append_side_send_idx(int *send_idx, int *send_off, Triple num_cells,
 {
     switch (idx / 2) {
         case 0: {
-            int i = (idx % 2 == 0) ? 0 : num_cells.x - 1;  // NOLINT(readability-identifier-length)
+            int i =  // NOLINT(readability-identifier-length)
+                (idx % 2 == 0) ? 0 : (num_cells.x - 1);
             for (int j = 0; j < num_cells.y; j++) {
                 for (int k = 0; k < num_cells.z; k++) {
                     send_idx[(*send_off)++] = i + (num_cells.x * (j + (num_cells.y * k)));
@@ -361,7 +362,8 @@ static void append_side_send_idx(int *send_idx, int *send_off, Triple num_cells,
             return;
         }
         case 1: {
-            int j = (idx % 2 == 0) ? 0 : num_cells.y - 1;  // NOLINT(readability-identifier-length)
+            int j =  // NOLINT(readability-identifier-length)
+                (idx % 2 == 0) ? 0 : (num_cells.y - 1);
             for (int k = 0; k < num_cells.z; k++) {
                 for (int i = 0; i < num_cells.x; i++) {
                     send_idx[(*send_off)++] = i + (num_cells.x * (j + (num_cells.y * k)));
@@ -370,7 +372,8 @@ static void append_side_send_idx(int *send_idx, int *send_off, Triple num_cells,
             return;
         }
         case 2: {
-            int k = (idx % 2 == 0) ? 0 : num_cells.z - 1;  // NOLINT(readability-identifier-length)
+            int k =  // NOLINT(readability-identifier-length)
+                (idx % 2 == 0) ? 0 : (num_cells.z - 1);
             for (int i = 0; i < num_cells.x; i++) {
                 for (int j = 0; j < num_cells.y; j++) {
                     send_idx[(*send_off)++] = i + (num_cells.x * (j + (num_cells.y * k)));
@@ -406,7 +409,7 @@ static void create_neighbors(Mesh *mesh, Triple num_cells, const int *dims, cons
     for (int i = 0; i < 2 * ndims; i++) {
         if (neighbor[i] != MPI_PROC_NULL && is_outer_side(dims, coords, i)) {
             tag[num][0] = i;
-            tag[num][1] = (i % 2 == 0) ? i + 1 : i - 1;
+            tag[num][1] = (i % 2 == 0) ? (i + 1) : (i - 1);
             rank[num] = neighbor[i];
             recv_off[num + 1] = recv_off[num] + num_cells_side(num_cells, i);
             send_off[num + 1] = send_off[num];
