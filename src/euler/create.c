@@ -53,7 +53,7 @@ Equations *euler_create(const Mesh *mesh)
     const char *primitive[] = {"density", "velocity", "pressure"};
     equations_create_primitive(eqns, primitive, (int[]){1, 3, 1}, euler_primitive, 3);
 
-    const char *conserved[] = {"_density", "momentum", "energy"};
+    const char *conserved[] = {"density", "momentum", "energy"};
     equations_create_conserved(eqns, conserved, (int[]){1, 3, 1}, euler_conserved, 3);
 
     const char *property[] = {"heat capacity ratio"};

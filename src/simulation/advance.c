@@ -111,8 +111,8 @@ double lserk(const Equations *eqns, double *time, void *residual, double max_ste
     *time += step;
     equations_residual(eqns, derivative, residual);
 
-    teal_free(conserved0);
     teal_free(derivative);
+    teal_free(conserved0);
     return step0;
 }
 
@@ -138,8 +138,8 @@ double implicit_euler(const Equations *eqns, double *time, void *residual, doubl
     double (*conserved0)[stride_c] = teal_calloc(num_inner, sizeof(*conserved0));
     for (int i = 0; i < num_inner; i++) {
         prim2cons(conserved[i], primitive[i], property);
-        copy(conserved0[i], conserved[i], stride_c, sizeof(double));
     }
+    copy(conserved0, conserved, num_inner, sizeof(*conserved0));
 
     *time += step;
     double (*derivative)[stride_c] = teal_calloc(num_inner, sizeof(*derivative));
