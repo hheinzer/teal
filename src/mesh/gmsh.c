@@ -408,7 +408,7 @@ static void read_elements(Gmsh *gmsh, MPI_File file, int mode)
         int len = len_node_tags(&block[i]);
         block[i].node_tag = teal_calloc(num * len, sizeof(*block[i].node_tag));
 
-        uint64_t (*buf)[1 + len] = teal_calloc(num, (int)sizeof(*buf));
+        uint64_t (*buf)[1 + len] = teal_calloc(num, sizeof(*buf));
         parse(file, buf, num * (1 + len), MPI_UINT64_T, mode | SPLIT);
 
         for (int j = 0; j < num; j++) {

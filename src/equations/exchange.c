@@ -16,7 +16,7 @@ Exchange equations_exchange(const Equations *eqns, void *buf_, int len)
 
     double (*buf)[len] = buf_;
 
-    double (*send)[len] = teal_calloc(send_off[num], (int)sizeof(*send));
+    double (*send)[len] = teal_calloc(send_off[num], sizeof(*send));
     for (int i = 0; i < num; i++) {
         for (int j = send_off[i]; j < send_off[i + 1]; j++) {
             memcpy(send[j], buf[send_idx[j]], sizeof(*buf));

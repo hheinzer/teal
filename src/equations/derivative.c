@@ -273,7 +273,7 @@ void equations_derivative(const Equations *eqns, void *primitive, void *derivati
             int num_cells = eqns->mesh->cells.num;
             int stride = eqns->primitive.stride;
 
-            Vector(*gradient)[stride] = teal_calloc(num_cells, (int)sizeof(*gradient));
+            Vector(*gradient)[stride] = teal_calloc(num_cells, sizeof(*gradient));
             equations_gradient(eqns, primitive, gradient);
 
             if (eqns->viscous.flux) {

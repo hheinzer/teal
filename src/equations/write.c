@@ -68,7 +68,7 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
     }
     assert(cap > 0);
 
-    void *buf_ = teal_calloc(num_cells, (int)sizeof(double[cap]));
+    void *buf_ = teal_calloc(num_cells, sizeof(double[cap]));
 
     int off = 0;
     for (int i = 0; i < num; i++) {

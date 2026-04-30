@@ -28,7 +28,7 @@ static void matvec(const Equations *eqns, const void *conserved_, const void *de
     double eps = fd_scale / sync_norm(*basis, num_inner * stride_c);
 
     double perturbed[stride_c];
-    double (*primitive1)[stride_p] = teal_calloc(num_cells, (int)sizeof(*primitive1));
+    double (*primitive1)[stride_p] = teal_calloc(num_cells, sizeof(*primitive1));
     for (int i = 0; i < num_inner; i++) {
         for (int j = 0; j < stride_c; j++) {
             perturbed[j] = conserved[i][j] + (eps * basis[i][j]);
@@ -36,7 +36,7 @@ static void matvec(const Equations *eqns, const void *conserved_, const void *de
         cons2prim(primitive1[i], perturbed, property);
     }
 
-    double (*derivative1)[stride_c] = teal_calloc(num_inner, (int)sizeof(*derivative1));
+    double (*derivative1)[stride_c] = teal_calloc(num_inner, sizeof(*derivative1));
     equations_derivative(eqns, primitive1, derivative1, time);
 
     for (int i = 0; i < num_inner; i++) {
@@ -69,10 +69,10 @@ void gmres(const Equations *eqns, const void *conserved_, const void *derivative
         return;
     }
 
-    double *rhs = teal_calloc(dim + 1, (int)sizeof(*rhs));
+    double *rhs = teal_calloc(dim + 1, sizeof(*rhs));
     rhs[0] = norm;
 
-    double (*basis)[num_inner][stride_c] = teal_calloc(dim + 1, (int)sizeof(*basis));
+    double (*basis)[num_inner][stride_c] = teal_calloc(dim + 1, sizeof(*basis));
     for (int i = 0; i < num_inner; i++) {
         for (int j = 0; j < stride_c; j++) {
             basis[0][i][j] = -residual[i][j] / norm;
@@ -81,10 +81,10 @@ void gmres(const Equations *eqns, const void *conserved_, const void *derivative
 
     double tol_norm = tol * norm;
 
-    double (*result)[stride_c] = teal_calloc(num_inner, (int)sizeof(*result));
-    double (*hess)[dim] = teal_calloc(dim + 1, (int)sizeof(*hess));
-    double *cosine = teal_calloc(dim, (int)sizeof(*cosine));
-    double *sine = teal_calloc(dim, (int)sizeof(*sine));
+    double (*result)[stride_c] = teal_calloc(num_inner, sizeof(*result));
+    double (*hess)[dim] = teal_calloc(dim + 1, sizeof(*hess));
+    double *cosine = teal_calloc(dim, sizeof(*cosine));
+    double *sine = teal_calloc(dim, sizeof(*sine));
     int iter = 0;
     for (; iter < dim; iter++) {
         matvec(eqns, conserved, derivative, basis[iter], result, time, step, fd_scale);
@@ -125,7 +125,7 @@ void gmres(const Equations *eqns, const void *conserved_, const void *derivative
         }
     }
 
-    double *coef = teal_calloc(dim, (int)sizeof(*coef));
+    double *coef = teal_calloc(dim, sizeof(*coef));
     for (int i = iter - 1; i >= 0; i--) {
         coef[i] = rhs[i];
         for (int j = i + 1; j < iter; j++) {

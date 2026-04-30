@@ -148,14 +148,14 @@ typedef struct {
     size_t bytes;
 } Alloc;
 
-static void *teal_malloc(int num, int size)
+static void *teal_malloc(int num, size_t size)
 {
     size_t extra = sizeof(Alloc) + (ALIGN - 1);
     if ((size_t)num > (SIZE_MAX - extra) / size) {
-        teal_error("overflow (%d, %d)", num, size);
+        teal_error("overflow (%d, %zu)", num, size);
     }
 
-    size_t bytes = (size_t)num * size;
+    size_t bytes = num * size;
 
     char *base = malloc(bytes + extra);
     if (!base) {
@@ -173,7 +173,7 @@ static void *teal_malloc(int num, int size)
     return ptr;
 }
 
-void *teal_calloc(int num, int size)
+void *teal_calloc(int num, size_t size)
 {
     assert(num >= 0 && size > 0);
 
@@ -183,10 +183,10 @@ void *teal_calloc(int num, int size)
 
     void *ptr = teal_malloc(num, size);
 
-    return memset(ptr, 0, (size_t)num * size);
+    return memset(ptr, 0, num * size);
 }
 
-void *teal_realloc(void *ptr, int num, int size)
+void *teal_realloc(void *ptr, int num, size_t size)
 {
     assert(num >= 0 && size > 0);
 
@@ -203,7 +203,7 @@ void *teal_realloc(void *ptr, int num, int size)
 
     void *new = teal_malloc(num, size);
 
-    size_t bytes = (size_t)num * size;
+    size_t bytes = num * size;
     if (((Alloc *)ptr)[-1].bytes < bytes) {
         bytes = ((Alloc *)ptr)[-1].bytes;
     }

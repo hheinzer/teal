@@ -15,7 +15,7 @@ void simulation_error(const Simulation *sim, double time, void *norm_)
 
     double *norm = norm_;
     if (!norm) {
-        norm = teal_calloc(sim->eqns->primitive.stride, (int)sizeof(*norm));
+        norm = teal_calloc(sim->eqns->primitive.stride, sizeof(*norm));
     }
     equations_norm(sim->eqns, norm, time);
 

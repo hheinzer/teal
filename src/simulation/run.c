@@ -49,7 +49,7 @@ double simulation_run(Simulation *sim)
     }
     out_time += time;
 
-    double *residual = teal_calloc(stride, (int)sizeof(*residual));
+    double *residual = teal_calloc(stride, sizeof(*residual));
 
     teal_print("Running simulation");
     teal_print("\t %13s %13s %13s %13s %13s", "iter", "time", "step", "residual", "wtime");

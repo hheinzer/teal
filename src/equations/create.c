@@ -46,7 +46,7 @@ static void create_variables(EquationsVariables *variables, const Equations *eqn
     variables->dimension = teal_calloc(num, sizeof(*dimension));
     copy(variables->dimension, dimension, num, sizeof(*dimension));
 
-    variables->data = teal_calloc(eqns->mesh->cells.num, (int)sizeof(double[stride]));
+    variables->data = teal_calloc(eqns->mesh->cells.num, sizeof(double[stride]));
 }
 
 void equations_create_primitive(Equations *eqns, const char **name, const int *dimension,

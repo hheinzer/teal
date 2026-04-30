@@ -26,7 +26,7 @@ double euler(const Equations *eqns, double *time, void *residual, double max_ste
     double step0 = courant * equations_timestep(eqns, primitive);
     double step = fmin(step0, max_step);
 
-    double (*derivative)[stride_c] = teal_calloc(num_inner, (int)sizeof(*derivative));
+    double (*derivative)[stride_c] = teal_calloc(num_inner, sizeof(*derivative));
     equations_derivative(eqns, primitive, derivative, *time);
 
     for (int i = 0; i < num_inner; i++) {
@@ -92,12 +92,12 @@ double lserk(const Equations *eqns, double *time, void *residual, double max_ste
     double step0 = courant * equations_timestep(eqns, primitive);
     double step = fmin(step0, max_step);
 
-    double (*conserved0)[stride_c] = teal_calloc(num_inner, (int)sizeof(*conserved0));
+    double (*conserved0)[stride_c] = teal_calloc(num_inner, sizeof(*conserved0));
     for (int i = 0; i < num_inner; i++) {
         prim2cons(conserved0[i], primitive[i], property);
     }
 
-    double (*derivative)[stride_c] = teal_calloc(num_inner, (int)sizeof(*derivative));
+    double (*derivative)[stride_c] = teal_calloc(num_inner, sizeof(*derivative));
     for (int i = 0; i < num_stages; i++) {
         equations_derivative(eqns, primitive, derivative, *time + (alpha[i] * step));
         for (int j = 0; j < num_inner; j++) {
@@ -135,17 +135,17 @@ double implicit_euler(const Equations *eqns, double *time, void *residual, doubl
     double step0 = courant * equations_timestep(eqns, primitive);
     double step = fmin(step0, max_step);
 
-    double (*conserved0)[stride_c] = teal_calloc(num_inner, (int)sizeof(*conserved0));
+    double (*conserved0)[stride_c] = teal_calloc(num_inner, sizeof(*conserved0));
     for (int i = 0; i < num_inner; i++) {
         prim2cons(conserved[i], primitive[i], property);
-        copy(conserved0[i], conserved[i], stride_c, (int)sizeof(double));
+        copy(conserved0[i], conserved[i], stride_c, sizeof(double));
     }
 
     *time += step;
-    double (*derivative)[stride_c] = teal_calloc(num_inner, (int)sizeof(*derivative));
+    double (*derivative)[stride_c] = teal_calloc(num_inner, sizeof(*derivative));
     equations_derivative(eqns, primitive, derivative, *time);
 
-    double (*newton_residual)[stride_c] = teal_calloc(num_inner, (int)sizeof(*newton_residual));
+    double (*newton_residual)[stride_c] = teal_calloc(num_inner, sizeof(*newton_residual));
     for (int i = 0; i < num_inner; i++) {
         for (int j = 0; j < stride_c; j++) {
             newton_residual[i][j] = -derivative[i][j] * step;
@@ -161,7 +161,7 @@ double implicit_euler(const Equations *eqns, double *time, void *residual, doubl
     double tol_norm = tol * norm;
     int max_iter = 128 * (num_inner + 1);
 
-    double (*increment)[stride_c] = teal_calloc(num_inner, (int)sizeof(*increment));
+    double (*increment)[stride_c] = teal_calloc(num_inner, sizeof(*increment));
     for (int iter = 0; iter < max_iter && norm > tol_norm; iter++) {
         gmres(eqns, conserved, derivative, newton_residual, increment, *time, step, norm, fd_scale,
               context);
