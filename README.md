@@ -47,8 +47,8 @@ mpirun -n 4 bin/supersonic_wedge/run
 Visualize the resulting VTKHDF files directly with ParaView.
 
 The test cases demonstrate all capabilities of teal. If your editor supports "jump to definition",
-you can follow the program flow directly in the source. Function names, inline comments, and
-docstrings should be enough to understand what's going on.
+you can follow the program flow directly in the source. Function names and inline comments should be
+enough to understand what's going on.
 
 ## Requirements
 
