@@ -15,10 +15,10 @@ ifeq ($(CC), gcc)
 endif
 
 # debug flags
-CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
+#CFLAGS += -O0 -fno-omit-frame-pointer -fsanitize=address,undefined
 
 # release flags
-#CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused
+CFLAGS += -O3 -march=native -flto=auto -DNDEBUG -Wno-unused
 
 # perf flags
 #CFLAGS += -fno-omit-frame-pointer -fno-inline-functions
