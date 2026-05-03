@@ -1,9 +1,8 @@
 #include <math.h>
 
 #include "navierstokes.h"
-#include "utils.h"
 
-static double mach = 0.1, reynolds = 100;
+static const double mach = 0.1, reynolds = 100;
 static NavierStokesPrimitive average;
 
 static void prepare(const Equations *eqns, const void *primitive)
@@ -12,13 +11,10 @@ static void prepare(const Equations *eqns, const void *primitive)
 }
 
 static void source(void *source_, const double *property, Vector center, double time,
-                   const void *context_)
+                   const void *context)
 {
-    (void)property;
-    (void)center;
-    (void)time;
     NavierStokesConserved *source = source_;
-    const NavierStokesPrimitive *variable = context_;
+    const NavierStokesPrimitive *variable = context;
     double s1 = variable->density * (1 - average.velocity.x) / 0.001;
     source->momentum.x = s1;
     source->energy = variable->velocity.x * s1;
@@ -31,7 +27,8 @@ int main(int argc, char **argv)
     Vector min_coord = {.x = 0, .y = 0};
     Vector max_coord = {.x = 9, .y = 3};
     Triple num_cells = {.x = 150, .y = 50};
-    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, (Triple){1, 0, 0});
+    Triple periodic = {.x = 1, .y = 0};
+    Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
 
     for (long i = 0; i < mesh->nodes.num; i++) {
         Vector *coord = &mesh->nodes.coord[i];
@@ -47,8 +44,8 @@ int main(int argc, char **argv)
 
     Equations *eqns = navierstokes_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);
-    equations_set_boundary_condition(eqns, "bottom", "adiabatic wall", 0, 0);
-    equations_set_boundary_condition(eqns, "top", "adiabatic wall", 0, 0);
+    equations_set_boundary_condition(eqns, "bottom", "wall", 0, 0);
+    equations_set_boundary_condition(eqns, "top", "wall", 0, 0);
     equations_set_initial_condition(eqns, "domain", 0, &initial);
     equations_set_source(eqns, source, prepare);
     equations_set_property(eqns, "dynamic viscosity", 1 / reynolds);
@@ -65,5 +62,6 @@ int main(int argc, char **argv)
     simulation_destroy(sim);
     equations_destroy(eqns);
     mesh_destroy(mesh);
+
     teal_deinit();
 }

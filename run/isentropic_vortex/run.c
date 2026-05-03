@@ -10,11 +10,9 @@ static double wrap(double x, double xmin, double xmax)
 static void exact(void *primitive_, const double *property, Vector center, double time,
                   const void *context)
 {
-    (void)context;
     EulerPrimitive *primitive = primitive_;
     double gamma = property[EULER_HEAT_CAPACITY_RATIO];
-    Vector position = {5, 5, 0};
-    Vector velocity = {1, 1, 0};
+    Vector position = {.x = 5, .y = 5}, velocity = {.x = 1, .y = 1};
     double vortex_strength = 5;
     double dx = wrap(center.x - (velocity.x * time), 0, 10) - position.x;
     double dy = wrap(center.y - (velocity.y * time), 0, 10) - position.y;
@@ -32,10 +30,10 @@ int main(int argc, char **argv)
 {
     teal_init(&argc, &argv);
 
-    Vector min_coord = {0, 0, 0};
-    Vector max_coord = {10, 10, 0};
-    Triple num_cells = {256, 256, 0};
-    Triple periodic = {1, 1, 0};
+    Vector min_coord = {.x = 0, .y = 0};
+    Vector max_coord = {.x = 10, .y = 10};
+    Triple num_cells = {.x = 256, .y = 256};
+    Triple periodic = {.x = 1, .y = 1};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
     mesh_generate(mesh);
     mesh_summary(mesh);

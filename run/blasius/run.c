@@ -1,9 +1,8 @@
 #include <math.h>
 
 #include "navierstokes.h"
-#include "utils.h"
 
-static double mach = 0.1, reynolds = 1000;
+static const double mach = 0.1, reynolds = 1000;
 
 int main(int argc, char **argv)
 {

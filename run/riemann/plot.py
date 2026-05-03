@@ -3,6 +3,7 @@ import os
 import os.path
 import subprocess
 
+import numpy as np
 import matplotlib.pyplot as plt
 from pypdf import PdfWriter
 import pyvista as pv
@@ -26,7 +27,7 @@ def read_solution(fname):
     gamma = mesh.field_data["heat capacity ratio"][0]
 
     def energy(density, velocity, pressure):
-        return pressure / (gamma - 1) + 0.5 * density * velocity[:, 0] ** 2
+        return pressure / (gamma - 1) + 0.5 * density * np.sum(velocity ** 2, axis=1)
 
     mesh["energy"] = energy(mesh["density"], mesh["velocity"], mesh["pressure"])
     mesh["energy-ref"] = energy(mesh["density-ref"], mesh["velocity-ref"], mesh["pressure-ref"])

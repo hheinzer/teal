@@ -2,13 +2,18 @@
 
 #include "euler.h"
 
-static double alpha = 30 * M_PI / 180;
-static EulerPrimitive upstream = {.density = 1.4, .pressure = 1};
-static EulerPrimitive downstream = {
+static const EulerPrimitive upstream = {.density = 1.4, .pressure = 1};
+static const EulerPrimitive downstream = {
     .density = 8, .velocity = {.x = 7.1447096, .y = -4.125}, .pressure = 116.5};
-static double shift = 1.0 / 6, Wx = 8.660254, Wy = -5;
-static void dmr(void *variable_, const double *property, Vector center, double time,
-                const void *context);
+static const double alpha = 30 * M_PI / 180, shift = 1.0 / 6, Wx = 8.660254, Wy = -5;
+
+static void initial(void *primitive_, const double *property, Vector center, double time,
+                    const void *context)
+{
+    EulerPrimitive *primitive = primitive_;
+    double angle = atan2(center.x - shift - (Wx * time), center.y - (Wy * time));
+    *primitive = (angle >= alpha) ? upstream : downstream;
+}
 
 int main(int argc, char **argv)
 {
@@ -31,8 +36,8 @@ int main(int argc, char **argv)
     equations_set_boundary_condition(eqns, "right", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "bottom-a", "supersonic outflow", 0, 0);
     equations_set_boundary_condition(eqns, "bottom-b", "slipwall", 0, 0);
-    equations_set_boundary_condition(eqns, "top", "custom", dmr, 0);
-    equations_set_initial_condition(eqns, "domain", dmr, 0);
+    equations_set_boundary_condition(eqns, "top", "custom", initial, 0);
+    equations_set_initial_condition(eqns, "domain", initial, 0);
     equations_summary(eqns);
 
     Simulation *sim = simulation_create(eqns, argv[0]);
@@ -47,12 +52,4 @@ int main(int argc, char **argv)
     mesh_destroy(mesh);
 
     teal_deinit();
-}
-
-static void dmr(void *variable_, const double *property, Vector center, double time,
-                const void *context)
-{
-    EulerPrimitive *variable = variable_;
-    double angle = atan2(center.x - shift - (Wx * time), center.y - (Wy * time));
-    *variable = (angle >= alpha) ? upstream : downstream;
 }

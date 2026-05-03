@@ -5,19 +5,31 @@
 #include "navierstokes.h"
 #include "sync.h"
 
-static double mach = 0.1, reynolds = 1600;
-static void initial(void *variable_, const double *property, Vector center, double time,
-                    const void *context);
+static const double mach = 0.1, reynolds = 1600;
+
+static void initial(void *primitive_, const double *property, Vector center, double time,
+                    const void *context)
+{
+    NavierStokesPrimitive *primitive = primitive_;
+    double gamma = property[NAVIERSTOKES_HEAT_CAPACITY_RATIO];
+    double pressure0 = 1 / (gamma * sq(mach));
+    primitive->velocity.x = sin(center.x) * cos(center.y) * cos(center.z);
+    primitive->velocity.y = -cos(center.x) * sin(center.y) * cos(center.z);
+    primitive->pressure =
+        pressure0 + ((cos(2 * center.x) + cos(2 * center.y)) * (cos(2 * center.z) + 2) / 16);
+    primitive->density = primitive->pressure / pressure0;
+}
 
 int main(int argc, char **argv)
 {
     teal_init(&argc, &argv);
+
     int num = (argc > 1) ? (int)strtol(argv[1], 0, 10) : 64;
 
-    Vector min_coord = {-M_PI, -M_PI, -M_PI};
-    Vector max_coord = {M_PI, M_PI, M_PI};
-    Triple num_cells = {num, num, num};
-    Triple periodic = {1, 1, 1};
+    Vector min_coord = {.x = -M_PI, .y = -M_PI, .z = -M_PI};
+    Vector max_coord = {.x = M_PI, .y = M_PI, .z = M_PI};
+    Triple num_cells = {.x = num, .y = num, .z = num};
+    Triple periodic = {.x = 1, .y = 1, .z = 1};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
     mesh_generate(mesh);
     mesh_summary(mesh);
@@ -28,7 +40,7 @@ int main(int argc, char **argv)
     equations_set_property(eqns, "dynamic viscosity", 1 / reynolds);
     equations_summary(eqns);
 
-    char prefix[128];
+    String prefix;
     sprintf(prefix, "%s_%04d_%04d", argv[0], num, sync.size);
 
     Simulation *sim = simulation_create(eqns, prefix);
@@ -43,17 +55,4 @@ int main(int argc, char **argv)
     mesh_destroy(mesh);
 
     teal_deinit();
-}
-
-static void initial(void *variable_, const double *property, Vector center, double time,
-                    const void *context)
-{
-    NavierStokesPrimitive *variable = variable_;
-    double gamma = property[NAVIERSTOKES_HEAT_CAPACITY_RATIO];
-    double pressure0 = 1 / (gamma * mach * mach);
-    variable->velocity.x = sin(center.x) * cos(center.y) * cos(center.z);
-    variable->velocity.y = (-cos(center.x)) * sin(center.y) * cos(center.z);
-    variable->pressure =
-        pressure0 + ((cos(2 * center.x) + cos(2 * center.y)) * (cos(2 * center.z) + 2) / 16);
-    variable->density = variable->pressure / pressure0;
 }

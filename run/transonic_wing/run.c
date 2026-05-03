@@ -1,9 +1,8 @@
 #include <math.h>
 
 #include "navierstokes.h"
-#include "utils.h"
 
-static double mach = 0.8395, reynolds = 11.72e6, alpha = 3.06 * M_PI / 180;
+static const double mach = 0.8395, reynolds = 11.72e6, alpha = 3.06 * M_PI / 180;
 
 int main(int argc, char **argv)
 {

@@ -35,10 +35,10 @@ int main(int argc, char **argv)
 
     alpha = (argc > 1) ? strtod(argv[1], 0) : 0;
 
-    Vector min_coord = {0, 0, 0};
-    Vector max_coord = {1, 0, 0};
-    Triple num_cells = {1000, 0, 0};
-    Triple periodic = {0, 0, 0};
+    Vector min_coord = {.x = 0};
+    Vector max_coord = {.x = 1};
+    Triple num_cells = {.x = 1000};
+    Triple periodic = {.x = 0};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
     mesh_generate(mesh);
     mesh_summary(mesh);

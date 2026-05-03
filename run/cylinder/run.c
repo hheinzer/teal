@@ -1,7 +1,6 @@
 #include <math.h>
 
 #include "navierstokes.h"
-#include "utils.h"
 
 static const double mach = 0.1, reynolds = 250, velocity_r = 0;
 
@@ -27,10 +26,7 @@ int main(int argc, char **argv)
     mesh_summary(mesh);
 
     NavierStokesPrimitive farfield = {
-        .density = 1,
-        .velocity = {.x = 1},
-        .pressure = 1 / (1.4 * sq(mach)),
-    };
+        .density = 1, .velocity = {.x = 1}, .pressure = 1 / (1.4 * sq(mach))};
 
     Equations *eqns = navierstokes_create(mesh);
     equations_set_limiter(eqns, "venkatakrishnan", 1);

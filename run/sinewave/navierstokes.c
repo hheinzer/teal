@@ -7,7 +7,6 @@ static const double a = 0.1, b = M_PI, c = 2 * M_PI;
 static void exact(void *primitive_, const double *property, Vector center, double time,
                   const void *context)
 {
-    (void)context;
     NavierStokesPrimitive *primitive = primitive_;
     double gamma = property[NAVIERSTOKES_HEAT_CAPACITY_RATIO];
     double phase = (b * (center.x + center.y + center.z)) - (c * time);
@@ -21,7 +20,6 @@ static void exact(void *primitive_, const double *property, Vector center, doubl
 static void source(void *source_, const double *property, Vector center, double time,
                    const void *context)
 {
-    (void)context;
     NavierStokesConserved *source = source_;
     double gamma = property[NAVIERSTOKES_HEAT_CAPACITY_RATIO];
     double viscosity = property[NAVIERSTOKES_DYNAMIC_VISCOSITY];
@@ -44,10 +42,10 @@ int main(int argc, char **argv)
 {
     teal_init(&argc, &argv);
 
-    Vector min_coord = {-1, -1, -1};
-    Vector max_coord = {1, 1, 1};
-    Triple num_cells = {50, 50, 50};
-    Triple periodic = {1, 1, 1};
+    Vector min_coord = {.x = -1, .y = -1, .z = -1};
+    Vector max_coord = {.x = 1, .y = 1, .z = 1};
+    Triple num_cells = {.x = 50, .y = 50, .z = 50};
+    Triple periodic = {.x = 1, .y = 1, .z = 1};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
     mesh_generate(mesh);
     mesh_summary(mesh);

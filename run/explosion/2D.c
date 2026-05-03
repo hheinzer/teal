@@ -13,10 +13,10 @@ int main(int argc, char **argv)
 {
     teal_init(&argc, &argv);
 
-    Vector min_coord = {-1, -1, -1};
-    Vector max_coord = {1, 1, 1};
-    Triple num_cells = {100, 100, 1};
-    Triple periodic = {0, 0, 0};
+    Vector min_coord = {.x = -1, .y = -1, .z = -1};
+    Vector max_coord = {.x = 1, .y = 1, .z = 1};
+    Triple num_cells = {.x = 100, .y = 100};
+    Triple periodic = {.x = 0};
     Mesh *mesh = mesh_create(min_coord, max_coord, num_cells, periodic);
     mesh_generate(mesh);
     mesh_summary(mesh);

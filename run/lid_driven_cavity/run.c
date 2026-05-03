@@ -1,11 +1,20 @@
 #include <math.h>
 
 #include "navierstokes.h"
-#include "utils.h"
 
-static double mach = 0.1, reynolds = 100;
-static void moving_wall(void *variable_, const double *property, Vector center, double time,
-                        const void *context);
+static const double mach = 0.1, reynolds = 100;
+
+static void moving_wall(void *outer_, const double *property, Vector center, double time,
+                        const void *context)
+{
+    NavierStokesPrimitive *outer = outer_;
+    const NavierStokesPrimitive *inner = context;
+    outer->density = inner->density;
+    outer->velocity.x = 2 - inner->velocity.x;
+    outer->velocity.y = -inner->velocity.y;
+    outer->velocity.z = -inner->velocity.z;
+    outer->pressure = inner->pressure;
+}
 
 int main(int argc, char **argv)
 {
@@ -51,16 +60,4 @@ int main(int argc, char **argv)
     mesh_destroy(mesh);
 
     teal_deinit();
-}
-
-static void moving_wall(void *variable_, const double *property, Vector center, double time,
-                        const void *context)
-{
-    NavierStokesPrimitive *ghost = variable_;
-    const NavierStokesPrimitive *inner = context;
-    ghost->density = inner->density;
-    ghost->velocity.x = 2 - inner->velocity.x;
-    ghost->velocity.y = -inner->velocity.y;
-    ghost->velocity.z = -inner->velocity.z;
-    ghost->pressure = inner->pressure;
 }
