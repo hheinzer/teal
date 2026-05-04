@@ -14,10 +14,10 @@ static void source(void *source_, const double *property, Vector center, double 
                    const void *context)
 {
     NavierStokesConserved *source = source_;
-    const NavierStokesPrimitive *variable = context;
-    double s1 = variable->density * (1 - average.velocity.x) / 0.001;
+    const NavierStokesPrimitive *primitive = context;
+    double s1 = primitive->density * (1 - average.velocity.x) / 0.001;
     source->momentum.x = s1;
-    source->energy = variable->velocity.x * s1;
+    source->energy = primitive->velocity.x * s1;
 }
 
 int main(int argc, char **argv)
