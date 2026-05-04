@@ -241,7 +241,9 @@ static void finalize_derivative(const Equations *eqns, const void *primitive_, v
 
     Compute *compute = eqns->source.compute;
     Prepare *prepare = eqns->source.prepare;
+
     double source[stride_c];
+    memset(source, 0, stride_c * sizeof(*source));
 
     if (prepare) {
         prepare(eqns, primitive);
