@@ -25,6 +25,7 @@ int main(int argc, char **argv)
     teal_init(&argc, &argv);
 
     int num = (argc > 1) ? (int)strtol(argv[1], 0, 10) : 64;
+    int max_iter = (argc > 2) ? (int)strtol(argv[2], 0, 10) : 200;
 
     Vector min_coord = {.x = -M_PI, .y = -M_PI, .z = -M_PI};
     Vector max_coord = {.x = M_PI, .y = M_PI, .z = M_PI};
@@ -44,8 +45,8 @@ int main(int argc, char **argv)
     sprintf(prefix, "%s_%04d_%04d", argv[0], num, sync.size);
 
     Simulation *sim = simulation_create(eqns, prefix);
-    simulation_set_max_time(sim, 1);
-    simulation_set_out_time(sim, 0.1);
+    simulation_set_max_iter(sim, max_iter);
+    simulation_set_out_iter(sim, max_iter);
     simulation_summary(sim);
 
     simulation_run(sim);

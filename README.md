@@ -63,22 +63,23 @@ enough to understand what's going on.
 
 To assess the [strong scaling](https://hpc-wiki.info/hpc/Scaling) of teal, the [Taylor-Green
 vortex](run/taylor_green_vortex/) test case was run at three resolutions with varying numbers of MPI
-ranks. Speedup and efficiency are computed relative to the 128-rank baseline.
+ranks for a fixed number of iterations. Speedup and efficiency are computed relative to the 128-rank
+baseline.
 
-| cells | ranks | time         | speedup | efficiency [%] |
-| ----- | ----- | ------------ | ------- | -------------- |
-| 128^3 | 128   | 1m 18.0s     | 1.00    | 100.0          |
-| 128^3 | 256   | 39.8s        | 1.96    | 98.0           |
-| 128^3 | 512   | 23.9s        | 3.26    | 81.4           |
-| 128^3 | 1024  | 26.7s        | 2.92    | 36.6           |
-| 256^3 | 128   | 20m 19.4s    | 1.00    | 100.0          |
-| 256^3 | 256   | 10m 44.2s    | 1.89    | 94.7           |
-| 256^3 | 512   | 5m 33.7s     | 3.65    | 91.3           |
-| 256^3 | 1024  | 3m 5.7s      | 6.57    | 82.1           |
-| 512^3 | 128   | 5h 52m 59.4s | 1.00    | 100.0          |
-| 512^3 | 256   | 2h 47m 41.0s | 2.11    | 105.3          |
-| 512^3 | 512   | 1h 31m 3.0s  | 3.88    | 96.9           |
-| 512^3 | 1024  | 44m 52.6s    | 7.87    | 98.3           |
+| cells | iters | ranks | time     | speedup | efficiency [%] |
+| ----- | ----- | ----- | -------- | ------- | -------------- |
+| 128^3 | 25000 | 128   | 40m 36.2s | 1.00   | 100.0          |
+| 128^3 | 25000 | 256   | 18m 35.8s | 2.18   | 109.2          |
+| 128^3 | 25000 | 512   | 9m 16.4s  | 4.38   | 109.5          |
+| 128^3 | 25000 | 1024  | 5m 11.1s  | 7.83   | 97.9           |
+| 256^3 | 3000  | 128   | 42m 48.9s | 1.00   | 100.0          |
+| 256^3 | 3000  | 256   | 21m 10.1s | 2.02   | 101.1          |
+| 256^3 | 3000  | 512   | 10m 24.5s | 4.11   | 102.8          |
+| 256^3 | 3000  | 1024  | 5m 11.3s  | 8.25   | 103.2          |
+| 512^3 | 330   | 128   | 36m 57.3s | 1.00   | 100.0          |
+| 512^3 | 330   | 256   | 18m 14.7s | 2.03   | 101.3          |
+| 512^3 | 330   | 512   | 9m 37.3s  | 3.84   | 96.0           |
+| 512^3 | 330   | 1024  | 5m 3.6s   | 7.30   | 91.3           |
 
 ## Contributing
 
