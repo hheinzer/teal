@@ -187,5 +187,8 @@ void equations_norm(const Equations *eqns, void *norm, double time);
 // Write primitive variables and optional reference solution to disk.
 void equations_write(const Equations *eqns, const char *name, double time, int index);
 
+// Read primitive variables from an output file; interpolate to mesh if necessary.
+void equations_read(const Equations *eqns, const char *fname, double *time, int *index);
+
 // Release all equation system resources.
 void equations_destroy(Equations *eqns);
