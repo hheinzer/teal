@@ -26,11 +26,12 @@ static void print_help(char **argv)
     teal_print(
         "usage: %s [options] ...\n\n"
         "options:\n"
-        "  %-10s show this help message and exit\n"
-        "  %-10s disable normal and verbose printing (errors are still shown)\n"
-        "  %-10s enable verbose printing\n"
-        "  %-10s enable partitioned output files\n",
-        argv[0], "-h", "-q", "-v", "-p");
+        "  %-20s show this help message and exit\n"
+        "  %-20s disable normal and verbose printing (errors are still shown)\n"
+        "  %-20s enable verbose printing\n"
+        "  %-20s enable partitioned output files\n"
+        "  %-20s restart simulation from output file\n",
+        argv[0], "-h", "-q", "-v", "-p", "-r <file>");
 }
 
 static void parse_options(int *argc, char ***argv)
@@ -38,12 +39,13 @@ static void parse_options(int *argc, char ***argv)
     opterr = 0;
 
     int opt;
-    while ((opt = getopt(*argc, *argv, "hqvp")) != -1) {
+    while ((opt = getopt(*argc, *argv, "hqvpr:")) != -1) {
         switch (opt) {
             case 'h': print_help(*argv); teal_exit(EXIT_SUCCESS);
             case 'q': teal.quiet = 1; break;
             case 'v': teal.verbose = 1; break;
             case 'p': teal.partitioned = 1; break;
+            case 'r': teal.restart = optarg; break;
             default: print_help(*argv); teal_exit(EXIT_FAILURE);
         }
     }

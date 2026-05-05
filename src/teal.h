@@ -8,6 +8,7 @@ extern struct teal {
     int quiet;
     int verbose;
     int partitioned;
+    const char *restart;
 } teal;
 
 // Initialize teal; call once at program begin.
