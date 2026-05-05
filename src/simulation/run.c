@@ -42,6 +42,9 @@ double simulation_run(Simulation *sim)
 
     double time = 0;
     int index = 0;
+    if (teal.restart) {
+        equations_read(eqns, teal.restart, &time, &index);
+    }
 
     if (prefix[0]) {
         mesh_write(eqns->mesh, prefix);
