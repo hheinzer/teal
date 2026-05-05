@@ -72,13 +72,11 @@ static void write_variables(const EquationsVariables *variables, int num_cells, 
 
     int off = 0;
     for (int i = 0; i < num; i++) {
-        if (name[i][0]) {
-            double (*buf)[dimension[i]] = buf_;
-            for (int j = 0; j < num_cells; j++) {
-                memcpy(buf[j], &data[j][off], sizeof(*buf));
-            }
-            h5io_dataset_write(name[i], buf, num_cells, dimension[i], H5T_NATIVE_DOUBLE, loc);
+        double (*buf)[dimension[i]] = buf_;
+        for (int j = 0; j < num_cells; j++) {
+            memcpy(buf[j], &data[j][off], sizeof(*buf));
         }
+        h5io_dataset_write(name[i], buf, num_cells, dimension[i], H5T_NATIVE_DOUBLE, loc);
         off += dimension[i];
     }
     assert(off == stride);
