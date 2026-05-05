@@ -78,7 +78,7 @@ static void reorder_cells(Mesh *mesh)
     int *queue = teal_calloc(mesh->cells.num_inner, sizeof(*queue));
 
     assert(mesh->cells.num_inner > 0);
-    int seed = rand() % mesh->cells.num_inner;
+    int seed = 0;
 
     int num_components = 0;
     int num = 0;
