@@ -50,9 +50,9 @@ static void write_mesh_data_partitioned(const Mesh *mesh, int num_nodes, int num
 {
     int num_indices = mesh->cells.node.off[num_cells];
 
-    h5io_dataset_write("NumberOfPoints", &num_nodes, 1, 1, H5T_NATIVE_INT, loc);
-    h5io_dataset_write("NumberOfCells", &num_cells, 1, 1, H5T_NATIVE_INT, loc);
-    h5io_dataset_write("NumberOfConnectivityIds", &num_indices, 1, 1, H5T_NATIVE_INT, loc);
+    h5io_dataset_write("NumberOfPoints", &(long){num_nodes}, 1, 1, H5T_NATIVE_LONG, loc);
+    h5io_dataset_write("NumberOfCells", &(long){num_cells}, 1, 1, H5T_NATIVE_LONG, loc);
+    h5io_dataset_write("NumberOfConnectivityIds", &(long){num_indices}, 1, 1, H5T_NATIVE_LONG, loc);
 
     unsigned char *type = compute_types(mesh, num_cells);
 
@@ -90,19 +90,19 @@ static void write_mesh_data(const Mesh *mesh, int num_nodes, int num_cells, hid_
 {
     int root = (sync.rank == 0);
 
-    int tot_nodes = num_nodes;
-    sync_sum(&tot_nodes, 1, MPI_INT);
+    long tot_nodes = num_nodes;
+    sync_sum(&tot_nodes, 1, MPI_LONG);
 
-    int tot_cells = num_cells;
-    sync_sum(&tot_cells, 1, MPI_INT);
+    long tot_cells = num_cells;
+    sync_sum(&tot_cells, 1, MPI_LONG);
 
     int num_indices = mesh->cells.node.off[num_cells];
-    int tot_indices = num_indices;
-    sync_sum(&tot_indices, 1, MPI_INT);
+    long tot_indices = num_indices;
+    sync_sum(&tot_indices, 1, MPI_LONG);
 
-    h5io_dataset_write("NumberOfPoints", &tot_nodes, root, 1, H5T_NATIVE_INT, loc);
-    h5io_dataset_write("NumberOfCells", &tot_cells, root, 1, H5T_NATIVE_INT, loc);
-    h5io_dataset_write("NumberOfConnectivityIds", &tot_indices, root, 1, H5T_NATIVE_INT, loc);
+    h5io_dataset_write("NumberOfPoints", &tot_nodes, root, 1, H5T_NATIVE_LONG, loc);
+    h5io_dataset_write("NumberOfCells", &tot_cells, root, 1, H5T_NATIVE_LONG, loc);
+    h5io_dataset_write("NumberOfConnectivityIds", &tot_indices, root, 1, H5T_NATIVE_LONG, loc);
 
     int *offset = compute_offsets(mesh, num_cells, num_indices);
     int *index = compute_indices(mesh, num_indices);
