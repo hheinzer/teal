@@ -119,8 +119,9 @@ static long *compute_indices(const Equations *eqns, const Vector *center, int nu
     int num = num_cells;
     for (int rank = 0; rank < sync.size; rank++) {
         for (int i = 0; i < num; i++) {
-            int index;
+            int index = -1;
             kdtree_nearest(tree, query[i].center, &index, 1);
+            assert(index >= 0);
             double dist2 = vector_norm2(vector_sub(query[i].center, center[index]));
             if (dist2 < query[i].best_dist2) {
                 query[i].best_dist2 = dist2;
